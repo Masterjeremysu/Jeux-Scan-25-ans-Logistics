@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scripts/PlayerController.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/ZebraPDA.gd" id="2_zebra"]
@@ -7,23 +7,35 @@
 radius = 0.4
 height = 1.8
 
+[sub_resource type="BoxMesh" id="BoxMesh_zebra_body"]
+size = Vector3(0.12, 0.22, 0.035)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_zebra_case"]
+albedo_color = Color(0.1, 0.1, 0.12, 1)
+metallic = 0.4
+roughness = 0.6
+
+[sub_resource type="BoxMesh" id="BoxMesh_bumper"]
+size = Vector3(0.126, 0.226, 0.038)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bumper"]
+albedo_color = Color(0.96, 0.62, 0.07, 1)
+roughness = 0.8
+
+[sub_resource type="QuadMesh" id="QuadMesh_screen"]
+size = Vector2(0.1, 0.16)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_screen"]
+albedo_color = Color(0.04, 0.07, 0.12, 1)
+emission_enabled = true
+emission = Color(0.08, 0.2, 0.35, 1)
+emission_energy_multiplier = 0.8
+
 [sub_resource type="ImmediateMesh" id="ImmediateMesh_laser"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_laser"]
 shading_mode = 0
-albedo_color = Color(1, 0.15, 0.15, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_zebra"]
-bg_color = Color(0.08, 0.08, 0.1, 0.95)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.96, 0.62, 0.07, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
+albedo_color = Color(1, 0.1, 0.1, 1)
 
 [node name="Player" type="CharacterBody3D"]
 script = ExtResource("1_player")
@@ -36,17 +48,55 @@ shape = SubResource("CapsuleShape3D_1")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.65, 0)
 
 [node name="Camera3D" type="Camera3D" parent="Head"]
-fov = 68.0
+fov = 70.0
 
 [node name="LaserRay" type="RayCast3D" parent="Head"]
-target_position = Vector3(0, 0, -4.5)
+target_position = Vector3(0, 0, -5.0)
 
-[node name="LaserBeam" type="MeshInstance3D" parent="Head"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, -0.2, -0.2)
+[node name="ZebraHand3D" type="Node3D" parent="Head"]
+transform = Transform3D(0.965926, 0.0669873, -0.25, 0, 0.965926, 0.258819, 0.258819, -0.25, 0.933013, -0.28, -0.26, -0.45)
+
+[node name="BumperYellow" type="MeshInstance3D" parent="Head/ZebraHand3D"]
+mesh = SubResource("BoxMesh_bumper")
+surface_material_override/0 = SubResource("StandardMaterial3D_bumper")
+
+[node name="BodyBlack" type="MeshInstance3D" parent="Head/ZebraHand3D"]
+mesh = SubResource("BoxMesh_zebra_body")
+surface_material_override/0 = SubResource("StandardMaterial3D_zebra_case")
+
+[node name="Screen" type="MeshInstance3D" parent="Head/ZebraHand3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0.019)
+mesh = SubResource("QuadMesh_screen")
+surface_material_override/0 = SubResource("StandardMaterial3D_screen")
+
+[node name="LaserBeam" type="MeshInstance3D" parent="Head/ZebraHand3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 0)
 mesh = SubResource("ImmediateMesh_laser")
 surface_material_override/0 = SubResource("StandardMaterial3D_laser")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="ShiftHUD" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 54.0
+grow_horizontal = 2
+
+[node name="ClockLabel" type="Label" parent="CanvasLayer/ShiftHUD"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -160.0
+offset_top = 10.0
+offset_right = 160.0
+offset_bottom = 40.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.96, 0.62, 0.07, 1)
+theme_override_font_sizes/font_size = 18
+text = "⏰ QUART DU MATIN • 07:15 (Fin à 15:00)"
+horizontal_alignment = 1
 
 [node name="ZebraPDA" type="Control" parent="CanvasLayer" groups=["zebra_pda"]]
 layout_mode = 3
@@ -62,13 +112,6 @@ offset_bottom = -20.0
 grow_horizontal = 0
 grow_vertical = 0
 script = ExtResource("2_zebra")
-
-[node name="Panel" type="Panel" parent="CanvasLayer/ZebraPDA"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_zebra")
 
 [node name="VBox" type="VBoxContainer" parent="CanvasLayer/ZebraPDA"]
 layout_mode = 1

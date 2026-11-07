@@ -3,4 +3,5 @@
 *.translation
 export_presets.cfg
 archive_web_prototype/
+godot/
 *.tmp
