@@ -1,73 +1,55 @@
-# 📦 LogiFlux 2026 - Simulateur de Logistique & Réseau de Fret Multimodal
+# 📦 CEA GRENOBLE • NanoDock 3D
+### Quai de Réception, Inspection & Tri Haute Sécurité des Colis Scientifiques
 
-> Un jeu de gestion et de stratégie logistique moderne en temps réel, conçu avec une architecture modulaire TypeScript, un moteur de simulation par graphes et un rendu canvas 60 FPS.
-
----
-
-## 🧭 Concept du Jeu
-
-Dans **LogiFlux 2026**, vous prenez la tête d'un opérateur de fret national :
-* **Développement du Réseau :** Reliez les ports maritimes, aéroports et plateformes logistiques (Le Havre, Paris, Lyon, Marseille, etc.).
-* **Flotte Multimodale :** Affectez des semi-remorques électriques, des trains de fret, des barges et des drones express selon l'urgence et l'empreinte carbone.
-* **Gestion des Crises :** Affrontez des pannes d'automatisation, des intempéries hivernales et des hausses tarifaires de l'énergie.
-* **Économie & Réputation :** Honorez les délais de livraison pour maximiser votre satisfaction client et éviter les pénalités de retard.
+Un jeu 3D physique et tactile développé avec **Three.js** et **TypeScript**, situé au cœur de la Presqu'île scientifique de Grenoble (CEA / Minatec / CNRS / ESRF).
 
 ---
 
-## 📂 Arborescence du Projet
+## 🎮 Concept & Gameplay
+
+Vous incarnez le responsable du quai de réception et du sas de sécurité du **CEA Grenoble**.
+Les laboratoires de pointe reçoivent des cargaisons hautement sensibles :
+
+* 🧪 **Minatec Nanotech (Zone Jaune) :** Wafers de silicium pour puces 2nm, micro-capteurs spatiaux infrarouges. *Chocs interdits, maintien vertical impératif.*
+* ❄️ **SBT Cryogénie (Zone Bleue) :** Cuves Dewar d'azote liquide (-196°C), cryostats à dilution hélium. *Risque de fuite si renversé.*
+* ⚛️ **IRIG Labo Quantique (Zone Violette) :** Processeurs qubits à spin de silicium, blindages magnétiques.
+* 🛑 **Sas Décontamination / Rejet (Zone Rouge) :** Filtres ioniques usagés, colis défectueux.
+
+### 🕹️ Commandes :
+* **Clic gauche maintenu + glisser :** Saisir un colis 3D sur le tapis roulant et le déplacer dans l'espace vers son casier de destination.
+* **Touches `A` et `E` :** Faire pivoter le colis à 360° pour inspecter les étiquettes de sécurité et le code-barres.
+* **Tablette d'inspection :** Scanne automatiquement les spécifications (température, masse, protocole, fragilité) au clic.
+
+---
+
+## 📂 Architecture du Projet
 
 ```text
 Jeux 25 ANS/
-├── docs/
-│   └── ROADMAP.md          # Feuille de route et évolutions futures (Agents IA, multijoueur)
 ├── src/
+│   ├── audio/
+│   │   └── SoundEffects.ts      # Bruitages synthétiques Web Audio (scanner, pose, validation, erreur)
 │   ├── core/
-│   │   ├── Simulation.ts   # Boucle de simulation des flux, mouvements et dispatching
-│   │   ├── Economy.ts      # Gestion de la trésorerie, réputation et bilan carbone
-│   │   └── CrisisManager.ts# Événements imprévus et aléas logistiques
-│   ├── data/
-│   │   └── scenarioFrance.ts # Coordonnées des hubs et catalogue des véhicules
+│   │   └── ParcelData.ts        # Modèles de colis CEA Grenoble et contraintes physiques
 │   ├── render/
-│   │   └── CanvasRenderer.ts # Moteur de rendu Canvas 2D stylisé (glow, pulse, particules)
+│   │   ├── Scene3D.ts           # Moteur Three.js (quai, éclairage studio, ombres douces, Drag & Drop 3D)
+│   │   └── TextureGenerator.ts  # Générateur procédural d'étiquettes réalistes CEA (code-barres, logos)
 │   ├── ui/
-│   │   └── UIManager.ts    # Contrôle de l'interface, commandes, modales et alertes
+│   │   └── UIManager.ts         # HUD tablette d'inspection, score de conformité et alertes
 │   ├── types/
-│   │   └── game.ts         # Définitions TypeScript complètes
-│   ├── style.css           # Thème sombre glassmorphic & responsive
-│   └── main.ts             # Point d'entrée de l'application
-├── index.html              # Structure de l'interface
+│   │   └── game.ts              # Définitions TypeScript
+│   ├── style.css                # Interface moderne sombre & tactile
+│   └── main.ts                  # Point d'entrée et boucle Three.js
+├── index.html
 ├── package.json
 └── tsconfig.json
 ```
 
 ---
 
-## 🚀 Démarrage Rapide
+## 🚀 Démarrer le jeu
 
-### 1. Lancer le serveur local de développement :
 ```bash
 npm run dev
 ```
-Ouvrez le lien affiché (par défaut `http://localhost:5173`) dans votre navigateur.
-
-### 2. Compiler pour la production :
-```bash
-npm run build
-```
-
----
-
-## 🐙 Comment publier sur GitHub
-
-1. **Créer un nouveau dépôt sur GitHub :**
-   * Rendez-vous sur [github.com/new](https://github.com/new).
-   * Nommez le dépôt (ex: `logiflux-2026`).
-   * Laissez le dépôt vide (sans cocher README ou .gitignore, car ils sont déjà créés ici).
-
-2. **Lier le dépôt local et pousser le code :**
-   Dans votre terminal, exécutez les commandes suivantes :
-   ```bash
-   git branch -M main
-   git remote add origin https://github.com/<VOTRE_NOM_UTILISATEUR>/logiflux-2026.git
-   git push -u origin main
-   ```
+Ouvrez le lien local (ex: `http://localhost:5173`) dans votre navigateur.

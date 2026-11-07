@@ -3,82 +3,124 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LogiFlux 2026 - Simulation Logistique & Réseau de Fret</title>
+    <title>CEA GRENOBLE • NanoDock 3D - Réception & Tri Haute Sécurité</title>
     <link rel="stylesheet" href="./src/style.css" />
   </head>
   <body>
     <!-- En-tête HUD -->
     <header class="barre-superieure">
       <div class="logo-groupe">
-        <h1>📦 LOGI<span>FLUX</span> <small style="font-size: 0.65rem; color: #94a3b8; font-weight: normal;">2026</small></h1>
+        <div class="logo-cea">CEA</div>
+        <div>
+          <h1>GRENOBLE <span>NANODOCK 3D</span></h1>
+          <small>Sas de Réception & Dispatching Salle Blanche</small>
+        </div>
       </div>
 
       <div class="indicateurs">
         <div class="indicateur">
-          <span class="libelle">Trésorerie</span>
-          <span class="valeur" id="stat-tresorerie">100 000 €</span>
+          <span class="libelle">Score Sécurité</span>
+          <span class="valeur" id="stat-score">0 pts</span>
         </div>
         <div class="indicateur">
-          <span class="libelle">Satisfaction Client</span>
-          <span class="valeur" id="stat-reputation">85%</span>
+          <span class="libelle">Conformes</span>
+          <span class="valeur succes" id="stat-conformes">0</span>
         </div>
         <div class="indicateur">
-          <span class="libelle">Palettes Livrées</span>
-          <span class="valeur" id="stat-palettes">0</span>
+          <span class="libelle">Erreurs</span>
+          <span class="valeur erreur" id="stat-erreurs">0</span>
         </div>
         <div class="indicateur">
-          <span class="libelle">Émissions CO₂</span>
-          <span class="valeur" id="stat-co2">0.0 kg</span>
+          <span class="libelle">Conformité CEA</span>
+          <span class="valeur" id="stat-taux">100%</span>
         </div>
       </div>
 
-      <div class="controles-vitesse">
-        <button class="btn-vitesse" data-vitesse="0">⏸ Pause</button>
-        <button class="btn-vitesse actif" data-vitesse="1">▶ 1x</button>
-        <button class="btn-vitesse" data-vitesse="2">⏩ 2x</button>
-        <button class="btn-vitesse" data-vitesse="4">⚡ 4x</button>
-      </div>
+      <button id="btn-nouveau-colis" class="btn-action">📦 Arrivée Camion / Nouveau Colis</button>
     </header>
 
-    <!-- Zone Canvas & Affichage Carte -->
-    <main class="zone-jeu">
-      <canvas id="canvas-jeu"></canvas>
+    <!-- Scène 3D & Overlays HUD -->
+    <main class="zone-principale">
+      <!-- Conteneur Three.js -->
+      <div id="conteneur-3d"></div>
 
-      <!-- Bannière d'info / Crise -->
-      <div id="banniere-crise" class="banniere"></div>
+      <!-- Bannière de retour validation -->
+      <div id="banniere-feedback" class="banniere-status"></div>
 
-      <!-- Tiroir Hub latéral -->
-      <aside id="panneau-hub" class="panneau-lateral">
-        <div class="panneau-entete">
-          <h2 id="hub-titre">Hub Central</h2>
-          <p id="hub-capacite">Stockage : 0 / 1000 palettes</p>
+      <!-- Tablette d'inspection du colis scanné (Gauche) -->
+      <aside class="tablette-inspection">
+        <div class="tablette-entete">
+          <span class="voyant-actif"></span>
+          <h3>TABLETTE INSPECTION PROTOCOLE</h3>
+        </div>
+        
+        <div class="corps-fiche">
+          <h2 id="fiche-nom">Cliquez sur un colis 3D</h2>
+          <span id="fiche-id" class="code-id">ID: En attente...</span>
+
+          <div class="champ-info">
+            <label>LABORATOIRE DESTINATAIRE :</label>
+            <div id="fiche-dest" class="valeur-dest">Saisissez un colis sur le tapis</div>
+          </div>
+
+          <div class="ligne-double">
+            <div class="champ-info">
+              <label>MASSE :</label>
+              <div id="fiche-poids" class="valeur-spec">-- kg</div>
+            </div>
+            <div class="champ-info">
+              <label>TEMPÉRATURE :</label>
+              <div id="fiche-temp" class="valeur-spec">-- °C</div>
+            </div>
+          </div>
+
+          <div class="champ-info">
+            <label>CONSIGNES PROTOCOLE :</label>
+            <p id="fiche-desc" class="description-colis">Utilisez le clic gauche pour attraper un colis 3D et le déplacer vers son casier dédié.</p>
+          </div>
+
+          <div id="fiche-badges" class="zone-badges"></div>
         </div>
 
-        <div class="actions-hub">
-          <button id="btn-ameliorer-hub" class="btn-action primaire">Améliorer (+Capacité)</button>
-          <button id="btn-relier-hub" class="btn-action">🔗 Créer une nouvelle liaison</button>
-          <button id="btn-ouvrir-achat" class="btn-action">🚚 Affecter un véhicule ici</button>
+        <div class="aide-controles">
+          <p>🖱️ <strong>Clic gauche :</strong> Attraper & Glisser</p>
+          <p>⌨️ <strong>Touches A / E :</strong> Faire pivoter</p>
         </div>
+      </aside>
 
-        <div class="section-fret">
-          <h3>Fret en attente d'expédition</h3>
-          <ul id="hub-stock-liste" class="liste-fret">
-            <li class="vide">Aucune marchandise</li>
-          </ul>
+      <!-- Légende des Bacs de Tri (Droite) -->
+      <aside class="guide-tri">
+        <h4>CASIERS DE DESTINATION CEA</h4>
+        <div class="item-guide jaune">
+          <span class="pastille"></span>
+          <div>
+            <strong>Minatec Nanotech</strong>
+            <small>Wafers Silicium, micro-capteurs</small>
+          </div>
+        </div>
+        <div class="item-guide bleu">
+          <span class="pastille"></span>
+          <div>
+            <strong>SBT Cryogénie</strong>
+            <small>Azote liquide, supraconducteurs</small>
+          </div>
+        </div>
+        <div class="item-guide violet">
+          <span class="pastille"></span>
+          <div>
+            <strong>Labo Quantique</strong>
+            <small>Puces qubits, blindages magnétiques</small>
+          </div>
+        </div>
+        <div class="item-guide rouge">
+          <span class="pastille"></span>
+          <div>
+            <strong>Sas Rejet / Décontam.</strong>
+            <small>Filtres ioniques, rebuts</small>
+          </div>
         </div>
       </aside>
     </main>
-
-    <!-- Modale Achat de Véhicule -->
-    <div id="modal-achat" class="modal-overlay">
-      <div class="modal-contenu">
-        <div class="modal-entete">
-          <h3>Commander un Nouveau Véhicule</h3>
-          <button id="btn-fermer-modal" class="btn-fermer">&times;</button>
-        </div>
-        <div id="catalogue-vehicules" class="grille-vehicules"></div>
-      </div>
-    </div>
 
     <script type="module" src="./src/main.ts"></script>
   </body>
