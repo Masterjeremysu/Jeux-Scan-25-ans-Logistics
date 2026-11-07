@@ -1,7 +1,6 @@
-node_modules
-dist
-.DS_Store
-*.local
-.env
-.idea
-.vscode
+# Godot 4
+.godot/
+*.translation
+export_presets.cfg
+archive_web_prototype/
+*.tmp
