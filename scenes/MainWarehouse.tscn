@@ -1,0 +1,79 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
+[ext_resource type="PackedScene" path="res://scenes/DrawerCabinet.tscn" id="2_cabinet"]
+[ext_resource type="Script" path="res://scripts/WarehouseManager.gd" id="3_mgr"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
+sky_top_color = Color(0.12, 0.18, 0.28, 1)
+sky_horizon_color = Color(0.2, 0.28, 0.38, 1)
+ground_bottom_color = Color(0.08, 0.1, 0.15, 1)
+
+[sub_resource type="Sky" id="Sky_env"]
+sky_material = SubResource("ProceduralSkyMaterial_sky")
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 2
+sky = SubResource("Sky_env")
+ambient_light_source = 2
+ambient_light_color = Color(0.8, 0.85, 0.9, 1)
+ambient_light_energy = 0.8
+tonemap_mode = 2
+ssao_enabled = true
+glow_enabled = true
+glow_intensity = 0.4
+glow_bloom = 0.15
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
+size = Vector3(26, 0.2, 22)
+
+[sub_resource type="BoxMesh" id="BoxMesh_floor"]
+size = Vector3(26, 0.2, 22)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
+albedo_color = Color(0.2, 0.25, 0.32, 1)
+metallic = 0.15
+roughness = 0.35
+
+[sub_resource type="BoxMesh" id="BoxMesh_bench"]
+size = Vector3(3.5, 0.9, 1.6)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bench"]
+albedo_color = Color(0.28, 0.33, 0.41, 1)
+metallic = 0.6
+roughness = 0.3
+
+[node name="MainWarehouse" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_main")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 5, 10, 5)
+light_color = Color(0.98, 0.98, 1, 1)
+light_energy = 1.4
+shadow_enabled = true
+
+[node name="WarehouseManager" type="Node" parent="."]
+script = ExtResource("3_mgr")
+
+[node name="Floor" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
+shape = SubResource("BoxShape3D_floor")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Floor"]
+mesh = SubResource("BoxMesh_floor")
+surface_material_override/0 = SubResource("StandardMaterial3D_floor")
+
+[node name="DrawerCabinet" parent="." instance=ExtResource("2_cabinet")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -4)
+
+[node name="PackingBench" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 2.5)
+mesh = SubResource("BoxMesh_bench")
+surface_material_override/0 = SubResource("StandardMaterial3D_bench")
+
+[node name="Player" parent="." instance=ExtResource("1_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3)
