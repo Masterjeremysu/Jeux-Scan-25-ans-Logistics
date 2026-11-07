@@ -1,0 +1,96 @@
+import { MissionWMS, PieceLogistique } from '../types/game';
+
+export const CATALOGUE_PIECES_STOCK: Omit<PieceLogistique, 'mesh' | 'estEmballee' | 'positionInitiale'>[] = [
+  {
+    id: 'piece_pompe_turbo',
+    reference: 'CEA-VAC-P900',
+    nom: 'Pompe Turbomoléculaire 300 L/s',
+    categorie: 'pompe',
+    poidsKg: 8.5,
+    fragile: true,
+    emplacementStock: 'Allée V - Rack 04 - Niv. 1',
+  },
+  {
+    id: 'piece_raccord_kf40',
+    reference: 'CEA-KF40-INX',
+    nom: 'Bride & Raccord KF40 Inox 316L',
+    categorie: 'raccord_vide',
+    poidsKg: 0.6,
+    fragile: false,
+    emplacementStock: 'Allée V - Bac 12',
+  },
+  {
+    id: 'piece_jauge_pirani',
+    reference: 'CEA-JAU-PIR5',
+    nom: 'Jauge à Vide Pirani Active 10⁻⁴ mbar',
+    categorie: 'jauge',
+    poidsKg: 0.4,
+    fragile: true,
+    emplacementStock: 'Allée E - Tiroir 08',
+  },
+  {
+    id: 'piece_pompe_primaire',
+    reference: 'CEA-POM-ALC20',
+    nom: 'Pompe à Palettes Primaire Bi-étagée',
+    categorie: 'pompe',
+    poidsKg: 28.0,
+    fragile: false,
+    emplacementStock: 'Zone Sol - Emplacement ZS-02',
+  },
+  {
+    id: 'piece_wafer_box',
+    reference: 'CEA-WAF-300C',
+    nom: 'Boîtier Transfert Hermétique Wafers 300mm',
+    categorie: 'silicium',
+    poidsKg: 2.1,
+    fragile: true,
+    emplacementStock: 'Armoire Stérile AS-01',
+  },
+];
+
+export const MISSIONS_WMS_INITIALES: MissionWMS[] = [
+  {
+    id: 'mission_401',
+    numeroCommande: 'CMD-CEA-2026-401',
+    type: 'picking_colis',
+    titre: 'Bâti de Dépôt sous Vide • LETI Bât. 17',
+    destinataireBatiment: 'Bâtiment 17 - Plateforme Nano-Caractérisation',
+    serviceDemandeur: 'Dr. V. Moreau / Équipe Dépôt Couches Minces',
+    priorite: 'URGENTE',
+    statut: 'en_cours',
+    codeBarreExpedition: 'CEA-EXP-401-LETI17',
+    references: [
+      { reference: 'CEA-VAC-P900', nom: 'Pompe Turbomoléculaire', quantiteRequise: 1, quantiteScanee: 0 },
+      { reference: 'CEA-KF40-INX', nom: 'Raccord KF40 Inox', quantiteRequise: 1, quantiteScanee: 0 },
+      { reference: 'CEA-JAU-PIR5', nom: 'Jauge Pirani Active', quantiteRequise: 1, quantiteScanee: 0 },
+    ],
+  },
+  {
+    id: 'mission_402',
+    numeroCommande: 'CMD-CEA-2026-402',
+    type: 'manutention_pompe',
+    titre: 'Manutention Pompe Primaire • IRIG Bât. 51A',
+    destinataireBatiment: 'Bâtiment 51A - Basses Températures',
+    serviceDemandeur: 'Atelier Cryo-Magnétisme',
+    priorite: 'CRITIQUE_SALLE_BLANCHE',
+    statut: 'en_cours',
+    codeBarreExpedition: 'CEA-EXP-402-IRIG51',
+    references: [
+      { reference: 'CEA-POM-ALC20', nom: 'Pompe à Palettes Primaire', quantiteRequise: 1, quantiteScanee: 0 },
+    ],
+  },
+  {
+    id: 'mission_403',
+    numeroCommande: 'CMD-CEA-2026-403',
+    type: 'picking_colis',
+    titre: 'Substrats Silicium • Minatec Bât. 22',
+    destinataireBatiment: 'Bâtiment 22 - Minatec Salle Blanche',
+    serviceDemandeur: 'Ligne Pilote 300mm',
+    priorite: 'URGENTE',
+    statut: 'en_cours',
+    codeBarreExpedition: 'CEA-EXP-403-MIN22',
+    references: [
+      { reference: 'CEA-WAF-300C', nom: 'Boîtier Wafers 300mm', quantiteRequise: 1, quantiteScanee: 0 },
+    ],
+  },
+];

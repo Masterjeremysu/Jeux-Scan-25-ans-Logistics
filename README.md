@@ -1,55 +1,43 @@
-# 📦 CEA GRENOBLE • NanoDock 3D
-### Quai de Réception, Inspection & Tri Haute Sécurité des Colis Scientifiques
+# 📦 CEA GRENOBLE • Logistique 3D & WMS ZEBRA
+### Établi de Préparation de Commandes, Scotchage 3D & Mode Phygital / Réel
 
-Un jeu 3D physique et tactile développé avec **Three.js** et **TypeScript**, situé au cœur de la Presqu'île scientifique de Grenoble (CEA / Minatec / CNRS / ESRF).
-
----
-
-## 🎮 Concept & Gameplay
-
-Vous incarnez le responsable du quai de réception et du sas de sécurité du **CEA Grenoble**.
-Les laboratoires de pointe reçoivent des cargaisons hautement sensibles :
-
-* 🧪 **Minatec Nanotech (Zone Jaune) :** Wafers de silicium pour puces 2nm, micro-capteurs spatiaux infrarouges. *Chocs interdits, maintien vertical impératif.*
-* ❄️ **SBT Cryogénie (Zone Bleue) :** Cuves Dewar d'azote liquide (-196°C), cryostats à dilution hélium. *Risque de fuite si renversé.*
-* ⚛️ **IRIG Labo Quantique (Zone Violette) :** Processeurs qubits à spin de silicium, blindages magnétiques.
-* 🛑 **Sas Décontamination / Rejet (Zone Rouge) :** Filtres ioniques usagés, colis défectueux.
-
-### 🕹️ Commandes :
-* **Clic gauche maintenu + glisser :** Saisir un colis 3D sur le tapis roulant et le déplacer dans l'espace vers son casier de destination.
-* **Touches `A` et `E` :** Faire pivoter le colis à 360° pour inspecter les étiquettes de sécurité et le code-barres.
-* **Tablette d'inspection :** Scanne automatiquement les spécifications (température, masse, protocole, fragilité) au clic.
+Un simulateur de logistique industrielle et scientifique haute précision, inspiré des opérations réelles du **CEA Grenoble** (Minatec, LETI, IRIG, Bâtiments de recherche).
 
 ---
 
-## 📂 Architecture du Projet
+## 🎮 Nouveautés Majeures
 
-```text
-Jeux 25 ANS/
-├── src/
-│   ├── audio/
-│   │   └── SoundEffects.ts      # Bruitages synthétiques Web Audio (scanner, pose, validation, erreur)
-│   ├── core/
-│   │   └── ParcelData.ts        # Modèles de colis CEA Grenoble et contraintes physiques
-│   ├── render/
-│   │   ├── Scene3D.ts           # Moteur Three.js (quai, éclairage studio, ombres douces, Drag & Drop 3D)
-│   │   └── TextureGenerator.ts  # Générateur procédural d'étiquettes réalistes CEA (code-barres, logos)
-│   ├── ui/
-│   │   └── UIManager.ts         # HUD tablette d'inspection, score de conformité et alertes
-│   ├── types/
-│   │   └── game.ts              # Définitions TypeScript
-│   ├── style.css                # Interface moderne sombre & tactile
-│   └── main.ts                  # Point d'entrée et boucle Three.js
-├── index.html
-├── package.json
-└── tsconfig.json
-```
+### 1. 🔀 Le Switch : Mode Virtuel (3D) vs Mode Réel (Phygital)
+* **🖥️ Mode Virtuel (100% 3D) :** L'intégralité du workflow se déroule dans le jumeau numérique : carton 3D, calage, fermeture des rabats, scotchage sonore et pose de l'étiquette virtuelle.
+* **🖨️ Mode Réel (Phygital - Entraînement sur Carton Réel) :**
+  * Dès que le carton est scotché, le jeu génère une **véritable étiquette de transport thermique CEA Grenoble** (format 100x150 mm) avec un vrai code-barres Code 128.
+  * Cliquez sur **« Imprimer Réel »** pour lancer l'impression sur votre imprimante thermique ou bureau.
+  * Collez-la sur votre vrai carton sur votre bureau et **scannez-la avec votre douchette USB / PDA** pour valider l'expédition dans le jeu !
 
 ---
 
-## 🚀 Démarrer le jeu
+### 2. 📱 Le Terminal ZEBRA TC5x Virtuel
+* Interface WMS d'atelier affichant l'ordre de mission en direct :
+  * Numéro de commande CEA (ex: `CMD-CEA-2026-401`).
+  * Bâtiment destinataire (`LETI Bât. 17`, `IRIG Bât. 51A`, `Minatec Bât. 22`).
+  * Checklist dynamique des références à prélever : les cases se cochent en vert au dépôt dans le carton.
+  * Bouton tactile **« 📦 SCOTCHER CARTON »** avec bruitage réaliste de dévidoir d'adhésif.
+  * Bouton tactile **« 🏷️ EXPÉDIER COLIS »**.
 
-```bash
+---
+
+### 3. ⚙️ Les Références Logistiques du CEA Grenoble
+* **Pompes à vide turbomoléculaires** pour bâtis de dépôt sous vide (`CEA-VAC-P900`).
+* **Brides et raccords inox KF40 / KF25** (`CEA-KF40-INX`).
+* **Jauges à vide Pirani actives** (`CEA-JAU-PIR5`).
+* **Pompes à palettes primaires** de 28 kg (`CEA-POM-ALC20`).
+* **Boîtiers hermétiques de transfert de wafers silicium 300mm** (`CEA-WAF-300C`).
+
+---
+
+## 🚀 Lancer le jeu
+
+```powershell
 npm run dev
 ```
-Ouvrez le lien local (ex: `http://localhost:5173`) dans votre navigateur.
+Ouvrez ensuite le lien local (ex: `http://localhost:5173`) dans votre navigateur.

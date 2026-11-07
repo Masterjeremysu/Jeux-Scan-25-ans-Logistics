@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CEA GRENOBLE • NanoDock 3D - Réception & Tri Haute Sécurité</title>
+    <title>CEA GRENOBLE • Logistique 3D - Établi Préparation & Terminal ZEBRA</title>
     <link rel="stylesheet" href="./src/style.css" />
   </head>
   <body>
@@ -12,115 +12,115 @@
       <div class="logo-groupe">
         <div class="logo-cea">CEA</div>
         <div>
-          <h1>GRENOBLE <span>NANODOCK 3D</span></h1>
-          <small>Sas de Réception & Dispatching Salle Blanche</small>
+          <h1>LOGISTIQUE <span>GRENOBLE</span></h1>
+          <small>Établi de Préparation & Expéditions Haute Sécurité</small>
         </div>
+      </div>
+
+      <!-- Sélecteur de Mode : Dématérialisé vs Mode Réel -->
+      <div class="selecteur-mode-jeu">
+        <button id="btn-mode-demat" class="btn-mode actif">🖥️ Mode Virtuel (100% 3D)</button>
+        <button id="btn-mode-reel" class="btn-mode">🖨️ Mode Réel (Impression Étiquette)</button>
       </div>
 
       <div class="indicateurs">
         <div class="indicateur">
-          <span class="libelle">Score Sécurité</span>
-          <span class="valeur" id="stat-score">0 pts</span>
+          <span class="libelle">Colis Préparés</span>
+          <span class="valeur succes" id="stat-colis-prepares">0</span>
         </div>
         <div class="indicateur">
-          <span class="libelle">Conformes</span>
-          <span class="valeur succes" id="stat-conformes">0</span>
-        </div>
-        <div class="indicateur">
-          <span class="libelle">Erreurs</span>
-          <span class="valeur erreur" id="stat-erreurs">0</span>
-        </div>
-        <div class="indicateur">
-          <span class="libelle">Conformité CEA</span>
-          <span class="valeur" id="stat-taux">100%</span>
+          <span class="libelle">Bâtiments Desservis</span>
+          <span class="valeur" id="stat-batiments">LETI / IRIG</span>
         </div>
       </div>
 
-      <button id="btn-nouveau-colis" class="btn-action">📦 Arrivée Camion / Nouveau Colis</button>
+      <button id="btn-mission-suivante" class="btn-action">📋 Nouvelle Mission WMS</button>
     </header>
 
-    <!-- Scène 3D & Overlays HUD -->
+    <!-- Zone Principale 3D & Établi -->
     <main class="zone-principale">
-      <!-- Conteneur Three.js -->
+      <!-- Conteneur Three.js de l'Établi 3D -->
       <div id="conteneur-3d"></div>
 
-      <!-- Bannière de retour validation -->
+      <!-- Bannière de statut d'action -->
       <div id="banniere-feedback" class="banniere-status"></div>
 
-      <!-- Tablette d'inspection du colis scanné (Gauche) -->
-      <aside class="tablette-inspection">
-        <div class="tablette-entete">
+      <!-- Panneau Stock Pièces Disponibles (Gauche) -->
+      <aside class="panneau-stock-dispo">
+        <div class="panneau-entete">
           <span class="voyant-actif"></span>
-          <h3>TABLETTE INSPECTION PROTOCOLE</h3>
+          <h3>RAYONNAGE STOCK DISPONIBLE</h3>
         </div>
-        
-        <div class="corps-fiche">
-          <h2 id="fiche-nom">Cliquez sur un colis 3D</h2>
-          <span id="fiche-id" class="code-id">ID: En attente...</span>
-
-          <div class="champ-info">
-            <label>LABORATOIRE DESTINATAIRE :</label>
-            <div id="fiche-dest" class="valeur-dest">Saisissez un colis sur le tapis</div>
-          </div>
-
-          <div class="ligne-double">
-            <div class="champ-info">
-              <label>MASSE :</label>
-              <div id="fiche-poids" class="valeur-spec">-- kg</div>
-            </div>
-            <div class="champ-info">
-              <label>TEMPÉRATURE :</label>
-              <div id="fiche-temp" class="valeur-spec">-- °C</div>
-            </div>
-          </div>
-
-          <div class="champ-info">
-            <label>CONSIGNES PROTOCOLE :</label>
-            <p id="fiche-desc" class="description-colis">Utilisez le clic gauche pour attraper un colis 3D et le déplacer vers son casier dédié.</p>
-          </div>
-
-          <div id="fiche-badges" class="zone-badges"></div>
-        </div>
-
-        <div class="aide-controles">
-          <p>🖱️ <strong>Clic gauche :</strong> Attraper & Glisser</p>
-          <p>⌨️ <strong>Touches A / E :</strong> Faire pivoter</p>
-        </div>
+        <p class="consigne-drag">👆 <strong>Glissez la pièce demandée</strong> dans le carton ouvert au centre.</p>
+        <ul id="liste-pieces-stock" class="liste-stock"></ul>
       </aside>
 
-      <!-- Légende des Bacs de Tri (Droite) -->
-      <aside class="guide-tri">
-        <h4>CASIERS DE DESTINATION CEA</h4>
-        <div class="item-guide jaune">
-          <span class="pastille"></span>
-          <div>
-            <strong>Minatec Nanotech</strong>
-            <small>Wafers Silicium, micro-capteurs</small>
-          </div>
+      <!-- Terminal ZEBRA Industriel TC5x (Bas Droite) -->
+      <aside id="terminal-zebra" class="terminal-zebra-boitier">
+        <!-- Bandeau supérieur du PDA Zebra -->
+        <div class="zebra-barre-systeme">
+          <span class="zebra-voyant-scanner"></span>
+          <span>ZEBRA TC5x • WMS CEA</span>
+          <span class="zebra-batterie">🔋 98%</span>
         </div>
-        <div class="item-guide bleu">
-          <span class="pastille"></span>
-          <div>
-            <strong>SBT Cryogénie</strong>
-            <small>Azote liquide, supraconducteurs</small>
+
+        <!-- Écran tactile WMS -->
+        <div class="zebra-ecran">
+          <div class="zebra-cmd-en-tete">
+            <h4 id="zebra-cmd-titre">CMD-CEA-2026-401</h4>
+            <span id="zebra-priorite" class="badge-priorite urgente">URGENTE</span>
           </div>
-        </div>
-        <div class="item-guide violet">
-          <span class="pastille"></span>
-          <div>
-            <strong>Labo Quantique</strong>
-            <small>Puces qubits, blindages magnétiques</small>
+
+          <div class="zebra-info-bloc">
+            <span class="label">DESTINATION :</span>
+            <strong id="zebra-destinataire">Bâtiment 17 - LETI</strong>
+            <small id="zebra-service">Service Couches Minces</small>
           </div>
-        </div>
-        <div class="item-guide rouge">
-          <span class="pastille"></span>
-          <div>
-            <strong>Sas Rejet / Décontam.</strong>
-            <small>Filtres ioniques, rebuts</small>
+
+          <!-- Étape courante -->
+          <div id="zebra-statut-etape" class="statut-etape etape-picking">
+            1/3 - Glissez les références demandées dans le carton
+          </div>
+
+          <!-- Liste de picking des références -->
+          <div class="zebra-picking-section">
+            <label>RÉFÉRENCES À PRÉPARER :</label>
+            <ul id="zebra-liste-refs" class="zebra-liste-picking"></ul>
+          </div>
+
+          <!-- Boutons tactiles du Zebra -->
+          <div class="zebra-actions">
+            <button id="btn-zebra-scotcher" class="btn-zebra jaune" disabled>📦 SCOTCHER CARTON</button>
+            <button id="btn-zebra-expedier" class="btn-zebra vert" disabled>🏷️ EXPÉDIER COLIS</button>
           </div>
         </div>
       </aside>
     </main>
+
+    <!-- Modale d'Impression Étiquette Réelle (Mode Réel / Phygital) -->
+    <div id="modal-etiquette-reelle" class="modal-overlay">
+      <div class="modal-contenu">
+        <div class="modal-entete">
+          <h3>🖨️ ÉTIQUETTE LOGISTIQUE RÉELLE • CEA GRENOBLE</h3>
+          <button id="btn-fermer-modal-etiquette" class="btn-fermer">&times;</button>
+        </div>
+
+        <p class="modal-instruction">
+          Le carton est scellé ! En <strong>Mode Réel</strong>, vous pouvez imprimer cette vraie étiquette d'expédition, la coller sur une boîte réelle, puis scanner le code avec votre douchette ou le valider ci-dessous :
+        </p>
+
+        <!-- Aperçu de l'étiquette réelle prête à imprimer -->
+        <div id="apercu-etiquette-reelle" class="zone-apercu-etiquette"></div>
+
+        <div class="modal-actions-impression">
+          <button id="btn-imprimer-ticket" class="btn-action primaire">🖨️ Lancer l'Impression Réelle</button>
+          <div class="scan-reel-input-groupe">
+            <input type="text" id="input-scan-reel" placeholder="Scannez ou saisissez le code-barres" />
+            <button id="btn-valider-scan-reel" class="btn-action">Valider le Scan</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <script type="module" src="./src/main.ts"></script>
   </body>
