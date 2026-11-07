@@ -16,6 +16,7 @@ const imprimante = new ImprimanteEtiquettesReelles();
 let modeActuel: ModeDeJeu = 'dematerialise';
 let indexMission = 0;
 let missionsCompletees = 0;
+let piecesSaisiesCompteur = 0;
 
 const elStatColis = document.getElementById('stat-colis-prepares')!;
 const elBanniere = document.getElementById('banniere-feedback')!;
@@ -26,7 +27,7 @@ function afficherNotification(message: string, succes: boolean): void {
   elBanniere.className = `banniere-status active ${succes ? 'succes' : 'erreur'}`;
   setTimeout(() => {
     elBanniere.className = 'banniere-status';
-  }, 3500);
+  }, 4000);
 }
 
 // 2. Switch Mode Virtuel vs Mode Réel
@@ -59,7 +60,7 @@ function rafraichirPlanEmplacements(): void {
     li.innerHTML = `
       <div>
         <strong>${loc.nomAffiche}</strong>
-        <code>Code : ${loc.id}</code>
+        <code>Code EAN-128 : ${loc.id}</code>
       </div>
       <div class="emplacement">Allée ${loc.allee} ➡️</div>
     `;
@@ -74,6 +75,7 @@ function rafraichirPlanEmplacements(): void {
 // 4. Lancement de la Mission WMS
 function chargerMission(mission: MissionPickingEntrepot): void {
   const missionCopie: MissionPickingEntrepot = JSON.parse(JSON.stringify(mission));
+  piecesSaisiesCompteur = 0;
   zebra.afficherMission(missionCopie);
   afficherNotification(`📋 Ordre WMS reçu : ${missionCopie.titre}`, true);
 }
@@ -83,8 +85,7 @@ document.getElementById('btn-mission-suivante')?.addEventListener('click', () =>
   chargerMission(MISSIONS_PICKING_ENTREPOT[indexMission]);
 });
 
-// 5. Actions du Zebra
-// A. Déclenchement du Scan Laser (ESPACE ou Bouton Zebra)
+// 5. Actions du Zebra & Scanning
 function actionnerScanLaser(): void {
   const resultat = entrepot3D.declencherScanLaser();
   const mis = zebra.missionActuelle;
@@ -92,9 +93,12 @@ function actionnerScanLaser(): void {
 
   if (resultat.type === 'emplacement') {
     if (resultat.id === mis.emplacementCibleId) {
-      audio.playScanner();
       zebra.marquerEmplacementValide();
-      afficherNotification(`✅ Emplacement ${resultat.id} scanné et validé !`, true);
+      if (resultat.id === 'LOC-B01-T03') {
+        afficherNotification(`✅ ÉTIQUETTE EAN-128 VALIDÉE ! Le tiroir s'ouvre. Cliquez sur les brides inox pour les prélever.`, true);
+      } else {
+        afficherNotification(`✅ Emplacement EAN-128 ${resultat.id} scanné et validé !`, true);
+      }
     } else {
       audio.playError();
       afficherNotification(`❌ Mauvais emplacement ! Vous êtes devant [${resultat.id}], attendu : [${mis.emplacementCibleId}]`, false);
@@ -111,13 +115,13 @@ function actionnerScanLaser(): void {
       afficherNotification(`❌ Mauvaise étagère ! Ce colis doit être livré sur [${mis.etagereLivraisonId}]`, false);
     }
   } else {
-    afficherNotification(`🔍 Aucun code-barre à portée. Rapprochez-vous d'un rack ou d'une étagère.`, false);
+    afficherNotification(`🔍 Aucun code-barre à portée. Rapprochez-vous du rack ou de l'armoire.`, false);
   }
 }
 
 zebra.onDeclencherScanLaser = () => actionnerScanLaser();
 
-// Raccourci barre d'espace pour bipper
+// Raccourci Espace pour bipper
 window.addEventListener('keydown', e => {
   if (e.code === 'Space' && (document.activeElement?.tagName !== 'INPUT')) {
     e.preventDefault();
@@ -125,7 +129,7 @@ window.addEventListener('keydown', e => {
   }
 });
 
-// B. Guidage GPS vers l'emplacement
+// Guidage GPS
 zebra.onDemandeGuidage = () => {
   const mis = zebra.missionActuelle;
   if (!mis) return;
@@ -136,24 +140,46 @@ zebra.onDemandeGuidage = () => {
   }
 };
 
-// C. Vérification quantité & prélèvement
-zebra.onValiderPrelevement = () => {
-  audio.playDrop();
-  zebra.marquerQuantitePrelevee();
-  afficherNotification(`✋ Pièces prélevées en stock ! Rendez-vous à l'établi central.`, true);
+// VUE DU DESSUS : L'opérateur palpe et clique sur les pièces à l'intérieur du tiroir !
+entrepot3D.onPieceSaisieDansTiroir = () => {
+  const mis = zebra.missionActuelle;
+  if (!mis) return;
+
+  piecesSaisiesCompteur++;
+  afficherNotification(`✋ Pièce inox saisie (${piecesSaisiesCompteur} / ${mis.quantiteDemandee})`, true);
+
+  if (piecesSaisiesCompteur >= mis.quantiteDemandee) {
+    zebra.marquerQuantitePrelevee();
+    afficherNotification(`✨ Quantité conforme ! Tiroir refermé. Rendez-vous à l'établi d'emballage.`, true);
+    setTimeout(() => {
+      entrepot3D.refermerTiroir();
+    }, 800);
+  }
 };
 
-// D. Préparation et scotchage à l'établi central
+zebra.onValiderPrelevement = () => {
+  // Si le joueur clique sur le bouton Zebra au lieu de cliquer dans le tiroir
+  if (zebra.missionActuelle?.emplacementCibleId === 'LOC-B01-T03' && !entrepot3D.tiroirEstOuvert) {
+    entrepot3D.ouvrirTiroirInspection();
+    afficherNotification(`👆 Vue du dessus : Cliquez sur les pièces dans le bac pour les prélever !`, true);
+  } else {
+    audio.playDrop();
+    zebra.marquerQuantitePrelevee();
+    entrepot3D.refermerTiroir();
+    afficherNotification(`✋ Pièces prélevées ! Rendez-vous à l'établi central.`, true);
+  }
+};
+
+// Scotchage
 zebra.onPreparerCarton = () => {
   audio.playScotch();
   zebra.marquerColisPrepare();
   afficherNotification(`📦 Carton préparé et scotché ! Amenez-le à l'étagère [${zebra.missionActuelle?.destinataireBatiment}].`, true);
 };
 
-// E. Dépôt et validation sur l'étagère finale
+// Livraison finale
 zebra.onValiderLivraisonEtagere = () => {
   if (modeActuel === 'reel_phygital') {
-    // Mode Réel : Ouvrir l'étiquette réelle
     if (zebra.missionActuelle) imprimante.ouvrirEtiquette(zebra.missionActuelle);
   } else {
     validerLivraisonFinale();
@@ -175,13 +201,13 @@ function validerLivraisonFinale(): void {
   missionsCompletees++;
   elStatColis.textContent = `${missionsCompletees}`;
   audio.playSuccess();
-  confetti({ particleCount: 100, spread: 80, origin: { x: 0.5, y: 0.6 } });
-  afficherNotification(`🎉 Livraison terminée avec succès sur l'étagère [${zebra.missionActuelle?.destinataireBatiment}] !`, true);
+  confetti({ particleCount: 110, spread: 85, origin: { x: 0.5, y: 0.6 } });
+  afficherNotification(`🎉 Livraison terminée sur l'étagère [${zebra.missionActuelle?.destinataireBatiment}] !`, true);
 
   setTimeout(() => {
     indexMission = (indexMission + 1) % MISSIONS_PICKING_ENTREPOT.length;
     chargerMission(MISSIONS_PICKING_ENTREPOT[indexMission]);
-  }, 3400);
+  }, 3500);
 }
 
 // 6. Démarrage

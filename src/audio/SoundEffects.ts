@@ -32,7 +32,101 @@ export class AudioEffets {
     }
   }
 
-  // Bruit réaliste de dévidoir de scotch
+  // Ouverture fluide de tiroir industriel sur glissières à billes ("Chhhk-clack !")
+  public playDrawerOpen(): void {
+    try {
+      const ctx = this.getContext();
+      const now = ctx.currentTime;
+
+      // Friction glissière
+      const bufferSize = ctx.sampleRate * 0.4;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * 0.15;
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(2000, now);
+      filter.Q.setValueAtTime(2.0, now);
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      noise.start();
+
+      // Butée finale du tiroir
+      const click = ctx.createOscillator();
+      const clickGain = ctx.createGain();
+      click.type = 'triangle';
+      click.frequency.setValueAtTime(180, now + 0.35);
+      clickGain.gain.setValueAtTime(0.3, now + 0.35);
+      clickGain.gain.exponentialRampToValueAtTime(0.01, now + 0.42);
+
+      click.connect(clickGain);
+      clickGain.connect(ctx.destination);
+      click.start(now + 0.35);
+      click.stop(now + 0.42);
+    } catch {
+      // Audio bloqué
+    }
+  }
+
+  // Fermeture du tiroir
+  public playDrawerClose(): void {
+    try {
+      const ctx = this.getContext();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.exponentialRampToValueAtTime(45, now + 0.15);
+
+      gain.gain.setValueAtTime(0.4, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(now + 0.15);
+    } catch {
+      // Audio bloqué
+    }
+  }
+
+  // Tintement métallique de préhension de pièce inox ("Clink !")
+  public playMetalClink(): void {
+    try {
+      const ctx = this.getContext();
+      const now = ctx.currentTime;
+      [1200, 1850, 2400].forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.02);
+
+        gain.gain.setValueAtTime(0.2, now + idx * 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.02 + 0.15);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + idx * 0.02);
+        osc.stop(now + idx * 0.02 + 0.15);
+      });
+    } catch {
+      // Audio bloqué
+    }
+  }
+
+  // Bruit de dévidoir de scotch
   public playScotch(): void {
     try {
       const ctx = this.getContext();
@@ -62,110 +156,6 @@ export class AudioEffets {
       filter.connect(gain);
       gain.connect(ctx.destination);
       noise.start();
-    } catch {
-      // Audio bloqué
-    }
-  }
-
-  // Moteur et chaîne du palan d'atelier 3D (300 kg)
-  public playPalanMoteur(): void {
-    try {
-      const ctx = this.getContext();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(110, ctx.currentTime);
-      osc.frequency.linearRampToValueAtTime(130, ctx.currentTime + 0.6);
-
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(450, ctx.currentTime);
-
-      gain.gain.setValueAtTime(0.25, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
-
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.8);
-    } catch {
-      // Audio bloqué
-    }
-  }
-
-  // Cliquet de sangle d'arrimage pour pompe 300kg ("Cric-crac-clac !")
-  public playSangleCliquet(): void {
-    try {
-      const ctx = this.getContext();
-      const now = ctx.currentTime;
-      [0, 0.08, 0.16, 0.24].forEach(t => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(800, now + t);
-        osc.frequency.exponentialRampToValueAtTime(150, now + t + 0.04);
-
-        gain.gain.setValueAtTime(0.35, now + t);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + t + 0.04);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now + t);
-        osc.stop(now + t + 0.04);
-      });
-    } catch {
-      // Audio bloqué
-    }
-  }
-
-  // Versement des chips de calage en polystyrène ("Fshhh-fshhh")
-  public playChipsCalage(): void {
-    try {
-      const ctx = this.getContext();
-      const bufferSize = ctx.sampleRate * 0.5;
-      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-
-      for (let i = 0; i < bufferSize; i++) {
-        data[i] = (Math.random() * 2 - 1) * 0.25;
-      }
-
-      const noise = ctx.createBufferSource();
-      noise.buffer = buffer;
-
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(1200, ctx.currentTime);
-
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.2, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-
-      noise.connect(filter);
-      filter.connect(gain);
-      gain.connect(ctx.destination);
-      noise.start();
-    } catch {
-      // Audio bloqué
-    }
-  }
-
-  // Thermosoudeuse double emballage salle blanche
-  public playDoubleEmballage(): void {
-    try {
-      const ctx = this.getContext();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(650, ctx.currentTime);
-      gain.gain.setValueAtTime(0.2, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.35);
     } catch {
       // Audio bloqué
     }
