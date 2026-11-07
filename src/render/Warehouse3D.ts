@@ -259,29 +259,44 @@ export class Entrepot3D {
       grp.add(poign);
     }
 
-    // LE TIROIR INTERACTIF `LOC-B01-T03` (avec glissière animée et bacs intérieurs)
+    // LE TIROIR INTERACTIF `LOC-B01-T03` (Structure ouverte creuse avec bacs intérieurs)
     this.tiroirCibleMesh = new THREE.Group();
-    const tiroirMat = new THREE.MeshStandardMaterial({ color: '#334155', metalness: 0.8, roughness: 0.3 });
+    const tiroirMat = new THREE.MeshStandardMaterial({ color: '#1e293b', metalness: 0.6, roughness: 0.3 });
 
-    // Caisse du tiroir
-    const caisseTiroir = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.32, 0.95), tiroirMat);
-    caisseTiroir.position.set(0, 0, 0);
-    this.tiroirCibleMesh.add(caisseTiroir);
+    // Fond du tiroir (plaque basse)
+    const fondTiroir = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.03, 0.92), tiroirMat);
+    fondTiroir.position.set(0, -0.14, 0);
+    this.tiroirCibleMesh.add(fondTiroir);
+
+    // Paroi arrière
+    const arriereTiroir = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.28, 0.03), tiroirMat);
+    arriereTiroir.position.set(0, 0, -0.46);
+    this.tiroirCibleMesh.add(arriereTiroir);
+
+    // Paroi gauche
+    const gaucheTiroir = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.28, 0.92), tiroirMat);
+    gaucheTiroir.position.set(-1.14, 0, 0);
+    this.tiroirCibleMesh.add(gaucheTiroir);
+
+    // Paroi droite
+    const droiteTiroir = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.28, 0.92), tiroirMat);
+    droiteTiroir.position.set(1.14, 0, 0);
+    this.tiroirCibleMesh.add(droiteTiroir);
 
     // Façade avant du tiroir
     const facadeActive = new THREE.Mesh(
       new THREE.BoxGeometry(2.35, 0.34, 0.04),
       new THREE.MeshStandardMaterial({ color: '#64748b', metalness: 0.85 })
     );
-    facadeActive.position.set(0, 0, 0.49);
+    facadeActive.position.set(0, 0, 0.47);
     this.tiroirCibleMesh.add(facadeActive);
 
-    // Poignée avant
+    // Poignée avant inox
     const poignActive = new THREE.Mesh(
       new THREE.BoxGeometry(0.4, 0.04, 0.04),
       new THREE.MeshStandardMaterial({ color: '#f8fafc', metalness: 0.95 })
     );
-    poignActive.position.set(0, 0, 0.52);
+    poignActive.position.set(0, 0, 0.50);
     this.tiroirCibleMesh.add(poignActive);
 
     // ÉTIQUETTE EAN-128 OFFICIELLE SUR LA FAÇADE DU TIROIR
@@ -290,7 +305,7 @@ export class Entrepot3D {
       new THREE.PlaneGeometry(0.85, 0.22),
       new THREE.MeshBasicMaterial({ map: texEAN })
     );
-    etiqEAN128.position.set(0, 0, 0.53);
+    etiqEAN128.position.set(0, 0, 0.51);
     this.tiroirCibleMesh.add(etiqEAN128);
 
     // COMPARTIMENTS INTÉRIEURS THERMOFORMÉS (Vue du dessus)
@@ -305,41 +320,46 @@ export class Entrepot3D {
 
   // Aménagement intérieur du tiroir avec séparateurs et pièces palpables
   private construireInterieurTiroir(): void {
-    const separateurMat = new THREE.MeshStandardMaterial({ color: '#1e293b', metalness: 0.5 });
+    const separateurMat = new THREE.MeshStandardMaterial({ color: '#334155', metalness: 0.6, roughness: 0.3 });
 
-    // Séparateurs de casiers
-    const sep1 = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.28, 0.85), separateurMat);
-    sep1.position.set(-0.4, 0.05, 0);
+    // Séparateurs de casiers thermoformés
+    const sep1 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.22, 0.88), separateurMat);
+    sep1.position.set(-0.38, -0.02, 0);
     this.tiroirCibleMesh.add(sep1);
 
-    const sep2 = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.28, 0.85), separateurMat);
-    sep2.position.set(0.4, 0.05, 0);
+    const sep2 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.22, 0.88), separateurMat);
+    sep2.position.set(0.38, -0.02, 0);
     this.tiroirCibleMesh.add(sep2);
+
+    // Lumière LED interne intégrée au tiroir pour faire briller les pièces
+    const ledInterne = new THREE.PointLight('#38bdf8', 1.8, 2.5);
+    ledInterne.position.set(0, 0.25, 0);
+    this.tiroirCibleMesh.add(ledInterne);
 
     // CASIER GAUCHE : Joints toriques Viton noirs
     for (let i = 0; i < 4; i++) {
       const joint = new THREE.Mesh(
-        new THREE.TorusGeometry(0.12, 0.02, 12, 24),
-        new THREE.MeshStandardMaterial({ color: '#18181b', roughness: 0.9 })
+        new THREE.TorusGeometry(0.13, 0.025, 12, 24),
+        new THREE.MeshStandardMaterial({ color: '#09090b', roughness: 0.85 })
       );
       joint.rotation.x = Math.PI / 2;
-      joint.position.set(-0.75, 0.05, -0.3 + i * 0.2);
+      joint.position.set(-0.75, -0.08, -0.28 + i * 0.18);
       this.tiroirCibleMesh.add(joint);
     }
 
-    // CASIER CENTRE (CIBLÉ) : LES BRIDES INOX KF40 À SAISIR !
+    // CASIER CENTRE (CIBLÉ) : LES BRIDES INOX KF40 CHROMÉES & BRILLANTES !
     const inoxMat = new THREE.MeshStandardMaterial({
-      color: '#f1f5f9',
+      color: '#ffffff',
       metalness: 0.98,
-      roughness: 0.08, // Très brillant
-      emissive: '#38bdf8',
-      emissiveIntensity: 0.15,
+      roughness: 0.05, // Miroir inox
+      emissive: '#0284c7',
+      emissiveIntensity: 0.2,
     });
 
     for (let i = 0; i < 3; i++) {
-      const bride = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.045, 16, 32), inoxMat);
+      const bride = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.05, 16, 32), inoxMat);
       bride.rotation.x = Math.PI / 2;
-      bride.position.set(0, 0.06, -0.25 + i * 0.25);
+      bride.position.set(0, -0.06, -0.24 + i * 0.24);
       bride.castShadow = true;
       bride.userData = { estPieceAInspecter: true, index: i };
       this.piecesDansTiroir.push(bride);
@@ -349,10 +369,10 @@ export class Entrepot3D {
     // CASIER DROIT : Bagues de centrage aluminium
     for (let i = 0; i < 3; i++) {
       const bague = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.14, 0.14, 0.06, 24),
-        new THREE.MeshStandardMaterial({ color: '#94a3b8', metalness: 0.9 })
+        new THREE.CylinderGeometry(0.15, 0.15, 0.08, 24),
+        new THREE.MeshStandardMaterial({ color: '#cbd5e1', metalness: 0.92, roughness: 0.15 })
       );
-      bague.position.set(0.75, 0.04, -0.2 + i * 0.25);
+      bague.position.set(0.75, -0.07, -0.2 + i * 0.22);
       this.tiroirCibleMesh.add(bague);
     }
   }
@@ -482,9 +502,9 @@ export class Entrepot3D {
       document.exitPointerLock();
     }
 
-    // Position cible de la caméra en vue de dessus plongeante (Top-Down inspection)
-    this.camPosCible.set(0, 2.1, -3.2); // Juste au-dessus du tiroir
-    this.camLookAtCible.set(0, 1.1, -3.5); // Regarde l'intérieur du bac
+    // Position cible de la caméra : Bien plus haute et plongeante pour voir tout l'intérieur du tiroir avec ergonomie
+    this.camPosCible.set(0, 2.85, -2.15); // Hauteur 2.85m et recul Z=-2.15m
+    this.camLookAtCible.set(0, 1.05, -3.25); // Plongée directe à 65° sur les bacs et pièces inox
   }
 
   public refermerTiroir(): void {
@@ -592,7 +612,7 @@ export class Entrepot3D {
     } else if (!this.tiroirEstOuvert && this.progressionOuvertureTiroir > 0) {
       this.progressionOuvertureTiroir = Math.max(0, this.progressionOuvertureTiroir - deltaSec * 3.5);
     }
-    this.tiroirCibleMesh.position.z = this.progressionOuvertureTiroir * 0.75; // Glisse de 75cm vers l'avant !
+    this.tiroirCibleMesh.position.z = this.progressionOuvertureTiroir * 0.85; // Glisse de 85cm vers l'avant !
 
     // 2. Gestion de la caméra
     if (this.modeCamera === 'inspection_dessus') {
