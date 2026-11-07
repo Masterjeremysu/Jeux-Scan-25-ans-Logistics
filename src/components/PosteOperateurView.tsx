@@ -20,6 +20,7 @@ interface PosteOperateurViewProps {
   currentMissionIndex: number;
   onSelectMission: (idx: number) => void;
   onResetMission: () => void;
+  onClearLogs?: () => void;
   logs: ScanLog[];
   inventory: InventoryItem[];
   lastScannedCode: string | null;
@@ -31,6 +32,7 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
   currentMissionIndex,
   onSelectMission,
   onResetMission,
+  onClearLogs,
   logs,
   inventory,
   lastScannedCode,
@@ -281,22 +283,32 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
           </div>
 
           {/* Quick simulation bar (if no physical barcode scanner handy) */}
-          <div className="bg-slate-900/80 rounded-2xl p-3 border border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex items-center space-x-2">
-              <span className="font-mono text-slate-400 font-bold uppercase">Simulation Rapide :</span>
-              <span className="text-[11px] text-slate-400 hidden sm:inline">(Cliquez sur un code pour simuler un scan)</span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-1.5">
-              {BARCODE_CATALOG.slice(0, 6).map((bc) => (
+          <div className="bg-slate-900/90 rounded-2xl p-3 border border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs shadow-lg">
+            <div className="flex flex-wrap items-center gap-2">
+              {currentStep && (
                 <button
-                  key={bc.code}
-                  onClick={() => barcodeListener.simulateScan(bc.code)}
-                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-sky-600 hover:text-white text-slate-300 font-mono text-[11px] border border-slate-700 transition-colors"
+                  type="button"
+                  onClick={() => barcodeListener.simulateScan(currentStep.expectedBarcode)}
+                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs flex items-center space-x-1.5 shadow-md shadow-amber-500/20 shrink-0 transition-transform active:scale-95"
                 >
-                  {bc.code}
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>🎯 Flasher le code attendu ({currentStep.expectedBarcode})</span>
                 </button>
-              ))}
+              )}
+
+              <div className="flex flex-wrap items-center gap-1">
+                {BARCODE_CATALOG.map((bc) => (
+                  <button
+                    key={bc.code}
+                    type="button"
+                    onClick={() => barcodeListener.simulateScan(bc.code)}
+                    className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-sky-600 hover:text-white text-slate-300 font-mono text-[10px] border border-slate-700 transition-colors"
+                    title={bc.label}
+                  >
+                    {bc.code}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Manual Text Input form */}
@@ -327,11 +339,21 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
                 <Radio className="w-4 h-4 text-emerald-400" />
                 <span className="text-xs font-bold font-mono text-slate-200 uppercase">Journal des Scans en Direct</span>
               </div>
-              {lastScannedCode && (
-                <span className="text-[11px] font-mono text-amber-400 px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
-                  Dernier : {lastScannedCode}
-                </span>
-              )}
+              <div className="flex items-center space-x-2">
+                {onClearLogs && logs.length > 0 && (
+                  <button
+                    onClick={onClearLogs}
+                    className="text-[10px] text-slate-400 hover:text-slate-200 px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700"
+                  >
+                    Effacer
+                  </button>
+                )}
+                {lastScannedCode && (
+                  <span className="text-[11px] font-mono text-amber-400 px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
+                    Dernier : {lastScannedCode}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-2 pt-3 pr-1">

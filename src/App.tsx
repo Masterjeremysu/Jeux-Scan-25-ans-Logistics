@@ -11,6 +11,9 @@ import { DiplomeModal } from './components/DiplomeModal';
 import { barcodeListener } from './services/barcodeListener';
 import { soundService } from './services/soundService';
 
+let logCounter = 0;
+const generateUniqueLogId = () => `log-${Date.now()}-${++logCounter}-${Math.random().toString(36).slice(2, 7)}`;
+
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewMode>('kiosk');
   const [inventory, setInventory] = useState<InventoryItem[]>(INITIAL_INVENTORY);
@@ -22,6 +25,12 @@ export const App: React.FC = () => {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [shiftSecondsRemaining, setShiftSecondsRemaining] = useState<number>(300); // 5 minutes shift
   const [isDiplomeOpen, setIsDiplomeOpen] = useState<boolean>(false);
+
+  // Keep fresh references to avoid closure race conditions
+  const missionsRef = React.useRef(missions);
+  missionsRef.current = missions;
+  const currentMissionIndexRef = React.useRef(currentMissionIndex);
+  currentMissionIndexRef.current = currentMissionIndex;
 
   const [operator, setOperator] = useState<OperatorProfile>({
     name: 'Invité d\'Honneur',
@@ -46,9 +55,12 @@ export const App: React.FC = () => {
     setTimeout(() => setFlashState(null), 400);
   };
 
-  // Handle barcode scanned by hardware douchette or simulated button
+  // Handle barcode scanned by hardware douchette or simulated button (Clean & Pure)
   const handleBarcodeScanned = useCallback((code: string) => {
-    setLastScannedCode(code);
+    const cleanedCode = code.trim();
+    if (!cleanedCode) return;
+
+    setLastScannedCode(cleanedCode);
     soundService.playScanBeep();
 
     const timestamp = new Date().toLocaleTimeString('fr-FR', {
@@ -57,103 +69,100 @@ export const App: React.FC = () => {
       second: '2-digit'
     });
 
-    setMissions((prevMissions) => {
-      const activeMission = prevMissions[currentMissionIndex];
-      const activeStepIndex = activeMission.steps.findIndex((s) => !s.completed);
+    const activeIndex = currentMissionIndexRef.current;
+    const currentMissions = missionsRef.current;
+    const activeMission = currentMissions[activeIndex];
+    const activeStepIndex = activeMission.steps.findIndex((s) => !s.completed);
 
-      if (activeStepIndex === -1) {
-        // Mission already completed
-        setLogs((prev) => [
-          {
-            id: String(Date.now()),
-            timestamp,
-            barcode: code,
-            status: 'valid',
-            message: 'Mission déjà achevée ! Choisissez une autre mission.'
-          },
-          ...prev
-        ]);
-        return prevMissions;
+    if (activeStepIndex === -1) {
+      // Mission already completed
+      setLogs((prev) => [
+        {
+          id: generateUniqueLogId(),
+          timestamp,
+          barcode: cleanedCode,
+          status: 'valid',
+          message: 'Mission déjà achevée ! Sélectionnez une autre mission.'
+        },
+        ...prev
+      ]);
+      return;
+    }
+
+    const activeStep = activeMission.steps[activeStepIndex];
+
+    if (cleanedCode.toUpperCase() === activeStep.expectedBarcode.toUpperCase()) {
+      // MATCH! Valid scan
+      triggerFlash('green');
+      soundService.playSuccessChime();
+
+      // Update step status
+      const updatedSteps = [...activeMission.steps];
+      updatedSteps[activeStepIndex] = { ...activeStep, completed: true };
+
+      const updatedMission = { ...activeMission, steps: updatedSteps };
+      const updatedMissions = [...currentMissions];
+      updatedMissions[activeIndex] = updatedMission;
+      setMissions(updatedMissions);
+
+      // Check if full mission completed
+      const isMissionDone = updatedSteps.every((s) => s.completed);
+
+      setOperator((prev) => ({
+        ...prev,
+        score: prev.score + (isMissionDone ? activeMission.basePoints : 150),
+        completedMissions: isMissionDone ? prev.completedMissions + 1 : prev.completedMissions
+      }));
+
+      if (isMissionDone) {
+        setTimeout(() => {
+          soundService.playMissionComplete();
+          setIsDiplomeOpen(true);
+        }, 400);
       }
 
-      const activeStep = activeMission.steps[activeStepIndex];
-
-      if (code.toUpperCase() === activeStep.expectedBarcode.toUpperCase()) {
-        // Match! Valid scan
-        triggerFlash('green');
-        soundService.playSuccessChime();
-
-        // Update step status
-        const updatedSteps = [...activeMission.steps];
-        updatedSteps[activeStepIndex] = { ...activeStep, completed: true };
-
-        const updatedMission = { ...activeMission, steps: updatedSteps };
-        const updatedMissions = [...prevMissions];
-        updatedMissions[currentMissionIndex] = updatedMission;
-
-        // Check if full mission completed
-        const isMissionDone = updatedSteps.every((s) => s.completed);
-
-        setOperator((prev) => ({
-          ...prev,
-          score: prev.score + (isMissionDone ? activeMission.basePoints : 150),
-          completedMissions: isMissionDone ? prev.completedMissions + 1 : prev.completedMissions
-        }));
-
-        if (isMissionDone) {
-          setTimeout(() => {
-            soundService.playMissionComplete();
-            setIsDiplomeOpen(true);
-          }, 400);
-        }
-
-        // Live ERP Stock Update (e.g. decrement on pick, increment on reception)
-        if (code === 'ART-KF40-INOX') {
-          setInventory((prevInv) =>
-            prevInv.map((item) =>
-              item.sku === 'ART-KF40-INOX' ? { ...item, quantity: Math.max(0, item.quantity - 1) } : item
-            )
-          );
-        } else if (code === 'BL-EDWARDS-9941') {
-          setInventory((prevInv) =>
-            prevInv.map((item) =>
-              item.sku === 'ART-KF40-INOX' ? { ...item, quantity: item.quantity + 5 } : item
-            )
-          );
-        }
-
-        setLogs((prev) => [
-          {
-            id: String(Date.now()),
-            timestamp,
-            barcode: code,
-            status: 'valid',
-            message: `✓ Étape ${activeStepIndex + 1} validée : ${activeStep.targetLabel}`
-          },
-          ...prev
-        ]);
-
-        return updatedMissions;
-      } else {
-        // Mismatch! Invalid scan
-        triggerFlash('red');
-        soundService.playErrorBuzz();
-
-        setLogs((prev) => [
-          {
-            id: String(Date.now()),
-            timestamp,
-            barcode: code,
-            status: 'invalid',
-            message: `✗ Code erroné ! Attendu : ${activeStep.expectedBarcode}`
-          },
-          ...prev
-        ]);
-
-        return prevMissions;
+      // Live ERP Stock Update
+      if (cleanedCode === 'ART-KF40-INOX') {
+        setInventory((prevInv) =>
+          prevInv.map((item) =>
+            item.sku === 'ART-KF40-INOX' ? { ...item, quantity: Math.max(0, item.quantity - 1) } : item
+          )
+        );
+      } else if (cleanedCode === 'BL-EDWARDS-9941') {
+        setInventory((prevInv) =>
+          prevInv.map((item) =>
+            item.sku === 'ART-KF40-INOX' ? { ...item, quantity: item.quantity + 5 } : item
+          )
+        );
       }
-    });
-  }, [currentMissionIndex]);
+
+      setLogs((prev) => [
+        {
+          id: generateUniqueLogId(),
+          timestamp,
+          barcode: cleanedCode,
+          status: 'valid',
+          message: `✓ Étape ${activeStepIndex + 1} validée : ${activeStep.targetLabel}`
+        },
+        ...prev
+      ]);
+    } else {
+      // MISMATCH! Invalid scan
+      triggerFlash('red');
+      soundService.playErrorBuzz();
+
+      setLogs((prev) => [
+        {
+          id: generateUniqueLogId(),
+          timestamp,
+          barcode: cleanedCode,
+          status: 'invalid',
+          message: `✗ Code erroné ! Attendu : ${activeStep.expectedBarcode}`
+        },
+        ...prev
+      ]);
+    }
+  }, []);
 
   // Subscribe to global hardware barcode scanner
   useEffect(() => {
@@ -231,6 +240,7 @@ export const App: React.FC = () => {
             currentMissionIndex={currentMissionIndex}
             onSelectMission={setCurrentMissionIndex}
             onResetMission={handleResetMission}
+            onClearLogs={() => setLogs([])}
             logs={logs}
             inventory={inventory}
             lastScannedCode={lastScannedCode}
