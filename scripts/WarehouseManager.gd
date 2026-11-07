@@ -29,6 +29,7 @@ var zebra_ref: ZebraPDA = null
 
 func _ready() -> void:
 	add_to_group("warehouse_manager")
+	await get_tree().process_frame
 	start_mission(0)
 
 func start_mission(idx: int) -> void:
