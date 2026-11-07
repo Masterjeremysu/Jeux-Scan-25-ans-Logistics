@@ -1,10 +1,10 @@
-[gd_scene load_steps=22 format=3]
+[gd_scene load_steps=24 format=3]
 
 [ext_resource type="Script" path="res://scripts/DrawerCabinet.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://textures/label_ean128.png" id="2_label"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_cabinet"]
-size = Vector3(1.4, 1.6, 0.85)
+size = Vector3(1.6, 1.8, 0.95)
 
 [sub_resource type="BoxMesh" id="BoxMesh_cabinet"]
 size = Vector3(1.4, 1.6, 0.85)
@@ -31,7 +31,7 @@ metallic = 0.95
 roughness = 0.15
 
 [sub_resource type="QuadMesh" id="QuadMesh_ean"]
-size = Vector2(0.28, 0.09)
+size = Vector2(0.38, 0.12)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ean"]
 shading_mode = 0
@@ -50,13 +50,13 @@ bottom_radius = 0.055
 height = 0.035
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_inox"]
-albedo_color = Color(0.88, 0.90, 0.94, 1)
-metallic = 0.95
-roughness = 0.15
+albedo_color = Color(0.92, 0.94, 0.98, 1)
+metallic = 0.98
+roughness = 0.12
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_piece"]
-height = 0.08
-radius = 0.07
+height = 0.14
+radius = 0.10
 
 [sub_resource type="TorusMesh" id="TorusMesh_viton"]
 inner_radius = 0.035
@@ -66,17 +66,43 @@ outer_radius = 0.048
 albedo_color = Color(0.08, 0.08, 0.08, 1)
 roughness = 0.35
 
+[sub_resource type="BoxMesh" id="BoxMesh_top_sign"]
+size = Vector3(1.5, 0.35, 0.06)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sign_bg"]
+shading_mode = 0
+albedo_color = Color(0.05, 0.45, 0.88, 1)
+
 [node name="DrawerCabinet" type="StaticBody3D" groups=["scannable"]]
 script = ExtResource("1_script")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("BoxShape3D_cabinet")
 
 [node name="CabinetBody" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 mesh = SubResource("BoxMesh_cabinet")
 surface_material_override/0 = SubResource("StandardMaterial3D_cabinet_blue")
+
+[node name="TopSign" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.85, 0)
+mesh = SubResource("BoxMesh_top_sign")
+surface_material_override/0 = SubResource("StandardMaterial3D_sign_bg")
+
+[node name="TopSignLabel" type="Label3D" parent="TopSign"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.035)
+text = "ALLÉE B • ARMOIRE 01\nTIROIR 03 : BRIDES KF40 INOX"
+font_size = 20
+outline_size = 4
+
+[node name="PromptLabel3D" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.35, 0.5)
+billboard = 1
+text = "[E] OUVRIR LE TIROIR\nLOC-B01-T03 (Brides KF40 Inox)"
+font_size = 22
+outline_size = 6
+modulate = Color(0.96, 0.75, 0.1, 1)
 
 [node name="Drawer01" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.42, 0.43)
@@ -132,7 +158,7 @@ mesh = SubResource("BoxMesh_handle")
 surface_material_override/0 = SubResource("StandardMaterial3D_alu")
 
 [node name="EANLabel" type="MeshInstance3D" parent="SlidingDrawer/FrontFace"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 0.04, 0.022)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.32, 0.04, 0.022)
 mesh = SubResource("QuadMesh_ean")
 surface_material_override/0 = SubResource("StandardMaterial3D_ean")
 
@@ -153,6 +179,14 @@ surface_material_override/0 = SubResource("StandardMaterial3D_inox")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="SlidingDrawer/PiecesKF40/PieceKF40_1"]
 shape = SubResource("CylinderShape3D_piece")
 
+[node name="Label3D" type="Label3D" parent="SlidingDrawer/PiecesKF40/PieceKF40_1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16, 0)
+billboard = 1
+text = "[CLIC] Bride KF40 Inox #1"
+font_size = 18
+outline_size = 4
+modulate = Color(0.2, 0.9, 1, 1)
+
 [node name="PieceKF40_2" type="Area3D" parent="SlidingDrawer/PiecesKF40"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.12, 0.08, 0.12)
 
@@ -162,6 +196,14 @@ surface_material_override/0 = SubResource("StandardMaterial3D_inox")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="SlidingDrawer/PiecesKF40/PieceKF40_2"]
 shape = SubResource("CylinderShape3D_piece")
+
+[node name="Label3D" type="Label3D" parent="SlidingDrawer/PiecesKF40/PieceKF40_2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16, 0)
+billboard = 1
+text = "[CLIC] Bride KF40 Inox #2"
+font_size = 18
+outline_size = 4
+modulate = Color(0.2, 0.9, 1, 1)
 
 [node name="PieceViton_1" type="MeshInstance3D" parent="SlidingDrawer/PiecesKF40"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.18, 0.06, 0.12)
@@ -174,4 +216,4 @@ mesh = SubResource("TorusMesh_viton")
 surface_material_override/0 = SubResource("StandardMaterial3D_viton")
 
 [node name="CameraMarker" type="Marker3D" parent="SlidingDrawer"]
-transform = Transform3D(1, 0, 0, 0, 0.422618, 0.906308, 0, -0.906308, 0.422618, 0, 0.95, 0.55)
+transform = Transform3D(1, 0, 0, 0, 0.34202, 0.939693, 0, -0.939693, 0.34202, 0, 1.15, 0.65)

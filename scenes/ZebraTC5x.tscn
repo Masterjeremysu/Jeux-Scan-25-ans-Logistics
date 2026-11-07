@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3]
+[gd_scene load_steps=29 format=3]
 
 [ext_resource type="Script" path="res://scripts/ZebraTC5xController.gd" id="1_ctrl"]
 [ext_resource type="Script" path="res://scripts/ZebraScreenUI.gd" id="2_screen_ui"]
@@ -69,7 +69,7 @@ albedo_color = Color(1, 0.05, 0.05, 0.75)
 transparency = 1
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
-bg_color = Color(0.07, 0.09, 0.13, 1)
+bg_color = Color(0.06, 0.08, 0.12, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
 bg_color = Color(0.03, 0.45, 0.88, 1)
@@ -78,8 +78,15 @@ corner_radius_top_right = 6
 corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_tab"]
+bg_color = Color(0.12, 0.16, 0.24, 1)
+border_width_bottom = 3
+border_color = Color(0.02, 0.45, 0.85, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
-bg_color = Color(0.12, 0.16, 0.23, 1)
+bg_color = Color(0.11, 0.15, 0.22, 1)
 border_width_left = 4
 border_color = Color(0.96, 0.65, 0.08, 1)
 corner_radius_top_left = 6
@@ -87,8 +94,22 @@ corner_radius_top_right = 6
 corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_btn"]
+bg_color = Color(0.96, 0.45, 0.08, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scan_btn"]
+bg_color = Color(0.85, 0.12, 0.15, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_status"]
-bg_color = Color(0.09, 0.22, 0.16, 1)
+bg_color = Color(0.08, 0.20, 0.15, 1)
 border_width_left = 4
 border_color = Color(0.2, 0.9, 0.4, 1)
 corner_radius_top_left = 6
@@ -189,16 +210,16 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_bg")
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_left = 16.0
-offset_top = 10.0
-offset_right = -16.0
-offset_bottom = 36.0
+offset_left = 14.0
+offset_top = 8.0
+offset_right = -14.0
+offset_bottom = 32.0
 grow_horizontal = 2
 
 [node name="TimeLabel" type="Label" parent="SubViewport/ScreenUI/Background/TopBar"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.95, 1, 1)
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 15
 text = "07:15"
 
 [node name="Spacer" type="Control" parent="SubViewport/ScreenUI/Background/TopBar"]
@@ -207,13 +228,13 @@ size_flags_horizontal = 3
 
 [node name="WifiLabel" type="Label" parent="SubViewport/ScreenUI/Background/TopBar"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 14
 text = "📶 CEA-5G"
 
 [node name="BatteryLabel" type="Label" parent="SubViewport/ScreenUI/Background/TopBar"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.2, 0.95, 0.4, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 14
 text = "🔋 98%"
 
 [node name="Content" type="VBoxContainer" parent="SubViewport/ScreenUI/Background"]
@@ -221,13 +242,13 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 46.0
-offset_right = -16.0
-offset_bottom = -44.0
+offset_left = 14.0
+offset_top = 38.0
+offset_right = -14.0
+offset_bottom = -38.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 8
 
 [node name="Header" type="PanelContainer" parent="SubViewport/ScreenUI/Background/Content"]
 layout_mode = 2
@@ -235,83 +256,261 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="CmdLabel" type="Label" parent="SubViewport/ScreenUI/Background/Content/Header"]
 layout_mode = 2
-offset_top = 8.0
-offset_bottom = -8.0
+offset_top = 6.0
+offset_bottom = -6.0
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 19
 text = "CMD-CEA-2026-601"
 horizontal_alignment = 1
 
-[node name="DestBox" type="PanelContainer" parent="SubViewport/ScreenUI/Background/Content"]
+[node name="ModuleTabBar" type="HBoxContainer" parent="SubViewport/ScreenUI/Background/Content"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="BtnCollecte" type="Button" parent="SubViewport/ScreenUI/Background/Content/ModuleTabBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_tab")
+text = "📦 Collecte"
+
+[node name="BtnLivraison" type="Button" parent="SubViewport/ScreenUI/Background/Content/ModuleTabBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_tab")
+text = "🚚 Quais"
+
+[node name="BtnManutention" type="Button" parent="SubViewport/ScreenUI/Background/Content/ModuleTabBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_tab")
+text = "🏗️ Lourd"
+
+[node name="BtnSalleBlanche" type="Button" parent="SubViewport/ScreenUI/Background/Content/ModuleTabBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_tab")
+text = "🔬 Salle B."
+
+[node name="TabCollecte" type="VBoxContainer" parent="SubViewport/ScreenUI/Background/Content"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="DestBox" type="PanelContainer" parent="SubViewport/ScreenUI/Background/Content/TabCollecte"]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
-[node name="VBox" type="VBoxContainer" parent="SubViewport/ScreenUI/Background/Content/DestBox"]
+[node name="VBox" type="VBoxContainer" parent="SubViewport/ScreenUI/Background/Content/TabCollecte/DestBox"]
 layout_mode = 2
-offset_left = 14.0
-offset_top = 10.0
-offset_right = -14.0
-offset_bottom = -10.0
+offset_left = 12.0
+offset_top = 8.0
+offset_right = -12.0
+offset_bottom = -8.0
 
-[node name="Title" type="Label" parent="SubViewport/ScreenUI/Background/Content/DestBox/VBox"]
+[node name="Title" type="Label" parent="SubViewport/ScreenUI/Background/Content/TabCollecte/DestBox/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.65, 0.75, 0.85, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 11
 text = "DESTINATAIRE BÂTIMENT :"
 
-[node name="DestLabel" type="Label" parent="SubViewport/ScreenUI/Background/Content/DestBox/VBox"]
+[node name="DestLabel" type="Label" parent="SubViewport/ScreenUI/Background/Content/TabCollecte/DestBox/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 16
 text = "Bâtiment 17 - LETI (Nano-Caractérisation)"
 autowrap_mode = 2
 
-[node name="LocBox" type="PanelContainer" parent="SubViewport/ScreenUI/Background/Content"]
+[node name="LocBox" type="PanelContainer" parent="SubViewport/ScreenUI/Background/Content/TabCollecte"]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
-[node name="VBox" type="VBoxContainer" parent="SubViewport/ScreenUI/Background/Content/LocBox"]
+[node name="VBox" type="VBoxContainer" parent="SubViewport/ScreenUI/Background/Content/TabCollecte/LocBox"]
 layout_mode = 2
-offset_left = 14.0
-offset_top = 10.0
-offset_right = -14.0
-offset_bottom = -10.0
+offset_left = 12.0
+offset_top = 8.0
+offset_right = -12.0
+offset_bottom = -8.0
 
-[node name="Title" type="Label" parent="SubViewport/ScreenUI/Background/Content/LocBox/VBox"]
+[node name="Title" type="Label" parent="SubViewport/ScreenUI/Background/Content/TabCollecte/LocBox/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.65, 0.75, 0.85, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 11
 text = "EMPLACEMENT CIBLE :"
 
-[node name="LocLabel" type="Label" parent="SubViewport/ScreenUI/Background/Content/LocBox/VBox"]
+[node name="LocLabel" type="Label" parent="SubViewport/ScreenUI/Background/Content/TabCollecte/LocBox/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.96, 0.65, 0.08, 1)
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 19
 text = "📍 LOC-B01-T03"
 
-[node name="RefBox" type="PanelContainer" parent="SubViewport/ScreenUI/Background/Content"]
+[node name="RefBox" type="PanelContainer" parent="SubViewport/ScreenUI/Background/Content/TabCollecte"]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
-[node name="VBox" type="VBoxContainer" parent="SubViewport/ScreenUI/Background/Content/RefBox"]
+[node name="VBox" type="VBoxContainer" parent="SubViewport/ScreenUI/Background/Content/TabCollecte/RefBox"]
 layout_mode = 2
-offset_left = 14.0
-offset_top = 10.0
-offset_right = -14.0
-offset_bottom = -10.0
+offset_left = 12.0
+offset_top = 8.0
+offset_right = -12.0
+offset_bottom = -8.0
 
-[node name="Title" type="Label" parent="SubViewport/ScreenUI/Background/Content/RefBox/VBox"]
+[node name="Title" type="Label" parent="SubViewport/ScreenUI/Background/Content/TabCollecte/RefBox/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.65, 0.75, 0.85, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 11
 text = "RÉFÉRENCE & QUANTITÉ :"
 
-[node name="RefLabel" type="Label" parent="SubViewport/ScreenUI/Background/Content/RefBox/VBox"]
+[node name="RefLabel" type="Label" parent="SubViewport/ScreenUI/Background/Content/TabCollecte/RefBox/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.2, 0.85, 1, 1)
-theme_override_font_sizes/font_size = 19
+theme_override_font_sizes/font_size = 17
 text = "Brides KF40 Inox (x2)"
 autowrap_mode = 2
+
+[node name="TactileActions" type="HBoxContainer" parent="SubViewport/ScreenUI/Background/Content/TabCollecte"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BtnLaser" type="Button" parent="SubViewport/ScreenUI/Background/Content/TabCollecte/TactileActions"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = SubResource("StyleBoxFlat_scan_btn")
+text = "🔴 SCAN LASER"
+
+[node name="BtnOpenDrawer" type="Button" parent="SubViewport/ScreenUI/Background/Content/TabCollecte/TactileActions"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = SubResource("StyleBoxFlat_action_btn")
+text = "📂 OUVRIR TIROIR"
+
+[node name="TabLivraison" type="VBoxContainer" parent="SubViewport/ScreenUI/Background/Content"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="Lbl1" type="Label" parent="SubViewport/ScreenUI/Background/Content/TabLivraison"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "🚚 QUAIS D'EXPÉDITION PAR BÂTIMENT :"
+
+[node name="CardL1" type="PanelContainer" parent="SubViewport/ScreenUI/Background/Content/TabLivraison"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="SubViewport/ScreenUI/Background/Content/TabLivraison/CardL1"]
+layout_mode = 2
+offset_left = 10.0
+offset_top = 8.0
+offset_right = -10.0
+offset_bottom = -8.0
+
+[node name="L1" type="Label" parent="SubViewport/ScreenUI/Background/Content/TabLivraison/CardL1/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "📍 QUAI LETI 17 (Nano-Caractérisation)"
+
+[node name="L2" type="Label" parent="SubViewport/ScreenUI/Background/Content/TabLivraison/CardL1/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "Statut : En attente du colis #601"
+
+[node name="CardL2" type="PanelContainer" parent="SubViewport/ScreenUI/Background/Content/TabLivraison"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="SubViewport/ScreenUI/Background/Content/TabLivraison/CardL2"]
+layout_mode = 2
+offset_left = 10.0
+offset_top = 8.0
+offset_right = -10.0
+offset_bottom = -8.0
+
+[node name="L1" type="Label" parent="SubViewport/ScreenUI/Background/Content/TabLivraison/CardL2/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.65, 0.08, 1)
+theme_override_font_sizes/font_size = 16
+text = "📍 QUAI MINATEC 22 (Micro-Électronique)"
+
+[node name="L2" type="Label" parent="SubViewport/ScreenUI/Background/Content/TabLivraison/CardL2/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "Statut : Prêt pour collecte Wafers"
+
+[node name="TabManutention" type="VBoxContainer" parent="SubViewport/ScreenUI/Background/Content"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="LblM" type="Label" parent="SubViewport/ScreenUI/Background/Content/TabManutention"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "🏗️ MANUTENTION LOURDE CEA :"
+
+[node name="CardM1" type="PanelContainer" parent="SubViewport/ScreenUI/Background/Content/TabManutention"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="SubViewport/ScreenUI/Background/Content/TabManutention/CardM1"]
+layout_mode = 2
+offset_left = 10.0
+offset_top = 8.0
+offset_right = -10.0
+offset_bottom = -8.0
+
+[node name="T1" type="Label" parent="SubViewport/ScreenUI/Background/Content/TabManutention/CardM1/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.45, 0.08, 1)
+theme_override_font_sizes/font_size = 16
+text = "Pompe à vide Edwards 300kg"
+
+[node name="T2" type="Label" parent="SubViewport/ScreenUI/Background/Content/TabManutention/CardM1/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "Sangles 5T : OK | Palan au plafond : Actif"
+
+[node name="TabSalleBlanche" type="VBoxContainer" parent="SubViewport/ScreenUI/Background/Content"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="LblSB" type="Label" parent="SubViewport/ScreenUI/Background/Content/TabSalleBlanche"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "🔬 SALLE BLANCHE & WAFERS :"
+
+[node name="CardSB1" type="PanelContainer" parent="SubViewport/ScreenUI/Background/Content/TabSalleBlanche"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="SubViewport/ScreenUI/Background/Content/TabSalleBlanche/CardSB1"]
+layout_mode = 2
+offset_left = 10.0
+offset_top = 8.0
+offset_right = -10.0
+offset_bottom = -8.0
+
+[node name="S1" type="Label" parent="SubViewport/ScreenUI/Background/Content/TabSalleBlanche/CardSB1/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.15, 0.85, 0.35, 1)
+theme_override_font_sizes/font_size = 16
+text = "FOSB 300mm Vert (Silicium Pur)"
+
+[node name="S2" type="Label" parent="SubViewport/ScreenUI/Background/Content/TabSalleBlanche/CardSB1/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "Double ensachage antistatique requis"
 
 [node name="StatusBox" type="PanelContainer" parent="SubViewport/ScreenUI/Background/Content"]
 layout_mode = 2
@@ -321,7 +520,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_status")
 [node name="StatusLabel" type="Label" parent="SubViewport/ScreenUI/Background/Content/StatusBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.2, 0.95, 0.4, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 16
 text = "1/4 - Scannez l'étiquette EAN-128 du tiroir"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -338,26 +537,32 @@ offset_bottom = -4.0
 grow_horizontal = 2
 alignment = 1
 
-[node name="BtnBack" type="Label" parent="SubViewport/ScreenUI/Background/AndroidNavBar"]
+[node name="BtnBack" type="Button" parent="SubViewport/ScreenUI/Background/AndroidNavBar"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.5, 0.6, 0.7, 1)
-theme_override_font_sizes/font_size = 18
-text = "◀"
-horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.6, 0.7, 0.8, 1)
+theme_override_font_sizes/font_size = 16
+text = "◀ Retour"
 
-[node name="BtnHome" type="Label" parent="SubViewport/ScreenUI/Background/AndroidNavBar"]
+[node name="BtnHome" type="Button" parent="SubViewport/ScreenUI/Background/AndroidNavBar"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.5, 0.6, 0.7, 1)
-theme_override_font_sizes/font_size = 18
-text = "●"
-horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.6, 0.7, 0.8, 1)
+theme_override_font_sizes/font_size = 16
+text = "● Accueil"
 
-[node name="BtnRecent" type="Label" parent="SubViewport/ScreenUI/Background/AndroidNavBar"]
+[node name="BtnRecent" type="Button" parent="SubViewport/ScreenUI/Background/AndroidNavBar"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.5, 0.6, 0.7, 1)
-theme_override_font_sizes/font_size = 18
-text = "■"
-horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.6, 0.7, 0.8, 1)
+theme_override_font_sizes/font_size = 16
+text = "■ WMS"
+
+[connection signal="pressed" from="SubViewport/ScreenUI/Background/Content/ModuleTabBar/BtnCollecte" to="SubViewport/ScreenUI" method="_on_btn_collecte_pressed"]
+[connection signal="pressed" from="SubViewport/ScreenUI/Background/Content/ModuleTabBar/BtnLivraison" to="SubViewport/ScreenUI" method="_on_btn_livraison_pressed"]
+[connection signal="pressed" from="SubViewport/ScreenUI/Background/Content/ModuleTabBar/BtnManutention" to="SubViewport/ScreenUI" method="_on_btn_manutention_pressed"]
+[connection signal="pressed" from="SubViewport/ScreenUI/Background/Content/ModuleTabBar/BtnSalleBlanche" to="SubViewport/ScreenUI" method="_on_btn_salle_blanche_pressed"]
+[connection signal="pressed" from="SubViewport/ScreenUI/Background/Content/TabCollecte/TactileActions/BtnLaser" to="SubViewport/ScreenUI" method="_on_btn_scan_laser_pressed"]
+[connection signal="pressed" from="SubViewport/ScreenUI/Background/Content/TabCollecte/TactileActions/BtnOpenDrawer" to="SubViewport/ScreenUI" method="_on_btn_open_drawer_pressed"]
+[connection signal="pressed" from="SubViewport/ScreenUI/Background/AndroidNavBar/BtnBack" to="SubViewport/ScreenUI" method="_on_btn_collecte_pressed"]
+[connection signal="pressed" from="SubViewport/ScreenUI/Background/AndroidNavBar/BtnHome" to="SubViewport/ScreenUI" method="_on_btn_collecte_pressed"]

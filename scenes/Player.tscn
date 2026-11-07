@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://scripts/PlayerController.gd" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/ZebraTC5x.tscn" id="2_zebra_tc5x"]
@@ -6,6 +6,83 @@
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 0.4
 height = 1.8
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_operator_body"]
+radius = 0.35
+height = 1.75
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_highvis_jacket"]
+albedo_color = Color(1.0, 0.42, 0.05, 1)
+roughness = 0.65
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_stripe"]
+top_radius = 0.36
+bottom_radius = 0.36
+height = 0.08
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_silver_reflective"]
+albedo_color = Color(0.9, 0.92, 0.95, 1)
+metallic = 0.95
+roughness = 0.15
+
+[sub_resource type="SphereMesh" id="SphereMesh_head"]
+radius = 0.18
+height = 0.35
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_helmet"]
+albedo_color = Color(0.96, 0.75, 0.08, 1)
+roughness = 0.3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_overlay"]
+bg_color = Color(0.04, 0.06, 0.10, 0.92)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.03, 0.45, 0.88, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tab_btn"]
+bg_color = Color(0.12, 0.16, 0.24, 1)
+border_width_bottom = 3
+border_color = Color(0.03, 0.45, 0.88, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+bg_color = Color(0.10, 0.14, 0.20, 1)
+border_width_left = 4
+border_color = Color(0.96, 0.65, 0.08, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action"]
+bg_color = Color(0.96, 0.45, 0.08, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_laser"]
+bg_color = Color(0.85, 0.12, 0.15, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_prompt"]
+bg_color = Color(0.06, 0.08, 0.12, 0.85)
+border_width_left = 3
+border_color = Color(0.96, 0.65, 0.08, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 
 [node name="Player" type="CharacterBody3D"]
 script = ExtResource("1_player")
@@ -18,13 +95,40 @@ shape = SubResource("CapsuleShape3D_1")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.65, 0)
 
 [node name="Camera3D" type="Camera3D" parent="Head"]
-fov = 72.0
+fov = 74.0
 
 [node name="LaserRay" type="RayCast3D" parent="Head"]
-target_position = Vector3(0, 0, -6.0)
+target_position = Vector3(0, 0, -6.5)
 
 [node name="ZebraHand3D" parent="Head" instance=ExtResource("2_zebra_tc5x")]
-transform = Transform3D(0.960431, -0.100918, -0.259468, 0.059439, 0.978148, -0.199148, 0.272108, 0.182069, 0.944896, 0.22, -0.18, -0.38)
+transform = Transform3D(0.960431, -0.100918, -0.259468, 0.059439, 0.978148, -0.199148, 0.272108, 0.182069, 0.944896, 0.24, -0.22, -0.38)
+
+[node name="ThirdPersonArm" type="SpringArm3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.939693, 0.34202, 0, -0.34202, 0.939693, 0, 1.8, 0)
+spring_length = 2.8
+
+[node name="ThirdPersonCamera" type="Camera3D" parent="ThirdPersonArm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.8)
+fov = 74.0
+
+[node name="OperatorMesh" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+visible = false
+
+[node name="Body" type="MeshInstance3D" parent="OperatorMesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.88, 0)
+mesh = SubResource("CapsuleMesh_operator_body")
+surface_material_override/0 = SubResource("StandardMaterial3D_highvis_jacket")
+
+[node name="ReflectiveStripe" type="MeshInstance3D" parent="OperatorMesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, 0)
+mesh = SubResource("CylinderMesh_stripe")
+surface_material_override/0 = SubResource("StandardMaterial3D_silver_reflective")
+
+[node name="Helmet" type="MeshInstance3D" parent="OperatorMesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.70, 0)
+mesh = SubResource("SphereMesh_head")
+surface_material_override/0 = SubResource("StandardMaterial3D_helmet")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
@@ -68,17 +172,180 @@ custom_minimum_size = Vector2(4, 4)
 layout_mode = 2
 color = Color(1, 0.2, 0.2, 0.85)
 
+[node name="InteractPrompt" type="Label" parent="CanvasLayer"]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = 40.0
+offset_right = 180.0
+offset_bottom = 75.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.2, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_prompt")
+text = "👉 [E] INTERAGIR"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="ControlsTip" type="Label" parent="CanvasLayer"]
 anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
 offset_left = 16.0
-offset_top = -68.0
-offset_right = 450.0
+offset_top = -80.0
+offset_right = 520.0
 offset_bottom = -12.0
 grow_vertical = 0
-theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 0.8)
+theme_override_colors/font_color = Color(0.85, 0.9, 0.98, 0.85)
 theme_override_font_sizes/font_size = 13
-text = "🎮 Z/Q/S/D : Marcher | Clic Droit : Lever le Zebra TC5x (Viser)
-🔴 ESPACE / Clic Gauche : Scanner au laser | E : Interagir
-Échap : Libérer la souris"
+text = "🎮 Z/Q/S/D : Marcher | MAJ : Courir | V : Basculer 1ère / 3ème Personne
+📱 TAB : Ouvrir le Zebra Tactile (Pianoter à la souris) | Clic Droit : Viser
+🔴 ESPACE / Clic Gauche : Scanner au laser | E : Ouvrir / Emballer / Livrer"
+
+[node name="ZebraTactileOverlay" type="Control" parent="CanvasLayer"]
+visible = false
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -210.0
+offset_top = -340.0
+offset_right = 210.0
+offset_bottom = 340.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="Panel" parent="CanvasLayer/ZebraTactileOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_overlay")
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/ZebraTactileOverlay/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = 16.0
+offset_right = -18.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="CanvasLayer/ZebraTactileOverlay/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "📱 ZEBRA TC5x • WMS CEA (Mode Tactile)"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="CanvasLayer/ZebraTactileOverlay/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.8, 0.9, 1)
+theme_override_font_sizes/font_size = 12
+text = "Pianotez sur les modules ou cliquez sur les actions ci-dessous :"
+horizontal_alignment = 1
+
+[node name="TabBar" type="HBoxContainer" parent="CanvasLayer/ZebraTactileOverlay/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="BtnT1" type="Button" parent="CanvasLayer/ZebraTactileOverlay/Panel/VBox/TabBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_tab_btn")
+text = "📦 Collecte"
+
+[node name="BtnT2" type="Button" parent="CanvasLayer/ZebraTactileOverlay/Panel/VBox/TabBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_tab_btn")
+text = "🚚 Quais"
+
+[node name="BtnT3" type="Button" parent="CanvasLayer/ZebraTactileOverlay/Panel/VBox/TabBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_tab_btn")
+text = "🏗️ Lourd"
+
+[node name="BtnT4" type="Button" parent="CanvasLayer/ZebraTactileOverlay/Panel/VBox/TabBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_tab_btn")
+text = "🔬 Salle B."
+
+[node name="MissionCard" type="PanelContainer" parent="CanvasLayer/ZebraTactileOverlay/Panel/VBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/ZebraTactileOverlay/Panel/VBox/MissionCard"]
+layout_mode = 2
+offset_left = 12.0
+offset_top = 10.0
+offset_right = -12.0
+offset_bottom = -10.0
+theme_override_constants/separation = 6
+
+[node name="L1" type="Label" parent="CanvasLayer/ZebraTactileOverlay/Panel/VBox/MissionCard/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.65, 0.08, 1)
+theme_override_font_sizes/font_size = 16
+text = "📍 EMPLACEMENT : ALLÉE B • TIROIR 03"
+
+[node name="L2" type="Label" parent="CanvasLayer/ZebraTactileOverlay/Panel/VBox/MissionCard/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "📦 ARTICLE : Brides KF40 Inox (x2)"
+
+[node name="L3" type="Label" parent="CanvasLayer/ZebraTactileOverlay/Panel/VBox/MissionCard/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "🚚 DESTINATAIRE : Bâtiment 17 - LETI"
+
+[node name="Actions" type="VBoxContainer" parent="CanvasLayer/ZebraTactileOverlay/Panel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="BtnActionLaser" type="Button" parent="CanvasLayer/ZebraTactileOverlay/Panel/VBox/Actions"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_laser")
+text = "🔴 TIRER LE SCANNER LASER (Espace)"
+
+[node name="BtnActionDrawer" type="Button" parent="CanvasLayer/ZebraTactileOverlay/Panel/VBox/Actions"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_action")
+text = "📂 OUVRIR LE TIROIR B01 (Touche E)"
+
+[node name="BtnCloseOverlay" type="Button" parent="CanvasLayer/ZebraTactileOverlay/Panel/VBox"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "✖ FERMER L'ÉCRAN (Touche TAB)"
+
+[connection signal="pressed" from="CanvasLayer/ZebraTactileOverlay/Panel/VBox/Actions/BtnActionLaser" to="." method="trigger_laser_scan"]
+[connection signal="pressed" from="CanvasLayer/ZebraTactileOverlay/Panel/VBox/Actions/BtnActionDrawer" to="." method="_on_tactile_open_drawer"]
+[connection signal="pressed" from="CanvasLayer/ZebraTactileOverlay/Panel/VBox/BtnCloseOverlay" to="." method="_on_close_tactile_overlay"]
