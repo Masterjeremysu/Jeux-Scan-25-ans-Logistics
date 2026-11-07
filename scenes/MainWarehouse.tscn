@@ -1,4 +1,4 @@
-[gd_scene load_steps=29 format=3]
+[gd_scene load_steps=34 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/DrawerCabinet.tscn" id="2_cabinet"]
@@ -8,14 +8,18 @@
 [ext_resource type="PackedScene" path="res://scenes/PickingCart.tscn" id="6_cart"]
 [ext_resource type="PackedScene" path="res://scenes/IndustrialLamp.tscn" id="7_lamp"]
 [ext_resource type="Script" path="res://scripts/WarehouseManager.gd" id="8_mgr"]
-[ext_resource type="Texture2D" path="res://textures/floor_epoxy.png" id="9_floor_tex"]
-[ext_resource type="Texture2D" path="res://textures/wall_corrugated.png" id="10_wall_tex"]
-[ext_resource type="Texture2D" path="res://textures/hazard_stripes.png" id="11_hazard_tex"]
+[ext_resource type="Texture2D" path="res://textures/floor_albedo.png" id="9_floor_alb"]
+[ext_resource type="Texture2D" path="res://textures/floor_normal.png" id="10_floor_nrm"]
+[ext_resource type="Texture2D" path="res://textures/floor_roughness.png" id="11_floor_rgh"]
+[ext_resource type="Texture2D" path="res://textures/wall_albedo.png" id="12_wall_alb"]
+[ext_resource type="Texture2D" path="res://textures/wall_normal.png" id="13_wall_nrm"]
+[ext_resource type="Texture2D" path="res://textures/wall_roughness.png" id="14_wall_rgh"]
+[ext_resource type="Texture2D" path="res://textures/hazard_stripes.png" id="15_hazard_tex"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
-sky_top_color = Color(0.06, 0.08, 0.12, 1)
-sky_horizon_color = Color(0.12, 0.15, 0.20, 1)
-ground_bottom_color = Color(0.04, 0.05, 0.08, 1)
+sky_top_color = Color(0.12, 0.16, 0.24, 1)
+sky_horizon_color = Color(0.25, 0.30, 0.40, 1)
+ground_bottom_color = Color(0.08, 0.10, 0.14, 1)
 
 [sub_resource type="Sky" id="Sky_env"]
 sky_material = SubResource("ProceduralSkyMaterial_sky")
@@ -24,13 +28,21 @@ sky_material = SubResource("ProceduralSkyMaterial_sky")
 background_mode = 2
 sky = SubResource("Sky_env")
 ambient_light_source = 2
-ambient_light_color = Color(0.65, 0.70, 0.80, 1)
-ambient_light_energy = 0.85
+ambient_light_color = Color(0.82, 0.88, 0.96, 1)
+ambient_light_energy = 1.35
 tonemap_mode = 3
+tonemap_exposure = 1.15
 ssao_enabled = true
+ssao_radius = 2.0
+ssao_intensity = 3.0
+ssr_enabled = true
+ssr_max_steps = 64
+ssil_enabled = true
+sdfgi_enabled = true
+sdfgi_bounce_feedback = 0.6
 glow_enabled = true
 glow_intensity = 0.25
-glow_bloom = 0.08
+glow_bloom = 0.10
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
 size = Vector3(32, 0.2, 28)
@@ -38,11 +50,13 @@ size = Vector3(32, 0.2, 28)
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
 size = Vector3(32, 0.2, 28)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
-albedo_texture = ExtResource("9_floor_tex")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor_pbr"]
+albedo_texture = ExtResource("9_floor_alb")
+normal_enabled = true
+normal_texture = ExtResource("10_floor_nrm")
+roughness_texture = ExtResource("11_floor_rgh")
 uv1_scale = Vector3(12, 10, 1)
 metallic = 0.35
-roughness = 0.28
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_wall_lr"]
 size = Vector3(0.4, 7.5, 28)
@@ -50,12 +64,14 @@ size = Vector3(0.4, 7.5, 28)
 [sub_resource type="BoxMesh" id="BoxMesh_wall_lr"]
 size = Vector3(0.4, 7.5, 28)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wall"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wall_pbr"]
 cull_mode = 2
-albedo_texture = ExtResource("10_wall_tex")
+albedo_texture = ExtResource("12_wall_alb")
+normal_enabled = true
+normal_texture = ExtResource("13_wall_nrm")
+roughness_texture = ExtResource("14_wall_rgh")
 uv1_scale = Vector3(8, 2, 1)
-metallic = 0.65
-roughness = 0.45
+metallic = 0.7
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_wall_fb"]
 size = Vector3(32, 7.5, 0.4)
@@ -100,6 +116,14 @@ albedo_color = Color(0.15, 0.85, 0.35, 1)
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_main")
 
+[node name="SkylightSun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 0, 10, 0)
+light_color = Color(0.95, 0.97, 1.0, 1)
+light_energy = 1.8
+shadow_enabled = true
+shadow_bias = 0.03
+shadow_blur = 1.2
+
 [node name="WarehouseManager" type="Node" parent="."]
 script = ExtResource("8_mgr")
 
@@ -111,7 +135,7 @@ shape = SubResource("BoxShape3D_floor")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Floor"]
 mesh = SubResource("BoxMesh_floor")
-surface_material_override/0 = SubResource("StandardMaterial3D_floor")
+surface_material_override/0 = SubResource("StandardMaterial3D_floor_pbr")
 
 [node name="Ceiling" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.0, 0)
@@ -126,7 +150,7 @@ shape = SubResource("BoxShape3D_wall_lr")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="WallLeft"]
 mesh = SubResource("BoxMesh_wall_lr")
-surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall_pbr")
 
 [node name="WallRight" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 3.75, 0)
@@ -136,7 +160,7 @@ shape = SubResource("BoxShape3D_wall_lr")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="WallRight"]
 mesh = SubResource("BoxMesh_wall_lr")
-surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall_pbr")
 
 [node name="WallBack" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.75, -14)
@@ -146,7 +170,7 @@ shape = SubResource("BoxShape3D_wall_fb")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="WallBack"]
 mesh = SubResource("BoxMesh_wall_fb")
-surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall_pbr")
 
 [node name="WallFront" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.75, 14)
@@ -156,7 +180,7 @@ shape = SubResource("BoxShape3D_wall_fb")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="WallFront"]
 mesh = SubResource("BoxMesh_wall_fb")
-surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall_pbr")
 
 [node name="SectionalDockDoor" type="MeshInstance3D" parent="WallFront"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.35, -0.22)

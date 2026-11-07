@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3]
+[gd_scene load_steps=31 format=3]
 
 [ext_resource type="Script" path="res://scripts/ZebraTC5xController.gd" id="1_ctrl"]
 [ext_resource type="Script" path="res://scripts/ZebraScreenUI.gd" id="2_screen_ui"]
@@ -13,14 +13,6 @@ albedo_texture = ExtResource("3_rubber_tex")
 uv1_scale = Vector3(10, 20, 2)
 metallic = 0.2
 roughness = 0.65
-
-[sub_resource type="BoxMesh" id="BoxMesh_front_glass"]
-size = Vector3(0.074, 0.154, 0.002)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_front_glass"]
-albedo_color = Color(0.04, 0.05, 0.06, 1)
-metallic = 0.8
-roughness = 0.1
 
 [sub_resource type="BoxMesh" id="BoxMesh_bumper_corner"]
 size = Vector3(0.018, 0.024, 0.020)
@@ -61,6 +53,34 @@ height = 5.0
 shading_mode = 0
 albedo_color = Color(1, 0.05, 0.05, 0.65)
 transparency = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_arm"]
+top_radius = 0.038
+bottom_radius = 0.046
+height = 0.40
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jacket"]
+albedo_color = Color(0.12, 0.16, 0.24, 1)
+roughness = 0.85
+
+[sub_resource type="BoxMesh" id="BoxMesh_glove_palm"]
+size = Vector3(0.075, 0.082, 0.032)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_glove_black"]
+albedo_color = Color(0.11, 0.13, 0.16, 1)
+roughness = 0.6
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_thumb"]
+radius = 0.010
+height = 0.048
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_glove_blue"]
+albedo_color = Color(0.08, 0.45, 0.85, 1)
+roughness = 0.45
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_finger"]
+radius = 0.009
+height = 0.045
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
 bg_color = Color(0.06, 0.08, 0.12, 1)
@@ -141,6 +161,38 @@ surface_material_override/0 = SubResource("StandardMaterial3D_led")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.004, 0.009)
 mesh = SubResource("QuadMesh_screen")
 
+[node name="HandRig" type="Node3D" parent="."]
+
+[node name="ArmForearm" type="MeshInstance3D" parent="HandRig"]
+transform = Transform3D(0.965926, 0, 0.258819, 0.12941, 0.866025, -0.482963, -0.224144, 0.5, 0.836516, 0.08, -0.25, -0.18)
+mesh = SubResource("CylinderMesh_arm")
+surface_material_override/0 = SubResource("StandardMaterial3D_jacket")
+
+[node name="GlovePalm" type="MeshInstance3D" parent="HandRig"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.01, -0.04, -0.02)
+mesh = SubResource("BoxMesh_glove_palm")
+surface_material_override/0 = SubResource("StandardMaterial3D_glove_black")
+
+[node name="Thumb" type="MeshInstance3D" parent="HandRig"]
+transform = Transform3D(0.866025, 0.5, 0, -0.5, 0.866025, 0, 0, 0, 1, -0.044, -0.01, 0.006)
+mesh = SubResource("CapsuleMesh_thumb")
+surface_material_override/0 = SubResource("StandardMaterial3D_glove_blue")
+
+[node name="IndexFinger" type="MeshInstance3D" parent="HandRig"]
+transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, 0.042, 0.02, 0.004)
+mesh = SubResource("CapsuleMesh_finger")
+surface_material_override/0 = SubResource("StandardMaterial3D_glove_blue")
+
+[node name="MiddleFinger" type="MeshInstance3D" parent="HandRig"]
+transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, 0.042, -0.015, 0.004)
+mesh = SubResource("CapsuleMesh_finger")
+surface_material_override/0 = SubResource("StandardMaterial3D_glove_blue")
+
+[node name="RingFinger" type="MeshInstance3D" parent="HandRig"]
+transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, 0.042, -0.05, 0.004)
+mesh = SubResource("CapsuleMesh_finger")
+surface_material_override/0 = SubResource("StandardMaterial3D_glove_blue")
+
 [node name="LaserBeam" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0.085, -2.5)
 visible = false
@@ -173,16 +225,16 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_bg")
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_left = 14.0
+offset_left = 16.0
 offset_top = 10.0
-offset_right = -14.0
-offset_bottom = 34.0
+offset_right = -16.0
+offset_bottom = 36.0
 grow_horizontal = 2
 
 [node name="TimeLabel" type="Label" parent="SubViewport/ScreenUI/Background/TopBar"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.95, 1, 1)
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 17
 text = "07:15"
 
 [node name="Spacer" type="Control" parent="SubViewport/ScreenUI/Background/TopBar"]
@@ -191,13 +243,13 @@ size_flags_horizontal = 3
 
 [node name="WifiLabel" type="Label" parent="SubViewport/ScreenUI/Background/TopBar"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 16
 text = "📶 CEA-5G"
 
 [node name="BatteryLabel" type="Label" parent="SubViewport/ScreenUI/Background/TopBar"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.2, 0.9, 0.4, 1)
-theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.2, 0.95, 0.4, 1)
+theme_override_font_sizes/font_size = 16
 text = "🔋 98%"
 
 [node name="Content" type="VBoxContainer" parent="SubViewport/ScreenUI/Background"]
@@ -206,9 +258,9 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 16.0
-offset_top = 44.0
+offset_top = 46.0
 offset_right = -16.0
-offset_bottom = -38.0
+offset_bottom = -44.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 12
@@ -219,10 +271,10 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="CmdLabel" type="Label" parent="SubViewport/ScreenUI/Background/Content/Header"]
 layout_mode = 2
-offset_top = 6.0
-offset_bottom = -6.0
+offset_top = 8.0
+offset_bottom = -8.0
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 22
 text = "CMD-CEA-2026-601"
 horizontal_alignment = 1
 
@@ -232,21 +284,21 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="VBox" type="VBoxContainer" parent="SubViewport/ScreenUI/Background/Content/DestBox"]
 layout_mode = 2
-offset_left = 12.0
+offset_left = 14.0
 offset_top = 10.0
-offset_right = -12.0
+offset_right = -14.0
 offset_bottom = -10.0
 
 [node name="Title" type="Label" parent="SubViewport/ScreenUI/Background/Content/DestBox/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.65, 0.75, 0.85, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 13
 text = "DESTINATAIRE BÂTIMENT :"
 
 [node name="DestLabel" type="Label" parent="SubViewport/ScreenUI/Background/Content/DestBox/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 18
 text = "Bâtiment 17 - LETI (Nano-Caractérisation)"
 autowrap_mode = 2
 
@@ -256,21 +308,21 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="VBox" type="VBoxContainer" parent="SubViewport/ScreenUI/Background/Content/LocBox"]
 layout_mode = 2
-offset_left = 12.0
+offset_left = 14.0
 offset_top = 10.0
-offset_right = -12.0
+offset_right = -14.0
 offset_bottom = -10.0
 
 [node name="Title" type="Label" parent="SubViewport/ScreenUI/Background/Content/LocBox/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.65, 0.75, 0.85, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 13
 text = "EMPLACEMENT CIBLE :"
 
 [node name="LocLabel" type="Label" parent="SubViewport/ScreenUI/Background/Content/LocBox/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.96, 0.65, 0.08, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 22
 text = "📍 LOC-B01-T03"
 
 [node name="RefBox" type="PanelContainer" parent="SubViewport/ScreenUI/Background/Content"]
@@ -279,21 +331,21 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="VBox" type="VBoxContainer" parent="SubViewport/ScreenUI/Background/Content/RefBox"]
 layout_mode = 2
-offset_left = 12.0
+offset_left = 14.0
 offset_top = 10.0
-offset_right = -12.0
+offset_right = -14.0
 offset_bottom = -10.0
 
 [node name="Title" type="Label" parent="SubViewport/ScreenUI/Background/Content/RefBox/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.65, 0.75, 0.85, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 13
 text = "RÉFÉRENCE & QUANTITÉ :"
 
 [node name="RefLabel" type="Label" parent="SubViewport/ScreenUI/Background/Content/RefBox/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.2, 0.85, 1, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 19
 text = "Brides KF40 Inox (x2)"
 autowrap_mode = 2
 
@@ -304,8 +356,8 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_status")
 
 [node name="StatusLabel" type="Label" parent="SubViewport/ScreenUI/Background/Content/StatusBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.2, 0.9, 0.4, 1)
-theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(0.2, 0.95, 0.4, 1)
+theme_override_font_sizes/font_size = 18
 text = "1/4 - Scannez l'étiquette EAN-128 du tiroir"
 horizontal_alignment = 1
 vertical_alignment = 1

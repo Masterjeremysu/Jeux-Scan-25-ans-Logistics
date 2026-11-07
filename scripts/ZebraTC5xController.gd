@@ -10,6 +10,9 @@ class_name ZebraTC5xController
 var audio_player: AudioStreamPlayer = null
 var audio_gen: AudioStreamGeneratorPlayback = null
 
+# Rotation libre "axe humain" contrôlée au poignet lors de l'inspection
+var wrist_rotation_offset := Vector3.ZERO
+
 func _ready() -> void:
 	# 1. Configurer la texture dynamique de l'écran du PDA
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
@@ -19,7 +22,7 @@ func _ready() -> void:
 	mat.albedo_texture = viewport.get_texture()
 	screen_mesh.set_surface_override_material(0, mat)
 	
-	# 2. Configurer le synthétiseur audio pour le bip de scan industriel
+	# 2. Configurer le son du bip de scan Zebra SE4710
 	setup_beep_audio()
 
 func setup_beep_audio() -> void:
@@ -35,7 +38,7 @@ func setup_beep_audio() -> void:
 func play_scan_beep(success: bool = true) -> void:
 	if not audio_gen:
 		return
-	var freq = 1760.0 if success else 440.0 # Bip aigu 1760 Hz pour succès (Zebra SE4710)
+	var freq = 1760.0 if success else 440.0
 	var sample_rate = 22050.0
 	var duration_frames = int(sample_rate * (0.07 if success else 0.18))
 	for i in range(duration_frames):

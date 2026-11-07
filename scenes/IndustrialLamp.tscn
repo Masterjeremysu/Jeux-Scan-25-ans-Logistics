@@ -16,18 +16,18 @@ bottom_radius = 0.38
 height = 0.35
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bell"]
-albedo_color = Color(0.18, 0.22, 0.28, 1)
-metallic = 0.7
-roughness = 0.35
+albedo_color = Color(0.25, 0.28, 0.35, 1)
+metallic = 0.85
+roughness = 0.25
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_led"]
-top_radius = 0.22
-bottom_radius = 0.22
+top_radius = 0.24
+bottom_radius = 0.24
 height = 0.04
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_led_emissive"]
 shading_mode = 0
-albedo_color = Color(1.0, 0.98, 0.92, 1)
+albedo_color = Color(1.0, 0.98, 0.94, 1)
 
 [node name="IndustrialLamp" type="Node3D"]
 
@@ -47,8 +47,16 @@ surface_material_override/0 = SubResource("StandardMaterial3D_led_emissive")
 
 [node name="SpotLight3D" type="SpotLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, -0.2, 0)
-light_color = Color(0.98, 0.96, 0.92, 1)
-light_energy = 2.4
-spot_range = 14.0
-spot_angle = 55.0
+light_color = Color(1.0, 0.98, 0.94, 1)
+light_energy = 5.0
+spot_range = 18.0
+spot_angle = 65.0
 shadow_enabled = true
+shadow_bias = 0.03
+
+[node name="OmniLight3D" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+light_color = Color(0.95, 0.97, 1.0, 1)
+light_energy = 2.8
+omni_range = 16.0
+omni_attenuation = 0.8

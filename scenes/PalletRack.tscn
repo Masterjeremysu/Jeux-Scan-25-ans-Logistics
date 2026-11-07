@@ -1,50 +1,65 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=22 format=3]
 
-[ext_resource type="Texture2D" path="res://textures/wood_pallet.png" id="1_wood"]
-[ext_resource type="Texture2D" path="res://textures/cardboard_box.png" id="2_cardboard"]
-[ext_resource type="Texture2D" path="res://textures/label_ean128.png" id="3_label"]
-[ext_resource type="PackedScene" path="res://scenes/VacuumPump300kg.tscn" id="4_pump"]
+[ext_resource type="Texture2D" path="res://textures/wood_albedo.png" id="1_wood_alb"]
+[ext_resource type="Texture2D" path="res://textures/wood_normal.png" id="2_wood_nrm"]
+[ext_resource type="Texture2D" path="res://textures/wood_roughness.png" id="3_wood_rgh"]
+[ext_resource type="Texture2D" path="res://textures/box_albedo.png" id="4_box_alb"]
+[ext_resource type="Texture2D" path="res://textures/box_normal.png" id="5_box_nrm"]
+[ext_resource type="Texture2D" path="res://textures/box_roughness.png" id="6_box_rgh"]
+[ext_resource type="Texture2D" path="res://textures/rack_albedo.png" id="7_rack_alb"]
+[ext_resource type="Texture2D" path="res://textures/rack_normal.png" id="8_rack_nrm"]
+[ext_resource type="Texture2D" path="res://textures/rack_roughness.png" id="9_rack_rgh"]
+[ext_resource type="Texture2D" path="res://textures/label_ean128.png" id="10_label"]
+[ext_resource type="PackedScene" path="res://scenes/VacuumPump300kg.tscn" id="11_pump"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_rack_col"]
 size = Vector3(4.8, 4.4, 1.2)
 
 [sub_resource type="BoxMesh" id="BoxMesh_upright"]
-size = Vector3(0.08, 4.4, 0.08)
+size = Vector3(0.10, 4.4, 0.10)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_blue_rack"]
-albedo_color = Color(0.12, 0.38, 0.72, 1)
-metallic = 0.6
-roughness = 0.4
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_blue_rack_pbr"]
+albedo_texture = ExtResource("7_rack_alb")
+normal_enabled = true
+normal_texture = ExtResource("8_rack_nrm")
+roughness_texture = ExtResource("9_rack_rgh")
+metallic = 0.75
 
 [sub_resource type="BoxMesh" id="BoxMesh_beam"]
-size = Vector3(4.6, 0.12, 0.06)
+size = Vector3(4.6, 0.14, 0.08)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_orange_beam"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_orange_beam_pbr"]
 albedo_color = Color(0.96, 0.45, 0.08, 1)
-metallic = 0.5
-roughness = 0.45
+metallic = 0.8
+roughness = 0.32
 
-[sub_resource type="BoxMesh" id="BoxMesh_pallet"]
-size = Vector3(1.2, 0.14, 0.8)
+[sub_resource type="BoxMesh" id="BoxMesh_deckboard"]
+size = Vector3(1.20, 0.024, 0.14)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pallet_wood"]
-albedo_texture = ExtResource("1_wood")
-uv1_scale = Vector3(2, 2, 2)
-roughness = 0.8
+[sub_resource type="BoxMesh" id="BoxMesh_pallet_block"]
+size = Vector3(0.14, 0.085, 0.14)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pallet_pbr"]
+albedo_texture = ExtResource("1_wood_alb")
+normal_enabled = true
+normal_texture = ExtResource("2_wood_nrm")
+roughness_texture = ExtResource("3_wood_rgh")
 
 [sub_resource type="BoxMesh" id="BoxMesh_box"]
-size = Vector3(0.55, 0.45, 0.4)
+size = Vector3(0.55, 0.45, 0.42)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_box_kraft"]
-albedo_texture = ExtResource("2_cardboard")
-roughness = 0.85
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_box_pbr"]
+albedo_texture = ExtResource("4_box_alb")
+normal_enabled = true
+normal_texture = ExtResource("5_box_nrm")
+roughness_texture = ExtResource("6_box_rgh")
 
 [sub_resource type="QuadMesh" id="QuadMesh_ean"]
-size = Vector2(0.24, 0.08)
+size = Vector2(0.26, 0.08)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ean"]
 shading_mode = 0
-albedo_texture = ExtResource("3_label")
+albedo_texture = ExtResource("10_label")
 
 [node name="PalletRack" type="StaticBody3D"]
 
@@ -55,107 +70,238 @@ shape = SubResource("BoxShape3D_rack_col")
 [node name="UprightL1" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.3, 2.2, 0.55)
 mesh = SubResource("BoxMesh_upright")
-surface_material_override/0 = SubResource("StandardMaterial3D_blue_rack")
+surface_material_override/0 = SubResource("StandardMaterial3D_blue_rack_pbr")
 
 [node name="UprightL2" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.3, 2.2, -0.55)
 mesh = SubResource("BoxMesh_upright")
-surface_material_override/0 = SubResource("StandardMaterial3D_blue_rack")
+surface_material_override/0 = SubResource("StandardMaterial3D_blue_rack_pbr")
 
 [node name="UprightR1" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.3, 2.2, 0.55)
 mesh = SubResource("BoxMesh_upright")
-surface_material_override/0 = SubResource("StandardMaterial3D_blue_rack")
+surface_material_override/0 = SubResource("StandardMaterial3D_blue_rack_pbr")
 
 [node name="UprightR2" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.3, 2.2, -0.55)
 mesh = SubResource("BoxMesh_upright")
-surface_material_override/0 = SubResource("StandardMaterial3D_blue_rack")
+surface_material_override/0 = SubResource("StandardMaterial3D_blue_rack_pbr")
 
 [node name="UprightM1" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0.55)
 mesh = SubResource("BoxMesh_upright")
-surface_material_override/0 = SubResource("StandardMaterial3D_blue_rack")
+surface_material_override/0 = SubResource("StandardMaterial3D_blue_rack_pbr")
 
 [node name="UprightM2" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, -0.55)
 mesh = SubResource("BoxMesh_upright")
-surface_material_override/0 = SubResource("StandardMaterial3D_blue_rack")
+surface_material_override/0 = SubResource("StandardMaterial3D_blue_rack_pbr")
 
-[node name="BeamLevel1_Front" type="MeshInstance3D" parent="."]
+[node name="BeamL1_Front" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0.55)
 mesh = SubResource("BoxMesh_beam")
-surface_material_override/0 = SubResource("StandardMaterial3D_orange_beam")
+surface_material_override/0 = SubResource("StandardMaterial3D_orange_beam_pbr")
 
-[node name="BeamLevel1_Back" type="MeshInstance3D" parent="."]
+[node name="BeamL1_Back" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, -0.55)
 mesh = SubResource("BoxMesh_beam")
-surface_material_override/0 = SubResource("StandardMaterial3D_orange_beam")
+surface_material_override/0 = SubResource("StandardMaterial3D_orange_beam_pbr")
 
-[node name="BeamLevel2_Front" type="MeshInstance3D" parent="."]
+[node name="BeamL2_Front" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0.55)
 mesh = SubResource("BoxMesh_beam")
-surface_material_override/0 = SubResource("StandardMaterial3D_orange_beam")
+surface_material_override/0 = SubResource("StandardMaterial3D_orange_beam_pbr")
 
-[node name="BeamLevel2_Back" type="MeshInstance3D" parent="."]
+[node name="BeamL2_Back" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, -0.55)
 mesh = SubResource("BoxMesh_beam")
-surface_material_override/0 = SubResource("StandardMaterial3D_orange_beam")
+surface_material_override/0 = SubResource("StandardMaterial3D_orange_beam_pbr")
 
-[node name="BeamLevel3_Front" type="MeshInstance3D" parent="."]
+[node name="BeamL3_Front" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.8, 0.55)
 mesh = SubResource("BoxMesh_beam")
-surface_material_override/0 = SubResource("StandardMaterial3D_orange_beam")
+surface_material_override/0 = SubResource("StandardMaterial3D_orange_beam_pbr")
 
-[node name="BeamLevel3_Back" type="MeshInstance3D" parent="."]
+[node name="BeamL3_Back" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.8, -0.55)
 mesh = SubResource("BoxMesh_beam")
-surface_material_override/0 = SubResource("StandardMaterial3D_orange_beam")
+surface_material_override/0 = SubResource("StandardMaterial3D_orange_beam_pbr")
 
-[node name="Pallet1" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2, 0.72, 0)
-mesh = SubResource("BoxMesh_pallet")
-surface_material_override/0 = SubResource("StandardMaterial3D_pallet_wood")
+[node name="RealPallet1" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2, 0.67, 0)
 
-[node name="VacuumPump300kg" parent="Pallet1" instance=ExtResource("4_pump")]
+[node name="TopPlank1" type="MeshInstance3D" parent="RealPallet1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, -0.32)
+mesh = SubResource("BoxMesh_deckboard")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="TopPlank2" type="MeshInstance3D" parent="RealPallet1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, -0.16)
+mesh = SubResource("BoxMesh_deckboard")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="TopPlank3" type="MeshInstance3D" parent="RealPallet1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0)
+mesh = SubResource("BoxMesh_deckboard")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="TopPlank4" type="MeshInstance3D" parent="RealPallet1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0.16)
+mesh = SubResource("BoxMesh_deckboard")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="TopPlank5" type="MeshInstance3D" parent="RealPallet1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0.32)
+mesh = SubResource("BoxMesh_deckboard")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BlockL1" type="MeshInstance3D" parent="RealPallet1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.52, 0, -0.32)
+mesh = SubResource("BoxMesh_pallet_block")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BlockL2" type="MeshInstance3D" parent="RealPallet1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.32)
+mesh = SubResource("BoxMesh_pallet_block")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BlockL3" type="MeshInstance3D" parent="RealPallet1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.52, 0, -0.32)
+mesh = SubResource("BoxMesh_pallet_block")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BlockM1" type="MeshInstance3D" parent="RealPallet1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.52, 0, 0)
+mesh = SubResource("BoxMesh_pallet_block")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BlockM2" type="MeshInstance3D" parent="RealPallet1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("BoxMesh_pallet_block")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BlockM3" type="MeshInstance3D" parent="RealPallet1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.52, 0, 0)
+mesh = SubResource("BoxMesh_pallet_block")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BlockR1" type="MeshInstance3D" parent="RealPallet1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.52, 0, 0.32)
+mesh = SubResource("BoxMesh_pallet_block")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BlockR2" type="MeshInstance3D" parent="RealPallet1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.32)
+mesh = SubResource("BoxMesh_pallet_block")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BlockR3" type="MeshInstance3D" parent="RealPallet1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.52, 0, 0.32)
+mesh = SubResource("BoxMesh_pallet_block")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BottomPlank1" type="MeshInstance3D" parent="RealPallet1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.055, -0.32)
+mesh = SubResource("BoxMesh_deckboard")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BottomPlank2" type="MeshInstance3D" parent="RealPallet1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.055, 0)
+mesh = SubResource("BoxMesh_deckboard")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BottomPlank3" type="MeshInstance3D" parent="RealPallet1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.055, 0.32)
+mesh = SubResource("BoxMesh_deckboard")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="VacuumPump300kg" parent="RealPallet1" instance=ExtResource("11_pump")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.07, 0)
 
-[node name="Pallet2" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2, 0.72, 0)
-mesh = SubResource("BoxMesh_pallet")
-surface_material_override/0 = SubResource("StandardMaterial3D_pallet_wood")
+[node name="RealPallet2" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2, 0.67, 0)
 
-[node name="Box1" type="MeshInstance3D" parent="Pallet2"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.28, 0.3, 0)
+[node name="TopPlank1" type="MeshInstance3D" parent="RealPallet2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, -0.32)
+mesh = SubResource("BoxMesh_deckboard")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="TopPlank2" type="MeshInstance3D" parent="RealPallet2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, -0.16)
+mesh = SubResource("BoxMesh_deckboard")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="TopPlank3" type="MeshInstance3D" parent="RealPallet2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0)
+mesh = SubResource("BoxMesh_deckboard")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="TopPlank4" type="MeshInstance3D" parent="RealPallet2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0.16)
+mesh = SubResource("BoxMesh_deckboard")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="TopPlank5" type="MeshInstance3D" parent="RealPallet2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0.32)
+mesh = SubResource("BoxMesh_deckboard")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BlockL1" type="MeshInstance3D" parent="RealPallet2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.52, 0, -0.32)
+mesh = SubResource("BoxMesh_pallet_block")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BlockL2" type="MeshInstance3D" parent="RealPallet2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.32)
+mesh = SubResource("BoxMesh_pallet_block")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BlockL3" type="MeshInstance3D" parent="RealPallet2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.52, 0, -0.32)
+mesh = SubResource("BoxMesh_pallet_block")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BlockR1" type="MeshInstance3D" parent="RealPallet2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.52, 0, 0.32)
+mesh = SubResource("BoxMesh_pallet_block")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BlockR2" type="MeshInstance3D" parent="RealPallet2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.32)
+mesh = SubResource("BoxMesh_pallet_block")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BlockR3" type="MeshInstance3D" parent="RealPallet2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.52, 0, 0.32)
+mesh = SubResource("BoxMesh_pallet_block")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BottomPlank1" type="MeshInstance3D" parent="RealPallet2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.055, -0.32)
+mesh = SubResource("BoxMesh_deckboard")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="BottomPlank2" type="MeshInstance3D" parent="RealPallet2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.055, 0.32)
+mesh = SubResource("BoxMesh_deckboard")
+surface_material_override/0 = SubResource("StandardMaterial3D_pallet_pbr")
+
+[node name="Box1" type="MeshInstance3D" parent="RealPallet2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.28, 0.30, 0)
 mesh = SubResource("BoxMesh_box")
-surface_material_override/0 = SubResource("StandardMaterial3D_box_kraft")
+surface_material_override/0 = SubResource("StandardMaterial3D_box_pbr")
 
-[node name="Box2" type="MeshInstance3D" parent="Pallet2"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.28, 0.3, 0)
+[node name="Box2" type="MeshInstance3D" parent="RealPallet2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.28, 0.30, 0)
 mesh = SubResource("BoxMesh_box")
-surface_material_override/0 = SubResource("StandardMaterial3D_box_kraft")
-
-[node name="Pallet3" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2, 2.32, 0)
-mesh = SubResource("BoxMesh_pallet")
-surface_material_override/0 = SubResource("StandardMaterial3D_pallet_wood")
-
-[node name="Box3" type="MeshInstance3D" parent="Pallet3"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
-mesh = SubResource("BoxMesh_box")
-surface_material_override/0 = SubResource("StandardMaterial3D_box_kraft")
-
-[node name="Pallet4" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2, 2.32, 0)
-mesh = SubResource("BoxMesh_pallet")
-surface_material_override/0 = SubResource("StandardMaterial3D_pallet_wood")
+surface_material_override/0 = SubResource("StandardMaterial3D_box_pbr")
 
 [node name="EAN_Level1" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2, 0.6, 0.582)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2, 0.6, 0.592)
 mesh = SubResource("QuadMesh_ean")
 surface_material_override/0 = SubResource("StandardMaterial3D_ean")
 
 [node name="EAN_Level2" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2, 0.6, 0.582)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2, 0.6, 0.592)
 mesh = SubResource("QuadMesh_ean")
 surface_material_override/0 = SubResource("StandardMaterial3D_ean")
