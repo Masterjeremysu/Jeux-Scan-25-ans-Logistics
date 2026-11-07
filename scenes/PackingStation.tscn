@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://scripts/DeliveryShelf.gd" id="2_shelf_script"]
 [ext_resource type="Texture2D" path="res://textures/box_albedo.png" id="3_box_tex"]
 [ext_resource type="Texture2D" path="res://textures/label_ean128.png" id="4_label"]
+[ext_resource type="ArrayMesh" path="res://models/cardboard_carton.obj" id="5_carton_mesh"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_table"]
 size = Vector3(2.8, 0.9, 1.2)
@@ -99,9 +100,8 @@ mesh = SubResource("BoxMesh_frame")
 surface_material_override/0 = SubResource("StandardMaterial3D_steel_dark")
 
 [node name="CardboardShippingBox" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.35, 1.11, 0)
-mesh = SubResource("BoxMesh_shipping_box")
-surface_material_override/0 = SubResource("StandardMaterial3D_box_kraft")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.35, 0.90, 0)
+mesh = ExtResource("5_carton_mesh")
 
 [node name="ZebraZT411Printer" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.85, 1.04, 0.1)

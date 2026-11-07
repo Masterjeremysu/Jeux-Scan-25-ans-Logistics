@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/PlayerController.gd" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/ZebraTC5x.tscn" id="2_zebra_tc5x"]
+[ext_resource type="ArrayMesh" path="res://models/logistics_operator.obj" id="3_operator_mesh"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 0.4
@@ -32,6 +33,18 @@ height = 0.35
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_helmet"]
 albedo_color = Color(0.96, 0.75, 0.08, 1)
 roughness = 0.3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud_pill"]
+bg_color = Color(0.06, 0.08, 0.12, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0.28, 0.4, 0.6)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_overlay"]
 bg_color = Color(0.04, 0.06, 0.10, 0.92)
@@ -108,27 +121,13 @@ transform = Transform3D(1, 0, 0, 0, 0.939693, 0.34202, 0, -0.34202, 0.939693, 0,
 spring_length = 2.8
 
 [node name="ThirdPersonCamera" type="Camera3D" parent="ThirdPersonArm"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.8)
 fov = 74.0
 
 [node name="OperatorMesh" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 visible = false
 
-[node name="Body" type="MeshInstance3D" parent="OperatorMesh"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.88, 0)
-mesh = SubResource("CapsuleMesh_operator_body")
-surface_material_override/0 = SubResource("StandardMaterial3D_highvis_jacket")
-
-[node name="ReflectiveStripe" type="MeshInstance3D" parent="OperatorMesh"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, 0)
-mesh = SubResource("CylinderMesh_stripe")
-surface_material_override/0 = SubResource("StandardMaterial3D_silver_reflective")
-
-[node name="Helmet" type="MeshInstance3D" parent="OperatorMesh"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.70, 0)
-mesh = SubResource("SphereMesh_head")
-surface_material_override/0 = SubResource("StandardMaterial3D_helmet")
+[node name="OperatorBody" type="MeshInstance3D" parent="OperatorMesh"]
+mesh = ExtResource("3_operator_mesh")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
@@ -147,12 +146,14 @@ anchor_right = 0.5
 offset_left = -220.0
 offset_top = 10.0
 offset_right = 220.0
-offset_bottom = 40.0
+offset_bottom = 44.0
 grow_horizontal = 2
-theme_override_colors/font_color = Color(0.96, 0.65, 0.08, 1)
-theme_override_font_sizes/font_size = 17
+theme_override_colors/font_color = Color(0.96, 0.75, 0.15, 1)
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hud_pill")
 text = "⏰ QUART DU MATIN • 07:15 (Fin à 15:00)"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Crosshair" type="CenterContainer" parent="CanvasLayer"]
 anchors_preset = 8

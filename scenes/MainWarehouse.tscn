@@ -107,16 +107,19 @@ roughness = 0.3
 size = Vector3(3.6, 0.55, 0.08)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sign_a"]
-shading_mode = 0
-albedo_color = Color(0.96, 0.45, 0.08, 1)
+albedo_color = Color(0.12, 0.16, 0.22, 1)
+metallic = 0.5
+roughness = 0.4
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sign_b"]
-shading_mode = 0
-albedo_color = Color(0.08, 0.65, 0.95, 1)
+albedo_color = Color(0.10, 0.18, 0.32, 1)
+metallic = 0.5
+roughness = 0.4
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sign_c"]
-shading_mode = 0
-albedo_color = Color(0.15, 0.85, 0.35, 1)
+albedo_color = Color(0.10, 0.24, 0.18, 1)
+metallic = 0.5
+roughness = 0.4
 
 [node name="MainWarehouse" type="Node3D"]
 
@@ -255,19 +258,37 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.8, 6)
 [node name="Signs" type="Node3D" parent="."]
 
 [node name="SignAisleA" type="MeshInstance3D" parent="Signs"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 4.5, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 5.2, 0)
 mesh = SubResource("BoxMesh_overhead_sign")
 surface_material_override/0 = SubResource("StandardMaterial3D_sign_a")
 
+[node name="LabelA" type="Label3D" parent="Signs/SignAisleA"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.045)
+text = "ALLÉE A • PALETTES & POMPES"
+font_size = 28
+outline_size = 6
+
 [node name="SignAisleB" type="MeshInstance3D" parent="Signs"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.5, -3)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.2, -3)
 mesh = SubResource("BoxMesh_overhead_sign")
 surface_material_override/0 = SubResource("StandardMaterial3D_sign_b")
 
+[node name="LabelB" type="Label3D" parent="Signs/SignAisleB"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.045)
+text = "ALLÉE B • ARMOIRES OUTILLAGE KF40"
+font_size = 28
+outline_size = 6
+
 [node name="SignAisleC" type="MeshInstance3D" parent="Signs"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 4.5, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 5.2, 0)
 mesh = SubResource("BoxMesh_overhead_sign")
 surface_material_override/0 = SubResource("StandardMaterial3D_sign_c")
+
+[node name="LabelC" type="Label3D" parent="Signs/SignAisleC"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.045)
+text = "ALLÉE C • SALLE BLANCHE ISO 5"
+font_size = 28
+outline_size = 6
 
 [node name="AisleA_Racks" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0, -5)

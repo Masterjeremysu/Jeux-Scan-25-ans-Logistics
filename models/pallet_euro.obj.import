@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://ckegbgbt6wbeo"
+path="res://.godot/imported/pallet_euro.obj-02be40fcaf38082a5e71e7e4d93f77e1.mesh"
+
+[deps]
+
+files=["res://.godot/imported/pallet_euro.obj-02be40fcaf38082a5e71e7e4d93f77e1.mesh"]
+
+source_file="res://models/pallet_euro.obj"
+dest_files=["res://.godot/imported/pallet_euro.obj-02be40fcaf38082a5e71e7e4d93f77e1.mesh", "res://.godot/imported/pallet_euro.obj-02be40fcaf38082a5e71e7e4d93f77e1.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

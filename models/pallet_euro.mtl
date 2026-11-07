@@ -1,0 +1,4 @@
+newmtl mat_wood
+Kd 0.76 0.62 0.44
+Ks 0.1 0.1 0.1
+Ns 10

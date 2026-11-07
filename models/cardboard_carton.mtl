@@ -1,0 +1,8 @@
+newmtl mat_cardboard
+Kd 0.74 0.56 0.38
+Ks 0.1 0.1 0.1
+Ns 10
+newmtl mat_tape
+Kd 0.88 0.78 0.50
+Ks 0.3 0.3 0.3
+Ns 40

@@ -48,6 +48,8 @@ func _ready() -> void:
 	if first_person_camera:
 		camera_base_y = first_person_camera.position.y
 		first_person_camera.current = true
+	if third_person_arm:
+		third_person_arm.add_excluded_object(get_rid())
 	if third_person_camera:
 		third_person_camera.current = false
 	if operator_mesh:

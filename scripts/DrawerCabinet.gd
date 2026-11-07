@@ -8,7 +8,7 @@ class_name DrawerCabinet
 @onready var sliding_drawer: Node3D = $SlidingDrawer
 @onready var inspection_camera_marker: Marker3D = $SlidingDrawer/CameraMarker
 @onready var kf40_pieces: Node3D = $SlidingDrawer/PiecesKF40
-@onready var prompt_label: Label3D = $PromptLabel3D
+@onready var prompt_label = get_node_or_null("PromptLabel3D")
 
 var is_open: bool = false
 var pieces_picked: int = 0
@@ -29,7 +29,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		var player = get_tree().get_first_node_in_group("player")
 		if player and global_position.distance_to(player.global_position) < 4.0:
 			player_ref = player
-			toggle_drawer()
+			if is_open and kf40_pieces and kf40_pieces.get_child_count() > 0:
+				var piece = kf40_pieces.get_child(0)
+				pick_piece(piece)
+			else:
+				toggle_drawer()
 
 func toggle_drawer() -> void:
 	if is_open:
