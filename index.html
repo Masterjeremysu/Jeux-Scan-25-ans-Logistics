@@ -75,6 +75,7 @@
             <span class="label">DESTINATION :</span>
             <strong id="zebra-destinataire">Bâtiment 17 - LETI</strong>
             <small id="zebra-service">Service Couches Minces</small>
+            <div id="zebra-conditionnement" class="conditionnement-badge">Carton Standard</div>
           </div>
 
           <!-- Étape courante -->
@@ -88,7 +89,15 @@
             <ul id="zebra-liste-refs" class="zebra-liste-picking"></ul>
           </div>
 
-          <!-- Boutons tactiles du Zebra -->
+          <!-- Boutons d'actions spécialisées du Zebra -->
+          <div class="zebra-actions-avancees">
+            <button id="btn-zebra-palan" class="btn-zebra bleu">🏗️ ACTIONNER PALAN (300 KG)</button>
+            <button id="btn-zebra-sangler" class="btn-zebra orange" disabled>🪢 SANGLER PALETTE (5T)</button>
+            <button id="btn-zebra-chips" class="btn-zebra violet" disabled>🍿 VERSER CHIPS DE CALAGE</button>
+            <button id="btn-zebra-doublebag" class="btn-zebra cyan" disabled>🛡️ DOUBLE EMBALLAGE SALLE BLANCHE</button>
+          </div>
+
+          <!-- Boutons tactiles finaux du Zebra -->
           <div class="zebra-actions">
             <button id="btn-zebra-scotcher" class="btn-zebra jaune" disabled>📦 SCOTCHER CARTON</button>
             <button id="btn-zebra-expedier" class="btn-zebra vert" disabled>🏷️ EXPÉDIER COLIS</button>

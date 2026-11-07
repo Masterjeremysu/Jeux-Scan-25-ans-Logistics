@@ -453,6 +453,45 @@ body {
   color: #e4e4e7;
 }
 
+.zebra-actions-avancees {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.conditionnement-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-amber);
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid var(--accent-amber);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 4px;
+  display: inline-block;
+}
+
+.btn-zebra.bleu {
+  background: #0284c7;
+  color: #fff;
+}
+
+.btn-zebra.orange {
+  background: #ea580c;
+  color: #fff;
+}
+
+.btn-zebra.violet {
+  background: #8b5cf6;
+  color: #fff;
+}
+
+.btn-zebra.cyan {
+  background: #06b6d4;
+  color: #fff;
+}
+
 .zebra-actions {
   display: flex;
   gap: 8px;

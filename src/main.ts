@@ -58,7 +58,7 @@ function rafraichirPanneauStock(): void {
     li.innerHTML = `
       <div>
         <strong>${piece.nom}</strong>
-        <code>${piece.reference}</code>
+        <code>${piece.reference} (${piece.poidsKg} kg)</code>
       </div>
       <div class="emplacement">${piece.emplacementStock}</div>
     `;
@@ -68,11 +68,10 @@ function rafraichirPanneauStock(): void {
 
 // 4. Lancement d'une mission WMS
 function chargerMission(mission: MissionWMS): void {
-  // Clone pour ne pas écraser les quantitesScanees
   const missionCopie: MissionWMS = JSON.parse(JSON.stringify(mission));
   zebra.afficherMission(missionCopie);
-  etabli3D.chargerPiecesPourMission(missionCopie);
-  afficherNotification(`📋 Nouvelle mission : ${missionCopie.titre}`, true);
+  etabli3D.chargerMission(missionCopie);
+  afficherNotification(`📋 Ordre WMS : ${missionCopie.titre}`, true);
 }
 
 // Bouton Nouvelle Mission
@@ -84,10 +83,47 @@ document.getElementById('btn-mission-suivante')?.addEventListener('click', () =>
 // 5. Liaisons d'événements Établi 3D -> Zebra
 etabli3D.onPieceScaneeEtInjectee = piece => {
   zebra.validerPiece(piece);
-  afficherNotification(`📦 Pièce injectée : ${piece.nom} [${piece.reference}]`, true);
+  afficherNotification(`📦 Pièce chargée : ${piece.nom} [${piece.reference}]`, true);
 };
 
-// 6. Scotchage du carton
+// 6. Actions spécialisées du Zebra WMS
+// A. Action Palan d'atelier 300 kg
+zebra.onActionPalan = () => {
+  const ok = etabli3D.actionnerPalan300kg();
+  if (ok) {
+    zebra.marquerPalanFait();
+    afficherNotification('🏗️ Palan actionné : Pompe 300 kg déposée au centre de la palette Europe !', true);
+  }
+};
+
+// B. Action Sanglage à cliquet 5T
+zebra.onActionSangler = () => {
+  const ok = etabli3D.sanglerPompe300kg();
+  if (ok) {
+    zebra.marquerSanglageFait();
+    afficherNotification('🪢 Sanglage 5T verrouillé : Pompe 300 kg arrimée en toute sécurité !', true);
+  }
+};
+
+// C. Action Chips de Calage pour pièces fragiles
+zebra.onActionChips = () => {
+  const ok = etabli3D.verserChipsCalage();
+  if (ok) {
+    zebra.marquerChipsFaites();
+    afficherNotification('🍿 Doseur actionné : Chips de calage polystyrène injectées autour des capteurs !', true);
+  }
+};
+
+// D. Action Double Emballage Salle Blanche
+zebra.onActionDoubleBag = () => {
+  const ok = etabli3D.appliquerDoubleEmballage();
+  if (ok) {
+    zebra.marquerDoubleBagFait();
+    afficherNotification('🛡️ Thermosoudeuse : Double sachet stérile scellé sous atmosphère contrôlée !', true);
+  }
+};
+
+// E. Scotchage du carton
 zebra.onDemandeScotchage = () => {
   const reussi = etabli3D.scotcherCarton();
   if (reussi) {
@@ -101,16 +137,13 @@ zebra.onDemandeExpedition = () => {
   if (!zebra.missionActuelle) return;
 
   if (modeActuel === 'reel_phygital') {
-    // Mode Réel : Ouvrir la vraie étiquette prête à être imprimée
     imprimante.ouvrirEtiquette(zebra.missionActuelle);
   } else {
-    // Mode Dématérialisé : Poser l'étiquette 3D virtuelle
     etabli3D.poserEtiquetteExpedition();
     finaliserExpedition();
   }
 };
 
-// Scan réel validé dans la modale d'impression réelle
 imprimante.onScanReelValide = (code) => {
   if (zebra.missionActuelle && code === zebra.missionActuelle.codeBarreExpedition) {
     etabli3D.poserEtiquetteExpedition();
@@ -125,10 +158,9 @@ imprimante.onScanReelValide = (code) => {
 function finaliserExpedition(): void {
   totalColisExpedies++;
   elStatColis.textContent = `${totalColisExpedies}`;
-  confetti({ particleCount: 80, spread: 70, origin: { x: 0.5, y: 0.6 } });
-  afficherNotification('🚀 Colis prêt et validé pour livraison sur la Presqu\'île !', true);
+  confetti({ particleCount: 90, spread: 75, origin: { x: 0.5, y: 0.6 } });
+  afficherNotification('🚀 Expédition validée pour livraison sur le site du CEA Grenoble !', true);
 
-  // Passer à la mission suivante après 3 secondes
   setTimeout(() => {
     indexMission = (indexMission + 1) % MISSIONS_WMS_INITIALES.length;
     chargerMission(MISSIONS_WMS_INITIALES[indexMission]);
@@ -139,7 +171,6 @@ function finaliserExpedition(): void {
 rafraichirPanneauStock();
 chargerMission(MISSIONS_WMS_INITIALES[0]);
 
-// Boucle Three.js
 function boucleRendu(): void {
   etabli3D.render();
   requestAnimationFrame(boucleRendu);
