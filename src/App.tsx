@@ -220,7 +220,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       {/* Top Header */}
       <Header
         currentView={currentView}
@@ -233,7 +233,7 @@ export const App: React.FC = () => {
       />
 
       {/* Main View Router */}
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1 overflow-y-auto">
         {currentView === 'kiosk' && (
           <PosteOperateurView
             missions={missions}

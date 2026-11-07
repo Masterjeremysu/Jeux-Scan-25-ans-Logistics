@@ -35,7 +35,7 @@ export const PlancheEtiquettesView: React.FC = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-65px)] p-4 flex flex-col gap-4 overflow-y-auto">
+    <div className="min-h-[calc(100vh-65px)] p-4 flex flex-col gap-4">
       {/* Top Banner (hidden on print) */}
       <div className="no-print bg-slate-900 rounded-2xl p-4 border border-slate-800 flex flex-wrap items-center justify-between gap-4 shadow-lg shrink-0">
         <div>

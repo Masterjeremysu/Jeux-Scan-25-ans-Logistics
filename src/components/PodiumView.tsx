@@ -32,7 +32,7 @@ export const PodiumView: React.FC<PodiumViewProps> = ({
   };
 
   return (
-    <div className="h-[calc(100vh-65px)] p-4 flex flex-col gap-4 overflow-y-auto max-w-5xl mx-auto w-full">
+    <div className="min-h-[calc(100vh-65px)] p-4 flex flex-col gap-4 max-w-5xl mx-auto w-full">
       {/* Top Banner */}
       <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
         <div>

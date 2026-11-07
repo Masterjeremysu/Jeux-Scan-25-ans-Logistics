@@ -23,7 +23,7 @@ export const StockERPView: React.FC<StockERPViewProps> = ({ inventory, onUpdateQ
   const categories = ['all', 'Vide & Cryo', 'Microélectronique', 'Consommables'];
 
   return (
-    <div className="h-[calc(100vh-65px)] p-4 flex flex-col gap-4 overflow-hidden">
+    <div className="min-h-[calc(100vh-65px)] p-4 flex flex-col gap-4">
       {/* Top Controls */}
       <div className="bg-slate-900 rounded-2xl p-4 border border-slate-800 flex flex-wrap items-center justify-between gap-4 shadow-lg">
         <div>
