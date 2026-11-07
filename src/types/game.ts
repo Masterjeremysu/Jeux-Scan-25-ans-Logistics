@@ -2,60 +2,50 @@ import * as THREE from 'three';
 
 export type ModeDeJeu = 'dematerialise' | 'reel_phygital';
 
-export type TypeConditionnement = 
-  | 'carton_standard'
-  | 'palette_lourde_palan'
-  | 'fosb_300mm'
-  | 'boite_wafer_200mm';
+export interface EmplacementEntrepot {
+  id: string; // Ex: 'LOC-A01-N1'
+  allee: string; // 'A' | 'B' | 'C'
+  nomAffiche: string; // 'Allée A - Rack 01 - Niv 1'
+  position: THREE.Vector3;
+  typeRangement: 'rack_palette' | 'armoire_tiroirs' | 'etagere_bacs';
+}
 
-export type CouleurFOSB = 'blanc' | 'vert' | 'rouge';
+export interface EtagereLivraison {
+  id: string; // 'LIV-LETI17'
+  nomBatiment: string; // 'Bâtiment 17 - LETI'
+  codeCouleur: string;
+  position: THREE.Vector3;
+}
 
-export interface PieceLogistique {
+export interface PieceEnStock {
   id: string;
   reference: string;
   nom: string;
-  categorie: 'pompe_300kg' | 'pompe_turbo' | 'raccord_vide' | 'jauge' | 'wafer_200' | 'wafer_fosb_300';
+  quantiteEnStock: number;
   poidsKg: number;
   fragile: boolean;
-  necessiteDoubleEmballage: boolean;
-  necessiteChipsCalage: boolean;
-  couleurFosb?: CouleurFOSB;
-  emplacementStock: string;
+  emplacementId: string;
   mesh?: THREE.Group;
-  estEmballee: boolean;
-  positionInitiale: THREE.Vector3;
 }
 
-export interface ReferenceDemandee {
-  reference: string;
-  nom: string;
-  quantiteRequise: number;
-  quantiteScanee: number;
-}
-
-export interface MissionWMS {
+export interface MissionPickingEntrepot {
   id: string;
-  numeroCommande: string;
-  type: 'picking_colis' | 'manutention_lourde_palan' | 'salle_blanche_fosb';
-  conditionnement: TypeConditionnement;
+  numeroCMD: string;
   titre: string;
   destinataireBatiment: string;
-  serviceDemandeur: string;
+  etagereLivraisonId: string;
   priorite: 'NORMALE' | 'URGENTE' | 'CRITIQUE_SALLE_BLANCHE';
-  references: ReferenceDemandee[];
-  
-  // Protocoles de sécurité & conditionnement
-  necessitePalan: boolean;
-  necessiteSanglage: boolean;
-  necessiteDoubleEmballage: boolean;
-  necessiteChipsCalage: boolean;
-  couleurFosb?: CouleurFOSB;
+  referenceDemandee: string;
+  nomPiece: string;
+  quantiteDemandee: number;
+  emplacementCibleId: string;
+  codeBarreEmplacement: string;
+  codeBarrePiece: string;
+  codeBarreLivraison: string;
 
-  // Statuts d'avancement
-  chipsAjoutees: boolean;
-  doubleEmballageFait: boolean;
-  sanglesPosees: boolean;
-  palanPositionne: boolean;
-  statut: 'en_cours' | 'pieces_chargees' | 'scotche' | 'etiquete' | 'livre';
-  codeBarreExpedition: string;
+  // Étapes de validation du logisticien
+  emplacementScanne: boolean;
+  quantitePrelevee: boolean;
+  colisPrepare: boolean;
+  livreSurEtagere: boolean;
 }

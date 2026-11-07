@@ -1,4 +1,4 @@
-import { MissionWMS } from '../types/game';
+import { MissionPickingEntrepot } from '../types/game';
 
 export class ImprimanteEtiquettesReelles {
   private modalOverlay!: HTMLElement;
@@ -44,15 +44,15 @@ export class ImprimanteEtiquettesReelles {
     });
   }
 
-  public ouvrirEtiquette(mission: MissionWMS): void {
+  public ouvrirEtiquette(mission: MissionPickingEntrepot): void {
     this.genererHtmlEtiquette(mission);
     this.inputScanReel.value = '';
-    this.inputScanReel.placeholder = `Scannez le code (ex: ${mission.codeBarreExpedition})`;
+    this.inputScanReel.placeholder = `Scannez le code (ex: ${mission.codeBarreLivraison})`;
     this.modalOverlay.classList.add('ouverte');
     setTimeout(() => this.inputScanReel.focus(), 200);
   }
 
-  private genererHtmlEtiquette(mission: MissionWMS): void {
+  private genererHtmlEtiquette(mission: MissionPickingEntrepot): void {
     const dateJour = new Date().toLocaleDateString('fr-FR');
     const heure = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
@@ -61,7 +61,7 @@ export class ImprimanteEtiquettesReelles {
         <div class="etiq-entete">
           <div class="etiq-logo">CEA</div>
           <div class="etiq-titre">
-            <h4>CEA GRENOBLE • LOGISTIQUE</h4>
+            <h4>CEA GRENOBLE • ENTREPÔT CENTRAL</h4>
             <p>BORDEREAU D'EXPÉDITION INTERNE</p>
           </div>
           <div class="etiq-date">${dateJour} ${heure}</div>
@@ -70,40 +70,39 @@ export class ImprimanteEtiquettesReelles {
         <div class="etiq-grille">
           <div class="etiq-bloc">
             <span class="lib">EXPÉDITEUR :</span>
-            <strong>Magasin Central - Quai 03</strong>
+            <strong>Magasin Général • Quai 03</strong>
             <small>Presqu'île Scientifique Grenoble</small>
           </div>
           <div class="etiq-bloc destinataire">
             <span class="lib">DESTINATAIRE BÂTIMENT :</span>
             <strong>${mission.destinataireBatiment}</strong>
-            <small>Demandeur : ${mission.serviceDemandeur}</small>
+            <small>Étagère de livraison : ${mission.etagereLivraisonId}</small>
           </div>
         </div>
 
         <div class="etiq-details">
-          <div><span>CMD N° :</span> <strong>${mission.numeroCommande}</strong></div>
+          <div><span>CMD N° :</span> <strong>${mission.numeroCMD}</strong></div>
           <div><span>PRIORITÉ :</span> <strong class="etiq-prio">${mission.priorite}</strong></div>
         </div>
 
         <div class="etiq-refs">
           <span class="lib">CONTENU DU COLIS :</span>
           <ul>
-            ${mission.references.map(r => `<li>• <strong>${r.nom}</strong> [${r.reference}] x${r.quantiteRequise}</li>`).join('')}
+            <li>• <strong>${mission.nomPiece}</strong> [${mission.referenceDemandee}] x${mission.quantiteDemandee}</li>
           </ul>
         </div>
 
         <div class="etiq-code-barres">
           <div class="faux-code128">
-            ${this.genererLignesCodeBarre(mission.codeBarreExpedition)}
+            ${this.genererLignesCodeBarre(mission.codeBarreLivraison)}
           </div>
-          <div class="valeur-code-texte">${mission.codeBarreExpedition}</div>
+          <div class="valeur-code-texte">${mission.codeBarreLivraison}</div>
         </div>
       </div>
     `;
   }
 
   private genererLignesCodeBarre(texte: string): string {
-    // Génération visuelle fidèle d'un code-barres Code 128
     let html = '';
     for (let i = 0; i < texte.length * 3; i++) {
       const largeur = (i % 3 === 0) ? 3 : (i % 2 === 0) ? 1 : 2;

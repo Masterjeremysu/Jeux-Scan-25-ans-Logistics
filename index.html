@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CEA GRENOBLE • Logistique 3D - Établi Préparation & Terminal ZEBRA</title>
+    <title>CEA GRENOBLE • Entrepôt 3D - Picking Racks & Livraison Étagères</title>
     <link rel="stylesheet" href="./src/style.css" />
   </head>
   <body>
@@ -12,46 +12,56 @@
       <div class="logo-groupe">
         <div class="logo-cea">CEA</div>
         <div>
-          <h1>LOGISTIQUE <span>GRENOBLE</span></h1>
-          <small>Établi de Préparation & Expéditions Haute Sécurité</small>
+          <h1>ENTREPÔT CENTRAL <span>GRENOBLE 3D</span></h1>
+          <small>Magasin Général • Racks, Armoires & Quai d'Expédition</small>
         </div>
       </div>
 
       <!-- Sélecteur de Mode : Dématérialisé vs Mode Réel -->
       <div class="selecteur-mode-jeu">
-        <button id="btn-mode-demat" class="btn-mode actif">🖥️ Mode Virtuel (100% 3D)</button>
-        <button id="btn-mode-reel" class="btn-mode">🖨️ Mode Réel (Impression Étiquette)</button>
+        <button id="btn-mode-demat" class="btn-mode actif">🖥️ Mode Virtuel (3D)</button>
+        <button id="btn-mode-reel" class="btn-mode">🖨️ Mode Réel (Impression)</button>
       </div>
 
       <div class="indicateurs">
         <div class="indicateur">
-          <span class="libelle">Colis Préparés</span>
+          <span class="libelle">Missions Complétées</span>
           <span class="valeur succes" id="stat-colis-prepares">0</span>
         </div>
         <div class="indicateur">
-          <span class="libelle">Bâtiments Desservis</span>
-          <span class="valeur" id="stat-batiments">LETI / IRIG</span>
+          <span class="libelle">Quai de Livraison</span>
+          <span class="valeur" id="stat-batiments">LETI / MINATEC / IRIG</span>
         </div>
       </div>
 
-      <button id="btn-mission-suivante" class="btn-action">📋 Nouvelle Mission WMS</button>
+      <button id="btn-mission-suivante" class="btn-action">📋 Mission WMS Suivante</button>
     </header>
 
-    <!-- Zone Principale 3D & Établi -->
+    <!-- Zone Principale 3D de l'Entrepôt -->
     <main class="zone-principale">
-      <!-- Conteneur Three.js de l'Établi 3D -->
+      <!-- Conteneur Three.js -->
       <div id="conteneur-3d"></div>
+
+      <!-- Viseur central pour scanner avec le Zebra -->
+      <div class="viseur-scanner">
+        <div class="viseur-point"></div>
+      </div>
 
       <!-- Bannière de statut d'action -->
       <div id="banniere-feedback" class="banniere-status"></div>
 
-      <!-- Panneau Stock Pièces Disponibles (Gauche) -->
+      <!-- Panneau Plan de l'Entrepôt & Stocks (Gauche) -->
       <aside class="panneau-stock-dispo">
         <div class="panneau-entete">
           <span class="voyant-actif"></span>
-          <h3>RAYONNAGE STOCK DISPONIBLE</h3>
+          <h3>PLAN DU MAGASIN GÉNÉRAL</h3>
         </div>
-        <p class="consigne-drag">👆 <strong>Glissez la pièce demandée</strong> dans le carton ouvert au centre.</p>
+        <div class="guide-controles">
+          <p>⌨️ <strong>Z / Q / S / D</strong> ou <strong>Flèches</strong> : Marcher dans les allées</p>
+          <p>🖱️ <strong>Clic sur l'écran</strong> : Tourner la tête à 360° (Échap pour libérer)</p>
+          <p>🔴 <strong>ESPACE</strong> ou bouton Zebra : Tirer le laser de scan</p>
+        </div>
+        <h4 style="font-size: 0.72rem; color: #94a3b8; margin: 10px 0 6px;">EMPLACEMENTS & ALLÉES :</h4>
         <ul id="liste-pieces-stock" class="liste-stock"></ul>
       </aside>
 
@@ -61,52 +71,53 @@
         <div class="zebra-barre-systeme">
           <span class="zebra-voyant-scanner"></span>
           <span>ZEBRA TC5x • WMS CEA</span>
-          <span class="zebra-batterie">🔋 98%</span>
+          <span class="zebra-batterie">🔋 96%</span>
         </div>
 
         <!-- Écran tactile WMS -->
         <div class="zebra-ecran">
           <div class="zebra-cmd-en-tete">
-            <h4 id="zebra-cmd-titre">CMD-CEA-2026-401</h4>
+            <h4 id="zebra-cmd-titre">CMD-CEA-2026-601</h4>
             <span id="zebra-priorite" class="badge-priorite urgente">URGENTE</span>
           </div>
 
           <div class="zebra-info-bloc">
-            <span class="label">DESTINATION :</span>
+            <span class="label">DESTINATAIRE :</span>
             <strong id="zebra-destinataire">Bâtiment 17 - LETI</strong>
-            <small id="zebra-service">Service Couches Minces</small>
-            <div id="zebra-conditionnement" class="conditionnement-badge">Carton Standard</div>
+            <div id="zebra-emplacement-requis" class="conditionnement-badge">📍 Allée B • Armoire 01</div>
           </div>
 
           <!-- Étape courante -->
           <div id="zebra-statut-etape" class="statut-etape etape-picking">
-            1/3 - Glissez les références demandées dans le carton
+            Étape 1/4 : Rendez-vous à l'emplacement et bippez avec le laser
           </div>
 
-          <!-- Liste de picking des références -->
+          <!-- Détail de la référence demandée -->
           <div class="zebra-picking-section">
-            <label>RÉFÉRENCES À PRÉPARER :</label>
-            <ul id="zebra-liste-refs" class="zebra-liste-picking"></ul>
+            <label>RÉFÉRENCE & QUANTITÉ :</label>
+            <div class="ref-item validee">
+              <div class="ref-corps">
+                <strong id="zebra-ref-piece">Brides KF40 Inox</strong>
+              </div>
+              <div class="ref-qte" id="zebra-qte-demandee">x2 pièce(s)</div>
+            </div>
           </div>
 
-          <!-- Boutons d'actions spécialisées du Zebra -->
+          <!-- Boutons tactiles d'atelier du Zebra -->
           <div class="zebra-actions-avancees">
-            <button id="btn-zebra-palan" class="btn-zebra bleu">🏗️ ACTIONNER PALAN (300 KG)</button>
-            <button id="btn-zebra-sangler" class="btn-zebra orange" disabled>🪢 SANGLER PALETTE (5T)</button>
-            <button id="btn-zebra-chips" class="btn-zebra violet" disabled>🍿 VERSER CHIPS DE CALAGE</button>
-            <button id="btn-zebra-doublebag" class="btn-zebra cyan" disabled>🛡️ DOUBLE EMBALLAGE SALLE BLANCHE</button>
-          </div>
-
-          <!-- Boutons tactiles finaux du Zebra -->
-          <div class="zebra-actions">
-            <button id="btn-zebra-scotcher" class="btn-zebra jaune" disabled>📦 SCOTCHER CARTON</button>
-            <button id="btn-zebra-expedier" class="btn-zebra vert" disabled>🏷️ EXPÉDIER COLIS</button>
+            <div style="display:flex; gap:6px;">
+              <button id="btn-zebra-scan-laser" class="btn-zebra rouge" style="flex:2;">🔴 BIPPER AU LASER (Espace)</button>
+              <button id="btn-zebra-guidage" class="btn-zebra bleu" style="flex:1;">🚶 GUIDER</button>
+            </div>
+            <button id="btn-zebra-prelever" class="btn-zebra orange" disabled>✋ VÉRIFIER & PRÉLEVER</button>
+            <button id="btn-zebra-preparer-carton" class="btn-zebra jaune" disabled>📦 PRÉPARER & SCOTCHER CARTON</button>
+            <button id="btn-zebra-livrer-etagere" class="btn-zebra vert" disabled>🏷️ DÉPOSER SUR ÉTAGÈRE LIVRAISON</button>
           </div>
         </div>
       </aside>
     </main>
 
-    <!-- Modale d'Impression Étiquette Réelle (Mode Réel / Phygital) -->
+    <!-- Modale d'Impression Étiquette Réelle (Mode Réel) -->
     <div id="modal-etiquette-reelle" class="modal-overlay">
       <div class="modal-contenu">
         <div class="modal-entete">
@@ -115,10 +126,9 @@
         </div>
 
         <p class="modal-instruction">
-          Le carton est scellé ! En <strong>Mode Réel</strong>, vous pouvez imprimer cette vraie étiquette d'expédition, la coller sur une boîte réelle, puis scanner le code avec votre douchette ou le valider ci-dessous :
+          Le colis a été préparé dans l'entrepôt ! Imprimez cette étiquette réelle, collez-la sur votre boîte, puis scannez-la pour valider la livraison sur l'étagère de destination :
         </p>
 
-        <!-- Aperçu de l'étiquette réelle prête à imprimer -->
         <div id="apercu-etiquette-reelle" class="zone-apercu-etiquette"></div>
 
         <div class="modal-actions-impression">

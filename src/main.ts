@@ -1,21 +1,21 @@
-import { EtabliPreparation3D } from './render/Workbench3D';
+import { Entrepot3D } from './render/Warehouse3D';
 import { ZebraPDA } from './ui/ZebraPDA';
 import { ImprimanteEtiquettesReelles } from './ui/LabelPrinter';
 import { AudioEffets } from './audio/SoundEffects';
-import { MISSIONS_WMS_INITIALES, CATALOGUE_PIECES_STOCK } from './core/MissionsData';
-import { ModeDeJeu, MissionWMS } from './types/game';
+import { MISSIONS_PICKING_ENTREPOT, EMPLACEMENTS_ENTREPOT } from './core/WarehouseData';
+import { ModeDeJeu, MissionPickingEntrepot } from './types/game';
 import confetti from 'canvas-confetti';
 
 // 1. Initialisations
 const audio = new AudioEffets();
 const conteneur3D = document.getElementById('conteneur-3d')!;
-const etabli3D = new EtabliPreparation3D(conteneur3D, audio);
+const entrepot3D = new Entrepot3D(conteneur3D, audio);
 const zebra = new ZebraPDA();
 const imprimante = new ImprimanteEtiquettesReelles();
 
 let modeActuel: ModeDeJeu = 'dematerialise';
 let indexMission = 0;
-let totalColisExpedies = 0;
+let missionsCompletees = 0;
 
 const elStatColis = document.getElementById('stat-colis-prepares')!;
 const elBanniere = document.getElementById('banniere-feedback')!;
@@ -29,7 +29,7 @@ function afficherNotification(message: string, succes: boolean): void {
   }, 3500);
 }
 
-// 2. Gestion du Switch : Virtuel Dématérialisé vs Mode Réel
+// 2. Switch Mode Virtuel vs Mode Réel
 const btnModeDemat = document.getElementById('btn-mode-demat')!;
 const btnModeReel = document.getElementById('btn-mode-reel')!;
 
@@ -38,7 +38,7 @@ btnModeDemat.addEventListener('click', () => {
   zebra.modeJeu = 'dematerialise';
   btnModeDemat.classList.add('actif');
   btnModeReel.classList.remove('actif');
-  afficherNotification('🖥️ Mode Virtuel actif : Tout se passe dans le jumeau numérique 3D.', true);
+  afficherNotification('🖥️ Mode Virtuel actif : Tout se déroule dans l\'entrepôt 3D.', true);
 });
 
 btnModeReel.addEventListener('click', () => {
@@ -46,108 +46,124 @@ btnModeReel.addEventListener('click', () => {
   zebra.modeJeu = 'reel_phygital';
   btnModeReel.classList.add('actif');
   btnModeDemat.classList.remove('actif');
-  afficherNotification('🖨️ Mode Réel Phygital actif : Les étiquettes sont imprimées et scannées réellement !', true);
+  afficherNotification('🖨️ Mode Réel Phygital actif : Impression et scan réels d\'étiquettes !', true);
 });
 
-// 3. Affichage du stock disponible dans le panneau gauche
-function rafraichirPanneauStock(): void {
+// 3. Affichage du plan des emplacements
+function rafraichirPlanEmplacements(): void {
   elListePiecesStock.innerHTML = '';
-  for (const piece of CATALOGUE_PIECES_STOCK) {
+  for (const loc of EMPLACEMENTS_ENTREPOT) {
     const li = document.createElement('li');
     li.className = 'stock-item';
+    li.style.cursor = 'pointer';
     li.innerHTML = `
       <div>
-        <strong>${piece.nom}</strong>
-        <code>${piece.reference} (${piece.poidsKg} kg)</code>
+        <strong>${loc.nomAffiche}</strong>
+        <code>Code : ${loc.id}</code>
       </div>
-      <div class="emplacement">${piece.emplacementStock}</div>
+      <div class="emplacement">Allée ${loc.allee} ➡️</div>
     `;
+    li.addEventListener('click', () => {
+      entrepot3D.allerVers(loc.position);
+      afficherNotification(`🚶 Déplacement vers [${loc.nomAffiche}]`, true);
+    });
     elListePiecesStock.appendChild(li);
   }
 }
 
-// 4. Lancement d'une mission WMS
-function chargerMission(mission: MissionWMS): void {
-  const missionCopie: MissionWMS = JSON.parse(JSON.stringify(mission));
+// 4. Lancement de la Mission WMS
+function chargerMission(mission: MissionPickingEntrepot): void {
+  const missionCopie: MissionPickingEntrepot = JSON.parse(JSON.stringify(mission));
   zebra.afficherMission(missionCopie);
-  etabli3D.chargerMission(missionCopie);
-  afficherNotification(`📋 Ordre WMS : ${missionCopie.titre}`, true);
+  afficherNotification(`📋 Ordre WMS reçu : ${missionCopie.titre}`, true);
 }
 
-// Bouton Nouvelle Mission
 document.getElementById('btn-mission-suivante')?.addEventListener('click', () => {
-  indexMission = (indexMission + 1) % MISSIONS_WMS_INITIALES.length;
-  chargerMission(MISSIONS_WMS_INITIALES[indexMission]);
+  indexMission = (indexMission + 1) % MISSIONS_PICKING_ENTREPOT.length;
+  chargerMission(MISSIONS_PICKING_ENTREPOT[indexMission]);
 });
 
-// 5. Liaisons d'événements Établi 3D -> Zebra
-etabli3D.onPieceScaneeEtInjectee = piece => {
-  zebra.validerPiece(piece);
-  afficherNotification(`📦 Pièce chargée : ${piece.nom} [${piece.reference}]`, true);
-};
+// 5. Actions du Zebra
+// A. Déclenchement du Scan Laser (ESPACE ou Bouton Zebra)
+function actionnerScanLaser(): void {
+  const resultat = entrepot3D.declencherScanLaser();
+  const mis = zebra.missionActuelle;
+  if (!mis) return;
 
-// 6. Actions spécialisées du Zebra WMS
-// A. Action Palan d'atelier 300 kg
-zebra.onActionPalan = () => {
-  const ok = etabli3D.actionnerPalan300kg();
-  if (ok) {
-    zebra.marquerPalanFait();
-    afficherNotification('🏗️ Palan actionné : Pompe 300 kg déposée au centre de la palette Europe !', true);
-  }
-};
-
-// B. Action Sanglage à cliquet 5T
-zebra.onActionSangler = () => {
-  const ok = etabli3D.sanglerPompe300kg();
-  if (ok) {
-    zebra.marquerSanglageFait();
-    afficherNotification('🪢 Sanglage 5T verrouillé : Pompe 300 kg arrimée en toute sécurité !', true);
-  }
-};
-
-// C. Action Chips de Calage pour pièces fragiles
-zebra.onActionChips = () => {
-  const ok = etabli3D.verserChipsCalage();
-  if (ok) {
-    zebra.marquerChipsFaites();
-    afficherNotification('🍿 Doseur actionné : Chips de calage polystyrène injectées autour des capteurs !', true);
-  }
-};
-
-// D. Action Double Emballage Salle Blanche
-zebra.onActionDoubleBag = () => {
-  const ok = etabli3D.appliquerDoubleEmballage();
-  if (ok) {
-    zebra.marquerDoubleBagFait();
-    afficherNotification('🛡️ Thermosoudeuse : Double sachet stérile scellé sous atmosphère contrôlée !', true);
-  }
-};
-
-// E. Scotchage du carton
-zebra.onDemandeScotchage = () => {
-  const reussi = etabli3D.scotcherCarton();
-  if (reussi) {
-    zebra.marquerScotche();
-    afficherNotification('📦 Carton fermé et scellé avec le scotch adhésif !', true);
-  }
-};
-
-// 7. Expédition & Impression (selon le Mode Réel ou Dématérialisé)
-zebra.onDemandeExpedition = () => {
-  if (!zebra.missionActuelle) return;
-
-  if (modeActuel === 'reel_phygital') {
-    imprimante.ouvrirEtiquette(zebra.missionActuelle);
+  if (resultat.type === 'emplacement') {
+    if (resultat.id === mis.emplacementCibleId) {
+      audio.playScanner();
+      zebra.marquerEmplacementValide();
+      afficherNotification(`✅ Emplacement ${resultat.id} scanné et validé !`, true);
+    } else {
+      audio.playError();
+      afficherNotification(`❌ Mauvais emplacement ! Vous êtes devant [${resultat.id}], attendu : [${mis.emplacementCibleId}]`, false);
+    }
+  } else if (resultat.type === 'etagere') {
+    if (resultat.id === mis.etagereLivraisonId) {
+      if (mis.colisPrepare) {
+        validerLivraisonFinale();
+      } else {
+        afficherNotification(`⚠️ Vous devez d'abord préparer et scotcher le carton à l'établi central !`, false);
+      }
+    } else {
+      audio.playError();
+      afficherNotification(`❌ Mauvaise étagère ! Ce colis doit être livré sur [${mis.etagereLivraisonId}]`, false);
+    }
   } else {
-    etabli3D.poserEtiquetteExpedition();
-    finaliserExpedition();
+    afficherNotification(`🔍 Aucun code-barre à portée. Rapprochez-vous d'un rack ou d'une étagère.`, false);
+  }
+}
+
+zebra.onDeclencherScanLaser = () => actionnerScanLaser();
+
+// Raccourci barre d'espace pour bipper
+window.addEventListener('keydown', e => {
+  if (e.code === 'Space' && (document.activeElement?.tagName !== 'INPUT')) {
+    e.preventDefault();
+    actionnerScanLaser();
+  }
+});
+
+// B. Guidage GPS vers l'emplacement
+zebra.onDemandeGuidage = () => {
+  const mis = zebra.missionActuelle;
+  if (!mis) return;
+  const loc = EMPLACEMENTS_ENTREPOT.find(l => l.id === mis.emplacementCibleId);
+  if (loc) {
+    entrepot3D.allerVers(loc.position);
+    afficherNotification(`🚶 Guidage automatique vers ${loc.nomAffiche}`, true);
+  }
+};
+
+// C. Vérification quantité & prélèvement
+zebra.onValiderPrelevement = () => {
+  audio.playDrop();
+  zebra.marquerQuantitePrelevee();
+  afficherNotification(`✋ Pièces prélevées en stock ! Rendez-vous à l'établi central.`, true);
+};
+
+// D. Préparation et scotchage à l'établi central
+zebra.onPreparerCarton = () => {
+  audio.playScotch();
+  zebra.marquerColisPrepare();
+  afficherNotification(`📦 Carton préparé et scotché ! Amenez-le à l'étagère [${zebra.missionActuelle?.destinataireBatiment}].`, true);
+};
+
+// E. Dépôt et validation sur l'étagère finale
+zebra.onValiderLivraisonEtagere = () => {
+  if (modeActuel === 'reel_phygital') {
+    // Mode Réel : Ouvrir l'étiquette réelle
+    if (zebra.missionActuelle) imprimante.ouvrirEtiquette(zebra.missionActuelle);
+  } else {
+    validerLivraisonFinale();
   }
 };
 
 imprimante.onScanReelValide = (code) => {
-  if (zebra.missionActuelle && code === zebra.missionActuelle.codeBarreExpedition) {
-    etabli3D.poserEtiquetteExpedition();
-    finaliserExpedition();
+  const mis = zebra.missionActuelle;
+  if (mis && code === mis.codeBarreLivraison) {
+    validerLivraisonFinale();
     afficherNotification(`✅ Étiquette réelle ${code} validée au scanner !`, true);
   } else {
     audio.playError();
@@ -155,24 +171,29 @@ imprimante.onScanReelValide = (code) => {
   }
 };
 
-function finaliserExpedition(): void {
-  totalColisExpedies++;
-  elStatColis.textContent = `${totalColisExpedies}`;
-  confetti({ particleCount: 90, spread: 75, origin: { x: 0.5, y: 0.6 } });
-  afficherNotification('🚀 Expédition validée pour livraison sur le site du CEA Grenoble !', true);
+function validerLivraisonFinale(): void {
+  missionsCompletees++;
+  elStatColis.textContent = `${missionsCompletees}`;
+  audio.playSuccess();
+  confetti({ particleCount: 100, spread: 80, origin: { x: 0.5, y: 0.6 } });
+  afficherNotification(`🎉 Livraison terminée avec succès sur l'étagère [${zebra.missionActuelle?.destinataireBatiment}] !`, true);
 
   setTimeout(() => {
-    indexMission = (indexMission + 1) % MISSIONS_WMS_INITIALES.length;
-    chargerMission(MISSIONS_WMS_INITIALES[indexMission]);
-  }, 3200);
+    indexMission = (indexMission + 1) % MISSIONS_PICKING_ENTREPOT.length;
+    chargerMission(MISSIONS_PICKING_ENTREPOT[indexMission]);
+  }, 3400);
 }
 
-// 8. Démarrage
-rafraichirPanneauStock();
-chargerMission(MISSIONS_WMS_INITIALES[0]);
+// 6. Démarrage
+rafraichirPlanEmplacements();
+chargerMission(MISSIONS_PICKING_ENTREPOT[0]);
 
-function boucleRendu(): void {
-  etabli3D.render();
-  requestAnimationFrame(boucleRendu);
+let dernierTemps = performance.now();
+function boucleAnimation(tempsActuel: number): void {
+  const deltaSec = Math.min((tempsActuel - dernierTemps) / 1000, 0.1);
+  dernierTemps = tempsActuel;
+
+  entrepot3D.update(deltaSec);
+  requestAnimationFrame(boucleAnimation);
 }
-requestAnimationFrame(boucleRendu);
+requestAnimationFrame(boucleAnimation);
