@@ -1,31 +1,31 @@
-[gd_scene load_steps=31 format=3]
+[gd_scene load_steps=26 format=3]
 
 [ext_resource type="Script" path="res://scripts/ZebraTC5xController.gd" id="1_ctrl"]
 [ext_resource type="Script" path="res://scripts/ZebraScreenUI.gd" id="2_screen_ui"]
 [ext_resource type="Texture2D" path="res://textures/zebra_rubber_grip.png" id="3_rubber_tex"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_body"]
-size = Vector3(0.078, 0.158, 0.016)
+size = Vector3(0.082, 0.160, 0.018)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
-albedo_color = Color(0.13, 0.14, 0.16, 1)
+albedo_color = Color(0.14, 0.15, 0.18, 1)
 albedo_texture = ExtResource("3_rubber_tex")
 uv1_scale = Vector3(10, 20, 2)
-metallic = 0.2
-roughness = 0.65
+metallic = 0.25
+roughness = 0.55
 
 [sub_resource type="BoxMesh" id="BoxMesh_bumper_corner"]
-size = Vector3(0.018, 0.024, 0.020)
+size = Vector3(0.018, 0.024, 0.022)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_yellow"]
 albedo_color = Color(0.96, 0.65, 0.08, 1)
-roughness = 0.55
+roughness = 0.5
 
 [sub_resource type="BoxMesh" id="BoxMesh_side_trigger"]
 size = Vector3(0.006, 0.038, 0.012)
 
 [sub_resource type="BoxMesh" id="BoxMesh_scan_head"]
-size = Vector3(0.062, 0.018, 0.016)
+size = Vector3(0.065, 0.018, 0.018)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_scan_glass"]
 albedo_color = Color(0.85, 0.06, 0.06, 0.9)
@@ -34,15 +34,29 @@ metallic = 0.95
 roughness = 0.05
 
 [sub_resource type="SphereMesh" id="SphereMesh_led"]
-radius = 0.002
-height = 0.004
+radius = 0.0025
+height = 0.005
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_led"]
 shading_mode = 0
 albedo_color = Color(0.2, 1, 0.3, 1)
 
 [sub_resource type="QuadMesh" id="QuadMesh_screen"]
-size = Vector2(0.068, 0.120)
+size = Vector2(0.072, 0.126)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_handle"]
+top_radius = 0.018
+bottom_radius = 0.022
+height = 0.13
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_grip_mat"]
+albedo_color = Color(0.12, 0.13, 0.16, 1)
+albedo_texture = ExtResource("3_rubber_tex")
+uv1_scale = Vector3(4, 10, 2)
+roughness = 0.65
+
+[sub_resource type="BoxMesh" id="BoxMesh_trigger_btn"]
+size = Vector3(0.014, 0.028, 0.022)
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_laser"]
 top_radius = 0.001
@@ -51,49 +65,21 @@ height = 5.0
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_laser"]
 shading_mode = 0
-albedo_color = Color(1, 0.05, 0.05, 0.65)
+albedo_color = Color(1, 0.05, 0.05, 0.75)
 transparency = 1
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_arm"]
-top_radius = 0.038
-bottom_radius = 0.046
-height = 0.40
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jacket"]
-albedo_color = Color(0.12, 0.16, 0.24, 1)
-roughness = 0.85
-
-[sub_resource type="BoxMesh" id="BoxMesh_glove_palm"]
-size = Vector3(0.075, 0.082, 0.032)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_glove_black"]
-albedo_color = Color(0.11, 0.13, 0.16, 1)
-roughness = 0.6
-
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_thumb"]
-radius = 0.010
-height = 0.048
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_glove_blue"]
-albedo_color = Color(0.08, 0.45, 0.85, 1)
-roughness = 0.45
-
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_finger"]
-radius = 0.009
-height = 0.045
-
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
-bg_color = Color(0.06, 0.08, 0.12, 1)
+bg_color = Color(0.07, 0.09, 0.13, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
-bg_color = Color(0.02, 0.45, 0.85, 1)
+bg_color = Color(0.03, 0.45, 0.88, 1)
 corner_radius_top_left = 6
 corner_radius_top_right = 6
 corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
-bg_color = Color(0.11, 0.15, 0.22, 1)
+bg_color = Color(0.12, 0.16, 0.23, 1)
 border_width_left = 4
 border_color = Color(0.96, 0.65, 0.08, 1)
 corner_radius_top_left = 6
@@ -102,9 +88,9 @@ corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_status"]
-bg_color = Color(0.08, 0.22, 0.16, 1)
-border_width_left = 3
-border_color = Color(0.2, 0.85, 0.4, 1)
+bg_color = Color(0.09, 0.22, 0.16, 1)
+border_width_left = 4
+border_color = Color(0.2, 0.9, 0.4, 1)
 corner_radius_top_left = 6
 corner_radius_top_right = 6
 corner_radius_bottom_right = 6
@@ -118,80 +104,58 @@ mesh = SubResource("BoxMesh_body")
 surface_material_override/0 = SubResource("StandardMaterial3D_body")
 
 [node name="BumperTopLeft" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.035, 0.075, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.036, 0.076, 0)
 mesh = SubResource("BoxMesh_bumper_corner")
 surface_material_override/0 = SubResource("StandardMaterial3D_yellow")
 
 [node name="BumperTopRight" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.035, 0.075, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.036, 0.076, 0)
 mesh = SubResource("BoxMesh_bumper_corner")
 surface_material_override/0 = SubResource("StandardMaterial3D_yellow")
 
 [node name="BumperBottomLeft" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.035, -0.075, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.036, -0.076, 0)
 mesh = SubResource("BoxMesh_bumper_corner")
 surface_material_override/0 = SubResource("StandardMaterial3D_yellow")
 
 [node name="BumperBottomRight" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.035, -0.075, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.036, -0.076, 0)
 mesh = SubResource("BoxMesh_bumper_corner")
 surface_material_override/0 = SubResource("StandardMaterial3D_yellow")
 
 [node name="TriggerLeft" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.040, 0.015, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.042, 0.015, 0)
 mesh = SubResource("BoxMesh_side_trigger")
 surface_material_override/0 = SubResource("StandardMaterial3D_yellow")
 
 [node name="TriggerRight" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.040, 0.015, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.042, 0.015, 0)
 mesh = SubResource("BoxMesh_side_trigger")
 surface_material_override/0 = SubResource("StandardMaterial3D_yellow")
 
 [node name="ScanWindow" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.819152, 0.573576, 0, -0.573576, 0.819152, 0, 0.082, -0.002)
+transform = Transform3D(1, 0, 0, 0, 0.819152, 0.573576, 0, -0.573576, 0.819152, 0, 0.084, -0.003)
 mesh = SubResource("BoxMesh_scan_head")
 surface_material_override/0 = SubResource("StandardMaterial3D_scan_glass")
 
 [node name="StatusLED" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.024, 0.068, 0.009)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.026, 0.070, 0.010)
 mesh = SubResource("SphereMesh_led")
 surface_material_override/0 = SubResource("StandardMaterial3D_led")
 
 [node name="ScreenMesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.004, 0.009)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.004, 0.010)
 mesh = SubResource("QuadMesh_screen")
 
-[node name="HandRig" type="Node3D" parent="."]
+[node name="PistolGripHandle" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.939693, 0.34202, 0, -0.34202, 0.939693, 0, -0.075, -0.055)
+mesh = SubResource("CylinderMesh_handle")
+surface_material_override/0 = SubResource("StandardMaterial3D_grip_mat")
 
-[node name="ArmForearm" type="MeshInstance3D" parent="HandRig"]
-transform = Transform3D(0.965926, 0, 0.258819, 0.12941, 0.866025, -0.482963, -0.224144, 0.5, 0.836516, 0.08, -0.25, -0.18)
-mesh = SubResource("CylinderMesh_arm")
-surface_material_override/0 = SubResource("StandardMaterial3D_jacket")
-
-[node name="GlovePalm" type="MeshInstance3D" parent="HandRig"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.01, -0.04, -0.02)
-mesh = SubResource("BoxMesh_glove_palm")
-surface_material_override/0 = SubResource("StandardMaterial3D_glove_black")
-
-[node name="Thumb" type="MeshInstance3D" parent="HandRig"]
-transform = Transform3D(0.866025, 0.5, 0, -0.5, 0.866025, 0, 0, 0, 1, -0.044, -0.01, 0.006)
-mesh = SubResource("CapsuleMesh_thumb")
-surface_material_override/0 = SubResource("StandardMaterial3D_glove_blue")
-
-[node name="IndexFinger" type="MeshInstance3D" parent="HandRig"]
-transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, 0.042, 0.02, 0.004)
-mesh = SubResource("CapsuleMesh_finger")
-surface_material_override/0 = SubResource("StandardMaterial3D_glove_blue")
-
-[node name="MiddleFinger" type="MeshInstance3D" parent="HandRig"]
-transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, 0.042, -0.015, 0.004)
-mesh = SubResource("CapsuleMesh_finger")
-surface_material_override/0 = SubResource("StandardMaterial3D_glove_blue")
-
-[node name="RingFinger" type="MeshInstance3D" parent="HandRig"]
-transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, 0.042, -0.05, 0.004)
-mesh = SubResource("CapsuleMesh_finger")
-surface_material_override/0 = SubResource("StandardMaterial3D_glove_blue")
+[node name="GripTrigger" type="MeshInstance3D" parent="PistolGripHandle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.028, 0.024)
+mesh = SubResource("BoxMesh_trigger_btn")
+surface_material_override/0 = SubResource("StandardMaterial3D_yellow")
 
 [node name="LaserBeam" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0.085, -2.5)

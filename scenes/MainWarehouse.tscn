@@ -1,4 +1,4 @@
-[gd_scene load_steps=34 format=3]
+[gd_scene load_steps=37 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/DrawerCabinet.tscn" id="2_cabinet"]
@@ -14,7 +14,6 @@
 [ext_resource type="Texture2D" path="res://textures/wall_albedo.png" id="12_wall_alb"]
 [ext_resource type="Texture2D" path="res://textures/wall_normal.png" id="13_wall_nrm"]
 [ext_resource type="Texture2D" path="res://textures/wall_roughness.png" id="14_wall_rgh"]
-[ext_resource type="Texture2D" path="res://textures/hazard_stripes.png" id="15_hazard_tex"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_top_color = Color(0.12, 0.16, 0.24, 1)
@@ -28,8 +27,8 @@ sky_material = SubResource("ProceduralSkyMaterial_sky")
 background_mode = 2
 sky = SubResource("Sky_env")
 ambient_light_source = 2
-ambient_light_color = Color(0.82, 0.88, 0.96, 1)
-ambient_light_energy = 1.35
+ambient_light_color = Color(0.85, 0.90, 0.98, 1)
+ambient_light_energy = 1.4
 tonemap_mode = 3
 tonemap_exposure = 1.15
 ssao_enabled = true
@@ -45,24 +44,24 @@ glow_intensity = 0.25
 glow_bloom = 0.10
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
-size = Vector3(32, 0.2, 28)
+size = Vector3(36, 0.2, 32)
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
-size = Vector3(32, 0.2, 28)
+size = Vector3(36, 0.2, 32)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor_pbr"]
 albedo_texture = ExtResource("9_floor_alb")
 normal_enabled = true
 normal_texture = ExtResource("10_floor_nrm")
 roughness_texture = ExtResource("11_floor_rgh")
-uv1_scale = Vector3(12, 10, 1)
+uv1_scale = Vector3(14, 12, 1)
 metallic = 0.35
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_wall_lr"]
-size = Vector3(0.4, 7.5, 28)
+size = Vector3(0.4, 7.5, 32)
 
 [sub_resource type="BoxMesh" id="BoxMesh_wall_lr"]
-size = Vector3(0.4, 7.5, 28)
+size = Vector3(0.4, 7.5, 32)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wall_pbr"]
 cull_mode = 2
@@ -70,17 +69,17 @@ albedo_texture = ExtResource("12_wall_alb")
 normal_enabled = true
 normal_texture = ExtResource("13_wall_nrm")
 roughness_texture = ExtResource("14_wall_rgh")
-uv1_scale = Vector3(8, 2, 1)
+uv1_scale = Vector3(10, 2, 1)
 metallic = 0.7
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_wall_fb"]
-size = Vector3(32, 7.5, 0.4)
+size = Vector3(36, 7.5, 0.4)
 
 [sub_resource type="BoxMesh" id="BoxMesh_wall_fb"]
-size = Vector3(32, 7.5, 0.4)
+size = Vector3(36, 7.5, 0.4)
 
 [sub_resource type="BoxMesh" id="BoxMesh_ceiling"]
-size = Vector3(32, 0.2, 28)
+size = Vector3(36, 0.2, 32)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ceiling"]
 cull_mode = 2
@@ -89,15 +88,23 @@ metallic = 0.8
 roughness = 0.5
 
 [sub_resource type="BoxMesh" id="BoxMesh_dock_door"]
-size = Vector3(5.2, 4.8, 0.08)
+size = Vector3(5.6, 5.0, 0.08)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dock_door"]
 albedo_color = Color(0.18, 0.30, 0.48, 1)
 metallic = 0.75
 roughness = 0.35
 
+[sub_resource type="BoxMesh" id="BoxMesh_beam_ipn"]
+size = Vector3(0.25, 7.4, 0.25)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_steel_ipn"]
+albedo_color = Color(0.22, 0.25, 0.30, 1)
+metallic = 0.85
+roughness = 0.3
+
 [sub_resource type="BoxMesh" id="BoxMesh_overhead_sign"]
-size = Vector3(3.4, 0.55, 0.08)
+size = Vector3(3.6, 0.55, 0.08)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sign_a"]
 shading_mode = 0
@@ -117,9 +124,9 @@ albedo_color = Color(0.15, 0.85, 0.35, 1)
 environment = SubResource("Environment_main")
 
 [node name="SkylightSun" type="DirectionalLight3D" parent="."]
-transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 0, 10, 0)
-light_color = Color(0.95, 0.97, 1.0, 1)
-light_energy = 1.8
+transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 0, 12, 0)
+light_color = Color(0.96, 0.98, 1.0, 1)
+light_energy = 2.0
 shadow_enabled = true
 shadow_bias = 0.03
 shadow_blur = 1.2
@@ -143,7 +150,7 @@ mesh = SubResource("BoxMesh_ceiling")
 surface_material_override/0 = SubResource("StandardMaterial3D_ceiling")
 
 [node name="WallLeft" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 3.75, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 3.75, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="WallLeft"]
 shape = SubResource("BoxShape3D_wall_lr")
@@ -153,7 +160,7 @@ mesh = SubResource("BoxMesh_wall_lr")
 surface_material_override/0 = SubResource("StandardMaterial3D_wall_pbr")
 
 [node name="WallRight" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 3.75, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 3.75, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="WallRight"]
 shape = SubResource("BoxShape3D_wall_lr")
@@ -163,7 +170,7 @@ mesh = SubResource("BoxMesh_wall_lr")
 surface_material_override/0 = SubResource("StandardMaterial3D_wall_pbr")
 
 [node name="WallBack" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.75, -14)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.75, -16)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="WallBack"]
 shape = SubResource("BoxShape3D_wall_fb")
@@ -173,7 +180,7 @@ mesh = SubResource("BoxMesh_wall_fb")
 surface_material_override/0 = SubResource("StandardMaterial3D_wall_pbr")
 
 [node name="WallFront" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.75, 14)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.75, 16)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="WallFront"]
 shape = SubResource("BoxShape3D_wall_fb")
@@ -183,55 +190,96 @@ mesh = SubResource("BoxMesh_wall_fb")
 surface_material_override/0 = SubResource("StandardMaterial3D_wall_pbr")
 
 [node name="SectionalDockDoor" type="MeshInstance3D" parent="WallFront"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.35, -0.22)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.25, -0.22)
 mesh = SubResource("BoxMesh_dock_door")
 surface_material_override/0 = SubResource("StandardMaterial3D_dock_door")
+
+[node name="IPN_Columns" type="Node3D" parent="."]
+
+[node name="ColL1" type="MeshInstance3D" parent="IPN_Columns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.8, 3.7, -10)
+mesh = SubResource("BoxMesh_beam_ipn")
+surface_material_override/0 = SubResource("StandardMaterial3D_steel_ipn")
+
+[node name="ColL2" type="MeshInstance3D" parent="IPN_Columns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.8, 3.7, 0)
+mesh = SubResource("BoxMesh_beam_ipn")
+surface_material_override/0 = SubResource("StandardMaterial3D_steel_ipn")
+
+[node name="ColL3" type="MeshInstance3D" parent="IPN_Columns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.8, 3.7, 10)
+mesh = SubResource("BoxMesh_beam_ipn")
+surface_material_override/0 = SubResource("StandardMaterial3D_steel_ipn")
+
+[node name="ColR1" type="MeshInstance3D" parent="IPN_Columns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.8, 3.7, -10)
+mesh = SubResource("BoxMesh_beam_ipn")
+surface_material_override/0 = SubResource("StandardMaterial3D_steel_ipn")
+
+[node name="ColR2" type="MeshInstance3D" parent="IPN_Columns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.8, 3.7, 0)
+mesh = SubResource("BoxMesh_beam_ipn")
+surface_material_override/0 = SubResource("StandardMaterial3D_steel_ipn")
+
+[node name="ColR3" type="MeshInstance3D" parent="IPN_Columns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.8, 3.7, 10)
+mesh = SubResource("BoxMesh_beam_ipn")
+surface_material_override/0 = SubResource("StandardMaterial3D_steel_ipn")
 
 [node name="Lamps" type="Node3D" parent="."]
 
 [node name="Lamp1" parent="Lamps" instance=ExtResource("7_lamp")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 5.8, -6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 5.8, -9)
 
 [node name="Lamp2" parent="Lamps" instance=ExtResource("7_lamp")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 5.8, -6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 5.8, -9)
 
 [node name="Lamp3" parent="Lamps" instance=ExtResource("7_lamp")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 5.8, 2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 5.8, 0)
 
 [node name="Lamp4" parent="Lamps" instance=ExtResource("7_lamp")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 5.8, 2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 5.8, 0)
 
 [node name="Lamp5" parent="Lamps" instance=ExtResource("7_lamp")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.8, -4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 5.8, 9)
 
 [node name="Lamp6" parent="Lamps" instance=ExtResource("7_lamp")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 5.8, 9)
+
+[node name="Lamp7" parent="Lamps" instance=ExtResource("7_lamp")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.8, -5)
+
+[node name="Lamp8" parent="Lamps" instance=ExtResource("7_lamp")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.8, 6)
 
 [node name="Signs" type="Node3D" parent="."]
 
 [node name="SignAisleA" type="MeshInstance3D" parent="Signs"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 4.4, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 4.5, 0)
 mesh = SubResource("BoxMesh_overhead_sign")
 surface_material_override/0 = SubResource("StandardMaterial3D_sign_a")
 
 [node name="SignAisleB" type="MeshInstance3D" parent="Signs"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.4, -2.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.5, -3)
 mesh = SubResource("BoxMesh_overhead_sign")
 surface_material_override/0 = SubResource("StandardMaterial3D_sign_b")
 
 [node name="SignAisleC" type="MeshInstance3D" parent="Signs"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 4.4, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 4.5, 0)
 mesh = SubResource("BoxMesh_overhead_sign")
 surface_material_override/0 = SubResource("StandardMaterial3D_sign_c")
 
 [node name="AisleA_Racks" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0, -5)
 
-[node name="PalletRack1" parent="AisleA_Racks" instance=ExtResource("3_rack")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.8)
+[node name="Rack1" parent="AisleA_Racks" instance=ExtResource("3_rack")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -5.5)
 
-[node name="PalletRack2" parent="AisleA_Racks" instance=ExtResource("3_rack")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.8)
+[node name="Rack2" parent="AisleA_Racks" instance=ExtResource("3_rack")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="Rack3" parent="AisleA_Racks" instance=ExtResource("3_rack")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 5.5)
 
 [node name="AisleB_Drawers" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6)
@@ -239,21 +287,24 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6)
 [node name="DrawerCabinet" parent="AisleB_Drawers" instance=ExtResource("2_cabinet")]
 
 [node name="AisleC_Cleanroom" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, -4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0, -5)
 
-[node name="CleanroomCabinet1" parent="AisleC_Cleanroom" instance=ExtResource("4_clean_cab")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.8)
+[node name="CleanCab1" parent="AisleC_Cleanroom" instance=ExtResource("4_clean_cab")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -4.5)
 
-[node name="CleanroomCabinet2" parent="AisleC_Cleanroom" instance=ExtResource("4_clean_cab")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.8)
+[node name="CleanCab2" parent="AisleC_Cleanroom" instance=ExtResource("4_clean_cab")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="CleanCab3" parent="AisleC_Cleanroom" instance=ExtResource("4_clean_cab")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 4.5)
 
 [node name="ZoneD_Packing" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 9)
 
 [node name="PackingStation" parent="ZoneD_Packing" instance=ExtResource("5_packing")]
 
 [node name="PickingCart" parent="." instance=ExtResource("6_cart")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.8, 0, 2.2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, 0, 2.0)
 
 [node name="Player" parent="." instance=ExtResource("1_player")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.0)

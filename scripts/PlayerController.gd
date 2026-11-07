@@ -2,7 +2,10 @@ extends CharacterBody3D
 
 class_name PlayerController
 
-@export var speed: float = 4.5
+@export var walk_speed: float = 3.8
+@export var sprint_speed: float = 6.5
+@export var acceleration: float = 10.0
+@export var friction: float = 8.0
 @export var mouse_sensitivity: float = 0.0022
 @export var gravity: float = 9.8
 
@@ -14,19 +17,20 @@ class_name PlayerController
 var is_inspecting_drawer: bool = false
 var is_aiming_zebra: bool = false
 
-# Positions et rotations ergonomiques naturelles du Zebra
-var zebra_idle_pos := Vector3(0.22, -0.18, -0.38)
-var zebra_idle_rot := Vector3(deg_to_rad(-10), deg_to_rad(-14), deg_to_rad(5))
+# Positionnement ergonomique naturel du Zebra TC5x Scan Gun
+var zebra_idle_pos := Vector3(0.24, -0.22, -0.38)
+var zebra_idle_rot := Vector3(deg_to_rad(-8), deg_to_rad(-12), deg_to_rad(4))
 
-var zebra_aim_base_pos := Vector3(0.0, -0.06, -0.28)
-var zebra_aim_base_rot := Vector3(deg_to_rad(-4), 0, 0)
+var zebra_aim_base_pos := Vector3(0.0, -0.06, -0.26)
+var zebra_aim_base_rot := Vector3(deg_to_rad(-3), 0, 0)
 
-# Inertie procédurale (Item Sway) et balancement au pas (Bobbing)
+# Inertie fluide (Item Sway) et Balancement de marche (Head & Hand Bobbing)
 var sway_offset := Vector3.ZERO
 var sway_rot_offset := Vector3.ZERO
 var bobbing_time := 0.0
+var camera_base_y := 0.0
 
-# Contrôle "Axe Humain Libre" du poignet lors de l'inspection (Clic Droit)
+# Rotation libre au poignet lors de l'inspection
 var wrist_pitch := 0.0
 var wrist_yaw := 0.0
 var wrist_roll := 0.0
@@ -35,6 +39,8 @@ var original_camera_transform: Transform3D
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	if camera:
+		camera_base_y = camera.position.y
 	if zebra_tc5x:
 		zebra_tc5x.position = zebra_idle_pos
 		zebra_tc5x.rotation = zebra_idle_rot
@@ -42,23 +48,23 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED and not is_inspecting_drawer:
 		if is_aiming_zebra:
-			# Mode Axe Humain Libre : Le poignet incline librement le Zebra dans la main !
+			# Mode inspection libre : le poignet incline librement le pistolet Zebra
 			wrist_yaw -= event.relative.x * 0.003
 			wrist_pitch -= event.relative.y * 0.003
 			wrist_yaw = clamp(wrist_yaw, deg_to_rad(-45), deg_to_rad(45))
-			wrist_pitch = clamp(wrist_pitch, deg_to_rad(-40), deg_to_rad(40))
-			wrist_roll = -wrist_yaw * 0.35
+			wrist_pitch = clamp(wrist_pitch, deg_to_rad(-35), deg_to_rad(35))
+			wrist_roll = -wrist_yaw * 0.3
 		else:
-			# Rotation normale de la caméra
+			# Mouvement fluide de la caméra
 			rotate_y(-event.relative.x * mouse_sensitivity)
 			head.rotate_x(-event.relative.y * mouse_sensitivity)
 			head.rotation.x = clamp(head.rotation.x, deg_to_rad(-70), deg_to_rad(70))
 			
-			# Sway naturel d'inertie de la main
-			sway_offset.x = clamp(-event.relative.x * 0.0008, -0.04, 0.04)
-			sway_offset.y = clamp(event.relative.y * 0.0008, -0.03, 0.03)
-			sway_rot_offset.y = clamp(-event.relative.x * 0.0015, -0.15, 0.15)
-			sway_rot_offset.x = clamp(-event.relative.y * 0.0015, -0.12, 0.12)
+			# Sway d'inertie de la main
+			sway_offset.x = clamp(-event.relative.x * 0.0006, -0.035, 0.035)
+			sway_offset.y = clamp(event.relative.y * 0.0006, -0.025, 0.025)
+			sway_rot_offset.y = clamp(-event.relative.x * 0.0012, -0.12, 0.12)
+			sway_rot_offset.x = clamp(-event.relative.y * 0.0012, -0.10, 0.10)
 
 	if event.is_action_pressed("ui_cancel"):
 		if is_inspecting_drawer:
@@ -69,7 +75,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			else:
 				Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
-	# Mode Visée / Inspection libre au poignet (Clic Droit)
+	# Viser / inspecter le Zebra (Clic Droit)
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and not is_inspecting_drawer:
 		set_aiming_zebra(event.pressed)
 
@@ -80,7 +86,6 @@ func _unhandled_input(event: InputEvent) -> void:
 func set_aiming_zebra(aiming: bool) -> void:
 	is_aiming_zebra = aiming
 	if not aiming:
-		# Réinitialiser doucement la rotation libre du poignet
 		var tween = create_tween().set_parallel(true)
 		tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		tween.tween_property(self, "wrist_pitch", 0.0, 0.2)
@@ -94,44 +99,52 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 
-	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
-	var direction := (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
+	# Sprint avec Shift
+	var is_sprinting = Input.is_key_pressed(KEY_SHIFT) and not is_aiming_zebra
+	var target_speed = sprint_speed if is_sprinting else walk_speed
 
-	if direction:
-		velocity.x = direction.x * speed
-		velocity.z = direction.z * speed
-		bobbing_time += delta * 9.0
+	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
+	var target_dir := (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
+
+	if target_dir:
+		velocity.x = lerpf(velocity.x, target_dir.x * target_speed, delta * acceleration)
+		velocity.z = lerpf(velocity.z, target_dir.z * target_speed, delta * acceleration)
+		bobbing_time += delta * (13.0 if is_sprinting else 8.5)
 	else:
-		velocity.x = move_toward(velocity.x, 0, speed)
-		velocity.z = move_toward(velocity.z, 0, speed)
-		bobbing_time += delta * 2.0
+		velocity.x = lerpf(velocity.x, 0.0, delta * friction)
+		velocity.z = lerpf(velocity.z, 0.0, delta * friction)
+		bobbing_time += delta * 1.5
 
 	move_and_slide()
-	update_zebra_transform(delta)
+	update_head_and_hand_bobbing(delta, target_dir.length() > 0.1)
 
-func update_zebra_transform(delta: float) -> void:
-	if not zebra_tc5x or is_inspecting_drawer:
+func update_head_and_hand_bobbing(delta: float, is_moving: bool) -> void:
+	# 1. Head Bobbing réaliste
+	if camera:
+		var head_bob_y = sin(bobbing_time) * (0.035 if is_moving else 0.005)
+		var head_bob_x = cos(bobbing_time * 0.5) * (0.020 if is_moving else 0.002)
+		camera.position.y = lerpf(camera.position.y, camera_base_y + head_bob_y, delta * 12.0)
+		camera.position.x = lerpf(camera.position.x, head_bob_x, delta * 12.0)
+
+	# 2. Amortissement du sway d'inertie de la main
+	sway_offset = sway_offset.lerp(Vector3.ZERO, delta * 7.0)
+	sway_rot_offset = sway_rot_offset.lerp(Vector3.ZERO, delta * 7.0)
+
+	if not zebra_tc5x:
 		return
 
-	# Amortissement du sway d'inertie vers zéro
-	sway_offset = sway_offset.lerp(Vector3.ZERO, delta * 8.0)
-	sway_rot_offset = sway_rot_offset.lerp(Vector3.ZERO, delta * 8.0)
-
-	# Balancement de marche / respiration humaine (Bobbing)
-	var is_moving = velocity.length() > 0.2
-	var bob_x = cos(bobbing_time * 0.5) * (0.012 if is_moving else 0.002)
-	var bob_y = sin(bobbing_time) * (0.016 if is_moving else 0.003)
+	# 3. Positionnement du Zebra (Idle vs Visée)
+	var hand_bob_x = cos(bobbing_time * 0.5) * (0.014 if is_moving else 0.002)
+	var hand_bob_y = sin(bobbing_time) * (0.018 if is_moving else 0.003)
 
 	var target_pos: Vector3
 	var target_rot: Vector3
 
 	if is_aiming_zebra:
-		# Position centrale avec liberté totale de rotation au poignet par la souris
-		target_pos = zebra_aim_base_pos + Vector3(bob_x * 0.2, bob_y * 0.2, 0)
+		target_pos = zebra_aim_base_pos + Vector3(hand_bob_x * 0.15, hand_bob_y * 0.15, 0)
 		target_rot = zebra_aim_base_rot + Vector3(wrist_pitch, wrist_yaw, wrist_roll)
 	else:
-		# Position naturelle en main droite avec sway et bobbing
-		target_pos = zebra_idle_pos + sway_offset + Vector3(bob_x, bob_y, 0)
+		target_pos = zebra_idle_pos + sway_offset + Vector3(hand_bob_x, hand_bob_y, 0)
 		target_rot = zebra_idle_rot + sway_rot_offset
 
 	zebra_tc5x.position = zebra_tc5x.position.lerp(target_pos, delta * 14.0)
