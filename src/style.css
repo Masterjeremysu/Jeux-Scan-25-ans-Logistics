@@ -1,0 +1,376 @@
+:root {
+  --bg-primary: #0b0f19;
+  --bg-panel: rgba(15, 23, 42, 0.85);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --accent-cyan: #38bdf8;
+  --accent-green: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-red: #ef4444;
+  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Barre supérieure (HUD) */
+.barre-superieure {
+  height: 64px;
+  background: var(--bg-panel);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 10;
+}
+
+.logo-groupe h1 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-groupe h1 span {
+  color: var(--accent-cyan);
+}
+
+.indicateurs {
+  display: flex;
+  gap: 28px;
+}
+
+.indicateur {
+  display: flex;
+  flex-direction: column;
+}
+
+.indicateur .libelle {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.indicateur .valeur {
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.controles-vitesse {
+  display: flex;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.btn-vitesse {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.btn-vitesse:hover {
+  color: #fff;
+}
+
+.btn-vitesse.actif {
+  background: var(--accent-cyan);
+  color: #0b0f19;
+  font-weight: 600;
+}
+
+/* Zone principale du jeu */
+.zone-jeu {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  height: calc(100vh - 64px);
+}
+
+#canvas-jeu {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Bannière d'alerte / Crise */
+.banniere {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: none;
+  z-index: 20;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  animation: glissement 0.3s ease;
+}
+
+.banniere.active {
+  display: block;
+}
+
+.banniere.alerte {
+  background: rgba(239, 68, 68, 0.9);
+  border: 1px solid #f87171;
+  color: #fff;
+}
+
+.banniere.info {
+  background: rgba(14, 165, 233, 0.9);
+  border: 1px solid #38bdf8;
+  color: #fff;
+}
+
+@keyframes glissement {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* Panneau latéral rétractable pour le Hub sélectionné */
+.panneau-lateral {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 340px;
+  background: var(--bg-panel);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  z-index: 20;
+  display: none;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panneau-lateral.ouvert {
+  display: flex;
+}
+
+.panneau-entete h2 {
+  font-size: 1.15rem;
+  margin-bottom: 4px;
+}
+
+.panneau-entete p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.actions-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-action {
+  background: #1e293b;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.btn-action:hover {
+  background: #334155;
+  border-color: var(--accent-cyan);
+}
+
+.btn-action.primaire {
+  background: #0284c7;
+  border-color: #38bdf8;
+}
+
+.btn-action.primaire:hover {
+  background: #0369a1;
+}
+
+.section-fret h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.liste-fret {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.fret-item {
+  background: rgba(255, 255, 255, 0.04);
+  padding: 10px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  border-left: 3px solid var(--accent-cyan);
+}
+
+.fret-item span {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: block;
+}
+
+.fret-item .delai {
+  font-family: monospace;
+  font-weight: 700;
+  color: var(--accent-amber);
+}
+
+.fret-item.retard .delai {
+  color: var(--accent-red);
+}
+
+.vide {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Modale Achat */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-overlay.ouverte {
+  display: flex;
+}
+
+.modal-contenu {
+  background: #0f172a;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  width: 580px;
+  max-width: 90vw;
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+}
+
+.modal-entete {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.btn-fermer {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.grille-vehicules {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.carte-vehicule {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.carte-vehicule h4 {
+  font-size: 0.95rem;
+  color: var(--accent-cyan);
+}
+
+.stats-vehicule p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+
+.stats-vehicule p strong {
+  color: #fff;
+}
+
+.stats-vehicule .prix {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent-green);
+  margin-top: 6px;
+}
+
+.btn-acheter {
+  background: var(--accent-cyan);
+  border: none;
+  color: #0b0f19;
+  font-weight: 600;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: auto;
+  transition: opacity 0.2s;
+}
+
+.btn-acheter:hover {
+  opacity: 0.9;
+}

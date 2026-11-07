@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LogiFlux 2026 - Simulation Logistique & Réseau de Fret</title>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <!-- En-tête HUD -->
+    <header class="barre-superieure">
+      <div class="logo-groupe">
+        <h1>📦 LOGI<span>FLUX</span> <small style="font-size: 0.65rem; color: #94a3b8; font-weight: normal;">2026</small></h1>
+      </div>
+
+      <div class="indicateurs">
+        <div class="indicateur">
+          <span class="libelle">Trésorerie</span>
+          <span class="valeur" id="stat-tresorerie">100 000 €</span>
+        </div>
+        <div class="indicateur">
+          <span class="libelle">Satisfaction Client</span>
+          <span class="valeur" id="stat-reputation">85%</span>
+        </div>
+        <div class="indicateur">
+          <span class="libelle">Palettes Livrées</span>
+          <span class="valeur" id="stat-palettes">0</span>
+        </div>
+        <div class="indicateur">
+          <span class="libelle">Émissions CO₂</span>
+          <span class="valeur" id="stat-co2">0.0 kg</span>
+        </div>
+      </div>
+
+      <div class="controles-vitesse">
+        <button class="btn-vitesse" data-vitesse="0">⏸ Pause</button>
+        <button class="btn-vitesse actif" data-vitesse="1">▶ 1x</button>
+        <button class="btn-vitesse" data-vitesse="2">⏩ 2x</button>
+        <button class="btn-vitesse" data-vitesse="4">⚡ 4x</button>
+      </div>
+    </header>
+
+    <!-- Zone Canvas & Affichage Carte -->
+    <main class="zone-jeu">
+      <canvas id="canvas-jeu"></canvas>
+
+      <!-- Bannière d'info / Crise -->
+      <div id="banniere-crise" class="banniere"></div>
+
+      <!-- Tiroir Hub latéral -->
+      <aside id="panneau-hub" class="panneau-lateral">
+        <div class="panneau-entete">
+          <h2 id="hub-titre">Hub Central</h2>
+          <p id="hub-capacite">Stockage : 0 / 1000 palettes</p>
+        </div>
+
+        <div class="actions-hub">
+          <button id="btn-ameliorer-hub" class="btn-action primaire">Améliorer (+Capacité)</button>
+          <button id="btn-relier-hub" class="btn-action">🔗 Créer une nouvelle liaison</button>
+          <button id="btn-ouvrir-achat" class="btn-action">🚚 Affecter un véhicule ici</button>
+        </div>
+
+        <div class="section-fret">
+          <h3>Fret en attente d'expédition</h3>
+          <ul id="hub-stock-liste" class="liste-fret">
+            <li class="vide">Aucune marchandise</li>
+          </ul>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Modale Achat de Véhicule -->
+    <div id="modal-achat" class="modal-overlay">
+      <div class="modal-contenu">
+        <div class="modal-entete">
+          <h3>Commander un Nouveau Véhicule</h3>
+          <button id="btn-fermer-modal" class="btn-fermer">&times;</button>
+        </div>
+        <div id="catalogue-vehicules" class="grille-vehicules"></div>
+      </div>
+    </div>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
