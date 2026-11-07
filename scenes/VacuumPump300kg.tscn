@@ -1,0 +1,77 @@
+[gd_scene load_steps=12 format=3]
+
+[sub_resource type="BoxMesh" id="BoxMesh_pump_body"]
+size = Vector3(0.85, 0.44, 0.42)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_blue_cast_iron"]
+albedo_color = Color(0.12, 0.32, 0.58, 1)
+metallic = 0.75
+roughness = 0.45
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_motor"]
+top_radius = 0.16
+bottom_radius = 0.16
+height = 0.45
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_motor_steel"]
+albedo_color = Color(0.35, 0.38, 0.42, 1)
+metallic = 0.85
+roughness = 0.3
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_kf40_port"]
+top_radius = 0.055
+bottom_radius = 0.055
+height = 0.12
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_inox"]
+albedo_color = Color(0.85, 0.88, 0.92, 1)
+metallic = 0.95
+roughness = 0.15
+
+[sub_resource type="BoxMesh" id="BoxMesh_strap"]
+size = Vector3(0.88, 0.03, 0.06)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_orange_strap"]
+albedo_color = Color(1.0, 0.45, 0.05, 1)
+roughness = 0.65
+
+[sub_resource type="TorusMesh" id="TorusMesh_eyebolt"]
+inner_radius = 0.025
+outer_radius = 0.045
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_yellow_crane"]
+albedo_color = Color(0.95, 0.75, 0.05, 1)
+metallic = 0.8
+roughness = 0.3
+
+[node name="VacuumPump300kg" type="Node3D"]
+
+[node name="PumpBody" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.22, 0)
+mesh = SubResource("BoxMesh_pump_body")
+surface_material_override/0 = SubResource("StandardMaterial3D_blue_cast_iron")
+
+[node name="Motor" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0.48, 0.22, 0)
+mesh = SubResource("CylinderMesh_motor")
+surface_material_override/0 = SubResource("StandardMaterial3D_motor_steel")
+
+[node name="KF40_FlangePort" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.22, 0.48, 0)
+mesh = SubResource("CylinderMesh_kf40_port")
+surface_material_override/0 = SubResource("StandardMaterial3D_inox")
+
+[node name="Eyebolt" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0.08, 0.48, 0)
+mesh = SubResource("TorusMesh_eyebolt")
+surface_material_override/0 = SubResource("StandardMaterial3D_yellow_crane")
+
+[node name="StrapFront" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, 0.45, 0)
+mesh = SubResource("BoxMesh_strap")
+surface_material_override/0 = SubResource("StandardMaterial3D_orange_strap")
+
+[node name="StrapBack" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.22, 0.45, 0)
+mesh = SubResource("BoxMesh_strap")
+surface_material_override/0 = SubResource("StandardMaterial3D_orange_strap")

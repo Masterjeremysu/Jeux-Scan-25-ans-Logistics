@@ -1,0 +1,97 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Texture2D" path="res://textures/label_ean128.png" id="1_label"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_clean_col"]
+size = Vector3(1.6, 2.0, 0.75)
+
+[sub_resource type="BoxMesh" id="BoxMesh_clean_frame"]
+size = Vector3(1.6, 2.0, 0.75)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_inox_clean"]
+albedo_color = Color(0.85, 0.88, 0.92, 1)
+metallic = 0.9
+roughness = 0.2
+
+[sub_resource type="BoxMesh" id="BoxMesh_glass_door"]
+size = Vector3(0.72, 1.75, 0.02)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_glass"]
+albedo_color = Color(0.75, 0.92, 0.98, 0.2)
+transparency = 1
+metallic = 0.95
+roughness = 0.05
+
+[sub_resource type="BoxMesh" id="BoxMesh_fosb"]
+size = Vector3(0.42, 0.38, 0.42)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_fosb_green"]
+albedo_color = Color(0.15, 0.85, 0.35, 0.7)
+transparency = 1
+roughness = 0.25
+emission_enabled = true
+emission = Color(0.08, 0.35, 0.15, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_fosb_red"]
+albedo_color = Color(0.92, 0.18, 0.15, 0.7)
+transparency = 1
+roughness = 0.25
+emission_enabled = true
+emission = Color(0.35, 0.05, 0.05, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_coin_box"]
+top_radius = 0.12
+bottom_radius = 0.12
+height = 0.08
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_white_pp"]
+albedo_color = Color(0.95, 0.95, 0.95, 1)
+roughness = 0.4
+
+[sub_resource type="QuadMesh" id="QuadMesh_ean"]
+size = Vector2(0.26, 0.08)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ean"]
+shading_mode = 0
+albedo_texture = ExtResource("1_label")
+
+[node name="CleanroomCabinet" type="StaticBody3D"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+shape = SubResource("BoxShape3D_clean_col")
+
+[node name="Frame" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+mesh = SubResource("BoxMesh_clean_frame")
+surface_material_override/0 = SubResource("StandardMaterial3D_inox_clean")
+
+[node name="DoorLeft" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.38, 1.0, 0.38)
+mesh = SubResource("BoxMesh_glass_door")
+surface_material_override/0 = SubResource("StandardMaterial3D_glass")
+
+[node name="DoorRight" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.38, 1.0, 0.38)
+mesh = SubResource("BoxMesh_glass_door")
+surface_material_override/0 = SubResource("StandardMaterial3D_glass")
+
+[node name="FOSB_Green" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.38, 1.25, 0.05)
+mesh = SubResource("BoxMesh_fosb")
+surface_material_override/0 = SubResource("StandardMaterial3D_fosb_green")
+
+[node name="FOSB_Red" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.38, 1.25, 0.05)
+mesh = SubResource("BoxMesh_fosb")
+surface_material_override/0 = SubResource("StandardMaterial3D_fosb_red")
+
+[node name="WaferCoinBox" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0.05)
+mesh = SubResource("CylinderMesh_coin_box")
+surface_material_override/0 = SubResource("StandardMaterial3D_white_pp")
+
+[node name="EANLabel" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.38, 1.9, 0.385)
+mesh = SubResource("QuadMesh_ean")
+surface_material_override/0 = SubResource("StandardMaterial3D_ean")

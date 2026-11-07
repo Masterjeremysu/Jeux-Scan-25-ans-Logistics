@@ -1,14 +1,21 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=29 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/DrawerCabinet.tscn" id="2_cabinet"]
-[ext_resource type="PackedScene" path="res://scenes/PickingCart.tscn" id="3_cart"]
-[ext_resource type="Script" path="res://scripts/WarehouseManager.gd" id="4_mgr"]
+[ext_resource type="PackedScene" path="res://scenes/PalletRack.tscn" id="3_rack"]
+[ext_resource type="PackedScene" path="res://scenes/CleanroomCabinet.tscn" id="4_clean_cab"]
+[ext_resource type="PackedScene" path="res://scenes/PackingStation.tscn" id="5_packing"]
+[ext_resource type="PackedScene" path="res://scenes/PickingCart.tscn" id="6_cart"]
+[ext_resource type="PackedScene" path="res://scenes/IndustrialLamp.tscn" id="7_lamp"]
+[ext_resource type="Script" path="res://scripts/WarehouseManager.gd" id="8_mgr"]
+[ext_resource type="Texture2D" path="res://textures/floor_epoxy.png" id="9_floor_tex"]
+[ext_resource type="Texture2D" path="res://textures/wall_corrugated.png" id="10_wall_tex"]
+[ext_resource type="Texture2D" path="res://textures/hazard_stripes.png" id="11_hazard_tex"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
-sky_top_color = Color(0.12, 0.18, 0.28, 1)
-sky_horizon_color = Color(0.2, 0.28, 0.38, 1)
-ground_bottom_color = Color(0.08, 0.1, 0.15, 1)
+sky_top_color = Color(0.06, 0.08, 0.12, 1)
+sky_horizon_color = Color(0.12, 0.15, 0.20, 1)
+ground_bottom_color = Color(0.04, 0.05, 0.08, 1)
 
 [sub_resource type="Sky" id="Sky_env"]
 sky_material = SubResource("ProceduralSkyMaterial_sky")
@@ -17,46 +24,84 @@ sky_material = SubResource("ProceduralSkyMaterial_sky")
 background_mode = 2
 sky = SubResource("Sky_env")
 ambient_light_source = 2
-ambient_light_color = Color(0.85, 0.9, 0.96, 1)
-ambient_light_energy = 0.9
-tonemap_mode = 2
+ambient_light_color = Color(0.65, 0.70, 0.80, 1)
+ambient_light_energy = 0.85
+tonemap_mode = 3
 ssao_enabled = true
 glow_enabled = true
-glow_intensity = 0.4
-glow_bloom = 0.15
+glow_intensity = 0.25
+glow_bloom = 0.08
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
-size = Vector3(26, 0.2, 22)
+size = Vector3(32, 0.2, 28)
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
-size = Vector3(26, 0.2, 22)
+size = Vector3(32, 0.2, 28)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
-albedo_color = Color(0.22, 0.27, 0.34, 1)
-metallic = 0.2
-roughness = 0.3
+albedo_texture = ExtResource("9_floor_tex")
+uv1_scale = Vector3(12, 10, 1)
+metallic = 0.35
+roughness = 0.28
 
-[sub_resource type="BoxMesh" id="BoxMesh_bench"]
-size = Vector3(3.5, 0.9, 1.6)
+[sub_resource type="BoxShape3D" id="BoxShape3D_wall_lr"]
+size = Vector3(0.4, 7.5, 28)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bench"]
-albedo_color = Color(0.28, 0.33, 0.41, 1)
-metallic = 0.6
-roughness = 0.3
+[sub_resource type="BoxMesh" id="BoxMesh_wall_lr"]
+size = Vector3(0.4, 7.5, 28)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wall"]
+cull_mode = 2
+albedo_texture = ExtResource("10_wall_tex")
+uv1_scale = Vector3(8, 2, 1)
+metallic = 0.65
+roughness = 0.45
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_wall_fb"]
+size = Vector3(32, 7.5, 0.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall_fb"]
+size = Vector3(32, 7.5, 0.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_ceiling"]
+size = Vector3(32, 0.2, 28)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ceiling"]
+cull_mode = 2
+albedo_color = Color(0.18, 0.20, 0.24, 1)
+metallic = 0.8
+roughness = 0.5
+
+[sub_resource type="BoxMesh" id="BoxMesh_dock_door"]
+size = Vector3(5.2, 4.8, 0.08)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dock_door"]
+albedo_color = Color(0.18, 0.30, 0.48, 1)
+metallic = 0.75
+roughness = 0.35
+
+[sub_resource type="BoxMesh" id="BoxMesh_overhead_sign"]
+size = Vector3(3.4, 0.55, 0.08)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sign_a"]
+shading_mode = 0
+albedo_color = Color(0.96, 0.45, 0.08, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sign_b"]
+shading_mode = 0
+albedo_color = Color(0.08, 0.65, 0.95, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sign_c"]
+shading_mode = 0
+albedo_color = Color(0.15, 0.85, 0.35, 1)
 
 [node name="MainWarehouse" type="Node3D"]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_main")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 5, 10, 5)
-light_color = Color(0.98, 0.98, 1, 1)
-light_energy = 1.6
-shadow_enabled = true
-
 [node name="WarehouseManager" type="Node" parent="."]
-script = ExtResource("4_mgr")
+script = ExtResource("8_mgr")
 
 [node name="Floor" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
@@ -68,16 +113,123 @@ shape = SubResource("BoxShape3D_floor")
 mesh = SubResource("BoxMesh_floor")
 surface_material_override/0 = SubResource("StandardMaterial3D_floor")
 
-[node name="DrawerCabinet" parent="." instance=ExtResource("2_cabinet")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -4)
+[node name="Ceiling" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.0, 0)
+mesh = SubResource("BoxMesh_ceiling")
+surface_material_override/0 = SubResource("StandardMaterial3D_ceiling")
 
-[node name="PickingCart" parent="." instance=ExtResource("3_cart")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4, 0, 1.5)
+[node name="WallLeft" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 3.75, 0)
 
-[node name="PackingBench" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 2.5)
-mesh = SubResource("BoxMesh_bench")
-surface_material_override/0 = SubResource("StandardMaterial3D_bench")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WallLeft"]
+shape = SubResource("BoxShape3D_wall_lr")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="WallLeft"]
+mesh = SubResource("BoxMesh_wall_lr")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="WallRight" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 3.75, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WallRight"]
+shape = SubResource("BoxShape3D_wall_lr")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="WallRight"]
+mesh = SubResource("BoxMesh_wall_lr")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="WallBack" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.75, -14)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WallBack"]
+shape = SubResource("BoxShape3D_wall_fb")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="WallBack"]
+mesh = SubResource("BoxMesh_wall_fb")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="WallFront" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.75, 14)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WallFront"]
+shape = SubResource("BoxShape3D_wall_fb")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="WallFront"]
+mesh = SubResource("BoxMesh_wall_fb")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="SectionalDockDoor" type="MeshInstance3D" parent="WallFront"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.35, -0.22)
+mesh = SubResource("BoxMesh_dock_door")
+surface_material_override/0 = SubResource("StandardMaterial3D_dock_door")
+
+[node name="Lamps" type="Node3D" parent="."]
+
+[node name="Lamp1" parent="Lamps" instance=ExtResource("7_lamp")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 5.8, -6)
+
+[node name="Lamp2" parent="Lamps" instance=ExtResource("7_lamp")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 5.8, -6)
+
+[node name="Lamp3" parent="Lamps" instance=ExtResource("7_lamp")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 5.8, 2)
+
+[node name="Lamp4" parent="Lamps" instance=ExtResource("7_lamp")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 5.8, 2)
+
+[node name="Lamp5" parent="Lamps" instance=ExtResource("7_lamp")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.8, -4)
+
+[node name="Lamp6" parent="Lamps" instance=ExtResource("7_lamp")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.8, 6)
+
+[node name="Signs" type="Node3D" parent="."]
+
+[node name="SignAisleA" type="MeshInstance3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 4.4, 0)
+mesh = SubResource("BoxMesh_overhead_sign")
+surface_material_override/0 = SubResource("StandardMaterial3D_sign_a")
+
+[node name="SignAisleB" type="MeshInstance3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.4, -2.5)
+mesh = SubResource("BoxMesh_overhead_sign")
+surface_material_override/0 = SubResource("StandardMaterial3D_sign_b")
+
+[node name="SignAisleC" type="MeshInstance3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 4.4, 0)
+mesh = SubResource("BoxMesh_overhead_sign")
+surface_material_override/0 = SubResource("StandardMaterial3D_sign_c")
+
+[node name="AisleA_Racks" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -4)
+
+[node name="PalletRack1" parent="AisleA_Racks" instance=ExtResource("3_rack")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.8)
+
+[node name="PalletRack2" parent="AisleA_Racks" instance=ExtResource("3_rack")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.8)
+
+[node name="AisleB_Drawers" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6)
+
+[node name="DrawerCabinet" parent="AisleB_Drawers" instance=ExtResource("2_cabinet")]
+
+[node name="AisleC_Cleanroom" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, -4)
+
+[node name="CleanroomCabinet1" parent="AisleC_Cleanroom" instance=ExtResource("4_clean_cab")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.8)
+
+[node name="CleanroomCabinet2" parent="AisleC_Cleanroom" instance=ExtResource("4_clean_cab")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.8)
+
+[node name="ZoneD_Packing" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
+
+[node name="PackingStation" parent="ZoneD_Packing" instance=ExtResource("5_packing")]
+
+[node name="PickingCart" parent="." instance=ExtResource("6_cart")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.8, 0, 2.2)
 
 [node name="Player" parent="." instance=ExtResource("1_player")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.5)

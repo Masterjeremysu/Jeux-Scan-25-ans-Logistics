@@ -1,81 +1,177 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=22 format=3]
 
-[ext_resource type="Script" path="res://scripts/DrawerCabinet.gd" id="1_drawer"]
+[ext_resource type="Script" path="res://scripts/DrawerCabinet.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://textures/label_ean128.png" id="2_label"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_casing"]
-size = Vector3(2.5, 2.3, 1.0)
+[sub_resource type="BoxShape3D" id="BoxShape3D_cabinet"]
+size = Vector3(1.4, 1.6, 0.85)
 
-[sub_resource type="BoxMesh" id="BoxMesh_casing"]
-size = Vector3(2.5, 2.3, 1.0)
+[sub_resource type="BoxMesh" id="BoxMesh_cabinet"]
+size = Vector3(1.4, 1.6, 0.85)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_casing"]
-albedo_color = Color(0.28, 0.33, 0.41, 1)
-metallic = 0.7
-roughness = 0.25
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cabinet_blue"]
+albedo_color = Color(0.12, 0.28, 0.52, 1)
+metallic = 0.65
+roughness = 0.35
 
-[sub_resource type="BoxMesh" id="BoxMesh_drawer"]
-size = Vector3(2.3, 0.04, 0.9)
+[sub_resource type="BoxMesh" id="BoxMesh_drawer_face"]
+size = Vector3(1.32, 0.24, 0.04)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_drawer"]
-albedo_color = Color(0.12, 0.16, 0.23, 1)
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_drawer_grey"]
+albedo_color = Color(0.78, 0.82, 0.86, 1)
+metallic = 0.5
+roughness = 0.4
 
-[sub_resource type="TorusMesh" id="TorusMesh_kf40"]
-inner_radius = 0.12
-outer_radius = 0.18
+[sub_resource type="BoxMesh" id="BoxMesh_handle"]
+size = Vector3(1.15, 0.03, 0.04)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kf40"]
-albedo_color = Color(0.95, 0.96, 0.98, 1)
-metallic = 0.98
-roughness = 0.06
-emission_enabled = true
-emission = Color(0.15, 0.6, 0.9, 1)
-emission_energy_multiplier = 0.2
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_alu"]
+albedo_color = Color(0.9, 0.92, 0.95, 1)
+metallic = 0.95
+roughness = 0.15
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_kf40"]
+[sub_resource type="QuadMesh" id="QuadMesh_ean"]
+size = Vector2(0.28, 0.09)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ean"]
+shading_mode = 0
+albedo_texture = ExtResource("2_label")
+
+[sub_resource type="BoxMesh" id="BoxMesh_drawer_tray"]
+size = Vector3(1.30, 0.18, 0.78)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_red_tray"]
+albedo_color = Color(0.82, 0.16, 0.12, 1)
+roughness = 0.55
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_kf40"]
+top_radius = 0.055
+bottom_radius = 0.055
+height = 0.035
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_inox"]
+albedo_color = Color(0.88, 0.90, 0.94, 1)
+metallic = 0.95
+roughness = 0.15
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_piece"]
 height = 0.08
-radius = 0.18
+radius = 0.07
 
-[node name="DrawerCabinet" type="StaticBody3D"]
-script = ExtResource("1_drawer")
+[sub_resource type="TorusMesh" id="TorusMesh_viton"]
+inner_radius = 0.035
+outer_radius = 0.048
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_viton"]
+albedo_color = Color(0.08, 0.08, 0.08, 1)
+roughness = 0.35
+
+[node name="DrawerCabinet" type="StaticBody3D" groups=["scannable"]]
+script = ExtResource("1_script")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, 0)
-shape = SubResource("BoxShape3D_casing")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+shape = SubResource("BoxShape3D_cabinet")
 
-[node name="CasingMesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, 0)
-mesh = SubResource("BoxMesh_casing")
-surface_material_override/0 = SubResource("StandardMaterial3D_casing")
+[node name="CabinetBody" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+mesh = SubResource("BoxMesh_cabinet")
+surface_material_override/0 = SubResource("StandardMaterial3D_cabinet_blue")
+
+[node name="Drawer01" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.42, 0.43)
+mesh = SubResource("BoxMesh_drawer_face")
+surface_material_override/0 = SubResource("StandardMaterial3D_drawer_grey")
+
+[node name="Handle01" type="MeshInstance3D" parent="Drawer01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0.02)
+mesh = SubResource("BoxMesh_handle")
+surface_material_override/0 = SubResource("StandardMaterial3D_alu")
+
+[node name="Drawer02" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.14, 0.43)
+mesh = SubResource("BoxMesh_drawer_face")
+surface_material_override/0 = SubResource("StandardMaterial3D_drawer_grey")
+
+[node name="Handle02" type="MeshInstance3D" parent="Drawer02"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0.02)
+mesh = SubResource("BoxMesh_handle")
+surface_material_override/0 = SubResource("StandardMaterial3D_alu")
+
+[node name="Drawer04" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.58, 0.43)
+mesh = SubResource("BoxMesh_drawer_face")
+surface_material_override/0 = SubResource("StandardMaterial3D_drawer_grey")
+
+[node name="Handle04" type="MeshInstance3D" parent="Drawer04"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0.02)
+mesh = SubResource("BoxMesh_handle")
+surface_material_override/0 = SubResource("StandardMaterial3D_alu")
+
+[node name="Drawer05" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.30, 0.43)
+mesh = SubResource("BoxMesh_drawer_face")
+surface_material_override/0 = SubResource("StandardMaterial3D_drawer_grey")
+
+[node name="Handle05" type="MeshInstance3D" parent="Drawer05"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0.02)
+mesh = SubResource("BoxMesh_handle")
+surface_material_override/0 = SubResource("StandardMaterial3D_alu")
 
 [node name="SlidingDrawer" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.86, 0)
 
-[node name="DrawerBottom" type="MeshInstance3D" parent="SlidingDrawer"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.14, 0)
-mesh = SubResource("BoxMesh_drawer")
-surface_material_override/0 = SubResource("StandardMaterial3D_drawer")
+[node name="FrontFace" type="MeshInstance3D" parent="SlidingDrawer"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.43)
+mesh = SubResource("BoxMesh_drawer_face")
+surface_material_override/0 = SubResource("StandardMaterial3D_drawer_grey")
 
-[node name="CameraMarker" type="Marker3D" parent="SlidingDrawer"]
-transform = Transform3D(1, 0, 0, 0, 0.5, 0.866025, 0, -0.866025, 0.5, 0, 1.6, 0.9)
+[node name="Handle" type="MeshInstance3D" parent="SlidingDrawer/FrontFace"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0.02)
+mesh = SubResource("BoxMesh_handle")
+surface_material_override/0 = SubResource("StandardMaterial3D_alu")
+
+[node name="EANLabel" type="MeshInstance3D" parent="SlidingDrawer/FrontFace"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 0.04, 0.022)
+mesh = SubResource("QuadMesh_ean")
+surface_material_override/0 = SubResource("StandardMaterial3D_ean")
+
+[node name="InternalTray" type="MeshInstance3D" parent="SlidingDrawer"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.04, 0.02)
+mesh = SubResource("BoxMesh_drawer_tray")
+surface_material_override/0 = SubResource("StandardMaterial3D_red_tray")
 
 [node name="PiecesKF40" type="Node3D" parent="SlidingDrawer"]
 
-[node name="KF40_1" type="StaticBody3D" parent="SlidingDrawer/PiecesKF40"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.06, -0.15)
+[node name="PieceKF40_1" type="Area3D" parent="SlidingDrawer/PiecesKF40"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.32, 0.08, 0.12)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="SlidingDrawer/PiecesKF40/KF40_1"]
-mesh = SubResource("TorusMesh_kf40")
-surface_material_override/0 = SubResource("StandardMaterial3D_kf40")
+[node name="Mesh" type="MeshInstance3D" parent="SlidingDrawer/PiecesKF40/PieceKF40_1"]
+mesh = SubResource("CylinderMesh_kf40")
+surface_material_override/0 = SubResource("StandardMaterial3D_inox")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="SlidingDrawer/PiecesKF40/KF40_1"]
-shape = SubResource("CylinderShape3D_kf40")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SlidingDrawer/PiecesKF40/PieceKF40_1"]
+shape = SubResource("CylinderShape3D_piece")
 
-[node name="KF40_2" type="StaticBody3D" parent="SlidingDrawer/PiecesKF40"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.06, 0.15)
+[node name="PieceKF40_2" type="Area3D" parent="SlidingDrawer/PiecesKF40"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.12, 0.08, 0.12)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="SlidingDrawer/PiecesKF40/KF40_2"]
-mesh = SubResource("TorusMesh_kf40")
-surface_material_override/0 = SubResource("StandardMaterial3D_kf40")
+[node name="Mesh" type="MeshInstance3D" parent="SlidingDrawer/PiecesKF40/PieceKF40_2"]
+mesh = SubResource("CylinderMesh_kf40")
+surface_material_override/0 = SubResource("StandardMaterial3D_inox")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="SlidingDrawer/PiecesKF40/KF40_2"]
-shape = SubResource("CylinderShape3D_kf40")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SlidingDrawer/PiecesKF40/PieceKF40_2"]
+shape = SubResource("CylinderShape3D_piece")
+
+[node name="PieceViton_1" type="MeshInstance3D" parent="SlidingDrawer/PiecesKF40"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.18, 0.06, 0.12)
+mesh = SubResource("TorusMesh_viton")
+surface_material_override/0 = SubResource("StandardMaterial3D_viton")
+
+[node name="PieceViton_2" type="MeshInstance3D" parent="SlidingDrawer/PiecesKF40"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.38, 0.06, 0.12)
+mesh = SubResource("TorusMesh_viton")
+surface_material_override/0 = SubResource("StandardMaterial3D_viton")
+
+[node name="CameraMarker" type="Marker3D" parent="SlidingDrawer"]
+transform = Transform3D(1, 0, 0, 0, 0.422618, 0.906308, 0, -0.906308, 0.422618, 0, 0.95, 0.55)

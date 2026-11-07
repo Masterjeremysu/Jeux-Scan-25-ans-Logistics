@@ -1,0 +1,54 @@
+[gd_scene load_steps=8 format=3]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_rod"]
+top_radius = 0.015
+bottom_radius = 0.015
+height = 1.2
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rod"]
+albedo_color = Color(0.2, 0.22, 0.25, 1)
+metallic = 0.8
+roughness = 0.3
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_bell"]
+top_radius = 0.12
+bottom_radius = 0.38
+height = 0.35
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bell"]
+albedo_color = Color(0.18, 0.22, 0.28, 1)
+metallic = 0.7
+roughness = 0.35
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_led"]
+top_radius = 0.22
+bottom_radius = 0.22
+height = 0.04
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_led_emissive"]
+shading_mode = 0
+albedo_color = Color(1.0, 0.98, 0.92, 1)
+
+[node name="IndustrialLamp" type="Node3D"]
+
+[node name="Rod" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+mesh = SubResource("CylinderMesh_rod")
+surface_material_override/0 = SubResource("StandardMaterial3D_rod")
+
+[node name="Bell" type="MeshInstance3D" parent="."]
+mesh = SubResource("CylinderMesh_bell")
+surface_material_override/0 = SubResource("StandardMaterial3D_bell")
+
+[node name="LEDLens" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.15, 0)
+mesh = SubResource("CylinderMesh_led")
+surface_material_override/0 = SubResource("StandardMaterial3D_led_emissive")
+
+[node name="SpotLight3D" type="SpotLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, -0.2, 0)
+light_color = Color(0.98, 0.96, 0.92, 1)
+light_energy = 2.4
+spot_range = 14.0
+spot_angle = 55.0
+shadow_enabled = true
