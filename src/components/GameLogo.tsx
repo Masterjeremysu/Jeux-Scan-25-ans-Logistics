@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ShieldCheck, Sparkles, Upload, Image as ImageIcon } from 'lucide-react';
 
 interface GameLogoProps {
@@ -131,18 +132,18 @@ export const GameLogo: React.FC<GameLogoProps> = ({
         </button>
       )}
 
-      {/* Upload Modal */}
-      {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-md w-full shadow-2xl text-slate-100">
+      {/* Upload Modal (Portal to body with z-[99999] to prevent header stacking context issues) */}
+      {isUploadModalOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[99999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border-2 border-slate-700/80 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl text-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <ImageIcon className="w-5 h-5 text-sky-400" />
-                <h3 className="font-bold text-base">Personnaliser le Logo</h3>
+                <h3 className="font-bold text-base text-white">Personnaliser le Logo</h3>
               </div>
               <button
                 onClick={() => setIsUploadModalOpen(false)}
-                className="text-slate-400 hover:text-white text-lg font-mono"
+                className="text-slate-400 hover:text-white text-lg font-mono px-2 py-1 rounded-lg hover:bg-slate-800 cursor-pointer"
               >
                 ✕
               </button>
@@ -150,14 +151,14 @@ export const GameLogo: React.FC<GameLogoProps> = ({
 
             <div className="space-y-4 my-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5 font-mono">
                   1. Importer un fichier image (PNG, SVG, JPG)
                 </label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleFileChange}
-                  className="w-full text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-sky-600 file:text-white hover:file:bg-sky-500 cursor-pointer"
+                  className="w-full text-xs text-slate-400 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-sky-600 file:text-white hover:file:bg-sky-500 cursor-pointer"
                 />
               </div>
 
@@ -168,7 +169,7 @@ export const GameLogo: React.FC<GameLogoProps> = ({
               </div>
 
               <form onSubmit={handleUrlSubmit} className="space-y-2">
-                <label className="block text-xs font-semibold text-slate-300">
+                <label className="block text-xs font-semibold text-slate-300 font-mono">
                   2. Saisir l'URL directe du logo
                 </label>
                 <div className="flex gap-2">
@@ -181,7 +182,7 @@ export const GameLogo: React.FC<GameLogoProps> = ({
                   />
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl transition-all"
+                    className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
                   >
                     Valider
                   </button>
@@ -198,20 +199,21 @@ export const GameLogo: React.FC<GameLogoProps> = ({
                   setImgError(false);
                   setIsUploadModalOpen(false);
                 }}
-                className="text-rose-400 hover:underline"
+                className="text-rose-400 hover:underline cursor-pointer"
               >
                 Réinitialiser le logo par défaut
               </button>
               <button
                 type="button"
                 onClick={() => setIsUploadModalOpen(false)}
-                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-semibold cursor-pointer"
               >
                 Fermer
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
