@@ -45,7 +45,10 @@ import {
   saveDistraction,
   deleteDistraction,
   triggerLiveHazard,
-  updateStationLive
+  updateStationLive,
+  getRemoteLeaderboard,
+  deleteScoreById,
+  RemoteScore
 } from '../services/supabaseClient';
 import { INITIAL_INVENTORY } from '../data/initialData';
 import { MISSIONS } from '../data/missions';
@@ -92,12 +95,24 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
   });
 
   // Match & Zebra QR Launch States
-  const [duo1Cea, setDuo1Cea] = useState('Agent CEA 1');
+  const [duo1Cea, setDuo1Cea] = useState('Collaborateur GT 1');
   const [duo1Client, setDuo1Client] = useState('Invité 1');
-  const [duo2Cea, setDuo2Cea] = useState('Agent CEA 2');
+  const [duo2Cea, setDuo2Cea] = useState('Collaborateur GT 2');
   const [duo2Client, setDuo2Client] = useState('Invité 2');
   const [showMatchQRs, setShowMatchQRs] = useState(false);
   const [matchSeed, setMatchSeed] = useState<number>(Date.now());
+  const [adminScores, setAdminScores] = useState<RemoteScore[]>([]);
+
+  const loadAdminScores = async () => {
+    const list = await getRemoteLeaderboard();
+    setAdminScores(list);
+  };
+
+  useEffect(() => {
+    if (activeTab === 'database') {
+      loadAdminScores();
+    }
+  }, [activeTab]);
 
   const baseUrl = (localConfig.publicUrl || 'https://jeux-scan-25-ans-logistics.vercel.app').replace(/\/$/, '');
 
@@ -110,7 +125,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     await updateStationLive({
       station_id: 'poste-1',
       station_name: 'Poste 1 (Scannette A)',
-      operator_cea: duo1Cea.trim() || 'Agent CEA 1',
+      operator_cea: duo1Cea.trim() || 'Collaborateur GT 1',
       client_guest: duo1Client.trim() || 'Invité 1',
       team_name: `Duo ${duo1Client.trim() || 'Invité 1'}`,
       score: 0,
@@ -124,7 +139,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     await updateStationLive({
       station_id: 'poste-2',
       station_name: 'Poste 2 (Scannette B)',
-      operator_cea: duo2Cea.trim() || 'Agent CEA 2',
+      operator_cea: duo2Cea.trim() || 'Collaborateur GT 2',
       client_guest: duo2Client.trim() || 'Invité 2',
       team_name: `Duo ${duo2Client.trim() || 'Invité 2'}`,
       score: 0,
@@ -196,8 +211,25 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
   // Reset scores on podium
   const handleClearScores = async () => {
     if (confirm('Attention : Voulez-vous vraiment effacer tous les scores du classement pour repartir à zéro le jour J ?')) {
-      await resetAllScores();
-      alert('Le tableau des scores a été remis à zéro avec succès !');
+      const ok = await resetAllScores();
+      if (ok) {
+        setAdminScores([]);
+        alert('Le tableau des scores a été remis à zéro avec succès !');
+      } else {
+        alert('Erreur lors de la remise à zéro.');
+      }
+    }
+  };
+
+  // Delete individual score by admin
+  const handleDeleteAdminScore = async (id: string, name: string) => {
+    if (confirm(`Supprimer définitivement le score de "${name}" du classement ?`)) {
+      const ok = await deleteScoreById(id);
+      if (ok) {
+        setAdminScores((prev) => prev.filter((s) => s.id !== id));
+      } else {
+        alert('Erreur lors de la suppression.');
+      }
     }
   };
 
@@ -535,23 +567,23 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">Nom Agent CEA :</label>
+                <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">Collaborateur GT :</label>
                 <input
                   type="text"
                   value={duo1Cea}
                   onChange={(e) => setDuo1Cea(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-white"
-                  placeholder="Ex: Thomas"
+                  placeholder="Ex: Jeremy (GT)"
                 />
               </div>
               <div>
-                <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">Nom Invité :</label>
+                <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">Invité :</label>
                 <input
                   type="text"
                   value={duo1Client}
                   onChange={(e) => setDuo1Client(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-white font-bold"
-                  placeholder="Ex: Sarah"
+                  className="w-full bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-amber-300 font-bold"
+                  placeholder="Ex: Thomas"
                 />
               </div>
             </div>
@@ -569,23 +601,23 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">Nom Agent CEA :</label>
+                <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">Collaborateur GT :</label>
                 <input
                   type="text"
                   value={duo2Cea}
                   onChange={(e) => setDuo2Cea(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-white"
-                  placeholder="Ex: Julien"
+                  placeholder="Ex: Sarah (GT)"
                 />
               </div>
               <div>
-                <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">Nom Invité :</label>
+                <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">Invité :</label>
                 <input
                   type="text"
                   value={duo2Client}
                   onChange={(e) => setDuo2Client(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-white font-bold"
-                  placeholder="Ex: Marc"
+                  className="w-full bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-amber-300 font-bold"
+                  placeholder="Ex: Alexandre"
                 />
               </div>
             </div>
@@ -1834,6 +1866,77 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Detailed Scores Management Table */}
+          <div className="bg-slate-950/80 rounded-2xl p-5 border border-slate-800 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-800">
+              <div className="flex items-center space-x-2">
+                <Award className="w-4 h-4 text-amber-400" />
+                <h4 className="text-xs font-bold font-mono text-white uppercase">
+                  Gestion Individuelle des Scores du Classement ({adminScores.length} enregistrements) :
+                </h4>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={loadAdminScores}
+                  className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-mono"
+                >
+                  Actualiser
+                </button>
+                {adminScores.length > 0 && (
+                  <button
+                    onClick={handleClearScores}
+                    className="px-3 py-1 bg-rose-600/30 hover:bg-rose-600/50 text-rose-300 border border-rose-500/40 rounded-lg text-xs font-mono font-bold"
+                  >
+                    Tout Purger
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {adminScores.length === 0 ? (
+              <div className="py-6 text-center text-xs text-slate-500 italic">
+                Aucun score enregistré dans la base de données. Le classement est 100% vierge.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs font-mono">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-400">
+                      <th className="py-2 px-3">Rang</th>
+                      <th className="py-2 px-3">Invité / Duo</th>
+                      <th className="py-2 px-3">Collaborateur / Organisme</th>
+                      <th className="py-2 px-3 text-right">Score</th>
+                      <th className="py-2 px-3 text-right">Temps</th>
+                      <th className="py-2 px-3 text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {adminScores.map((sc, idx) => (
+                      <tr key={sc.id || idx} className="hover:bg-slate-900/50">
+                        <td className="py-2 px-3 font-bold text-slate-400">#{idx + 1}</td>
+                        <td className="py-2 px-3 font-bold text-white">{sc.name}</td>
+                        <td className="py-2 px-3 text-slate-400">{sc.company}</td>
+                        <td className="py-2 px-3 text-right text-emerald-400 font-bold">{sc.score} pts</td>
+                        <td className="py-2 px-3 text-right text-slate-400">{sc.time_spent || '-'}</td>
+                        <td className="py-2 px-3 text-center">
+                          {sc.id && (
+                            <button
+                              onClick={() => handleDeleteAdminScore(sc.id!, sc.name)}
+                              className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 transition-all cursor-pointer"
+                              title="Supprimer ce score"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}

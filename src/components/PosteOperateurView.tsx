@@ -141,7 +141,7 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
   const handleSaveDuo = (e: React.FormEvent) => {
     e.preventDefault();
     if (ceaInput.trim() || clientInput.trim()) {
-      onUpdateDuo(ceaInput.trim() || 'Agent CEA', clientInput.trim() || 'Client Invité');
+      onUpdateDuo(ceaInput.trim() || 'Collaborateur GT', clientInput.trim() || 'Invité');
       setIsDuoModalOpen(false);
     }
   };
@@ -513,20 +513,22 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
             <h3 className="font-black text-lg text-white mb-4">Modifier le Binôme</h3>
             <div className="space-y-3 mb-5">
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Collaborateur CEA</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Collaborateur GT</label>
                 <input
                   type="text"
                   value={ceaInput}
                   onChange={(e) => setCeaInput(e.target.value)}
+                  placeholder="Ex: Jeremy (GT)"
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Client / Invité</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Invité</label>
                 <input
                   type="text"
                   value={clientInput}
                   onChange={(e) => setClientInput(e.target.value)}
+                  placeholder="Nom de l'invité"
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-amber-300"
                 />
               </div>

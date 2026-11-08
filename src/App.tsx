@@ -101,8 +101,8 @@ export const App: React.FC = () => {
   // Duo & Multi-station States
   const [stationId, setStationId] = useState<string>(() => initialRoute.stationId || localStorage.getItem('cea_station_id') || 'poste-1');
   const [stationName, setStationName] = useState<string>(() => initialRoute.stationName || localStorage.getItem('cea_station_name') || 'Poste 1 (Scannette A)');
-  const [operatorCea, setOperatorCea] = useState<string>(() => localStorage.getItem('cea_op_name') || 'Agent CEA');
-  const [clientGuest, setClientGuest] = useState<string>(() => localStorage.getItem('cea_client_name') || 'Client Invité');
+  const [operatorCea, setOperatorCea] = useState<string>(() => localStorage.getItem('gt_collab_name') || 'Jeremy (GT)');
+  const [clientGuest, setClientGuest] = useState<string>(() => localStorage.getItem('gt_guest_name') || 'Thomas (Invité)');
   const [combo, setCombo] = useState<number>(0);
   const [liveStations, setLiveStations] = useState<DuoStation[]>([]);
 
@@ -131,7 +131,7 @@ export const App: React.FC = () => {
 
   const [operator, setOperator] = useState<OperatorProfile>({
     name: 'Duo ' + clientGuest,
-    companyOrRole: 'CEA 25 Ans',
+    companyOrRole: 'GT Logistics • 25 Ans',
     score: 0,
     completedMissions: 0,
     accuracy: 100,
@@ -367,12 +367,12 @@ export const App: React.FC = () => {
   const handleUpdateDuo = (cea: string, client: string) => {
     setOperatorCea(cea);
     setClientGuest(client);
-    localStorage.setItem('cea_op_name', cea);
-    localStorage.setItem('cea_client_name', client);
+    localStorage.setItem('gt_collab_name', cea);
+    localStorage.setItem('gt_guest_name', client);
     setOperator((prev) => ({
       ...prev,
       name: `Duo ${client}`,
-      companyOrRole: `Agent CEA: ${cea}`
+      companyOrRole: `GT Logistics (avec ${cea})`
     }));
 
     updateStationLive({

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { OperatorProfile } from '../types';
-import { Trophy, Medal, Award, UserPlus, Star, Clock, CheckCircle, Wifi, Cloud, Radio, RefreshCw, Send } from 'lucide-react';
+import { Trophy, Medal, Award, UserPlus, Star, Clock, CheckCircle, Wifi, Cloud, Radio, RefreshCw, Send, Trash2, AlertTriangle } from 'lucide-react';
 import { 
   getRemoteLeaderboard, 
   submitScore, 
+  deleteScoreById,
+  resetAllScores,
   subscribeToScores, 
   subscribeToLiveActivity,
   RemoteScore, 
@@ -31,6 +33,12 @@ export const PodiumView: React.FC<PodiumViewProps> = ({
   const [hasSubmittedCurrent, setHasSubmittedCurrent] = useState<boolean>(false);
   const [stationName, setStationName] = useState<string>('Poste 1');
 
+  // Refresh leaderboard from server
+  const refreshScores = async () => {
+    const scores = await getRemoteLeaderboard();
+    setLeaderboard(scores);
+  };
+
   // Load scores on mount and subscribe to realtime
   useEffect(() => {
     let isMounted = true;
@@ -46,12 +54,9 @@ export const PodiumView: React.FC<PodiumViewProps> = ({
 
     loadData();
 
-    // Subscribe to real-time score additions
-    const unsubscribeScores = subscribeToScores((newScore) => {
-      setLeaderboard((prev) => {
-        const updated = [newScore, ...prev.filter((s) => s.id !== newScore.id)];
-        return updated.sort((a, b) => b.score - a.score);
-      });
+    // Subscribe to real-time score additions & deletions
+    const unsubscribeScores = subscribeToScores(() => {
+      refreshScores();
     });
 
     // Subscribe to live scan activity across stations
@@ -66,10 +71,32 @@ export const PodiumView: React.FC<PodiumViewProps> = ({
     };
   }, []);
 
+  const handleDeleteScore = async (id: string, name: string) => {
+    if (window.confirm(`Supprimer définitivement le score de "${name}" du classement ?`)) {
+      const ok = await deleteScoreById(id);
+      if (ok) {
+        setLeaderboard((prev) => prev.filter((s) => s.id !== id));
+      } else {
+        alert('Erreur lors de la suppression.');
+      }
+    }
+  };
+
+  const handleResetAll = async () => {
+    if (window.confirm('⚠️ ATTENTION : Voulez-vous vraiment EFFACER TOUS LES SCORES du classement ? Cette action est irréversible et remettra le tableau d\'honneur à zéro pour l\'événement.')) {
+      const ok = await resetAllScores();
+      if (ok) {
+        setLeaderboard([]);
+      } else {
+        alert('Erreur lors de la remise à zéro.');
+      }
+    }
+  };
+
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     if (nameInput.trim()) {
-      onUpdateOperatorName(nameInput.trim(), companyInput.trim() || 'Invité 25 Ans');
+      onUpdateOperatorName(nameInput.trim(), companyInput.trim() || 'Invité');
     }
   };
 
@@ -78,7 +105,7 @@ export const PodiumView: React.FC<PodiumViewProps> = ({
     setIsSubmitting(true);
     const success = await submitScore({
       name: currentOperator.name || 'Invité 25 Ans',
-      company: currentOperator.companyOrRole || 'CEA Grenoble',
+      company: currentOperator.companyOrRole || 'GT Logistics',
       score: currentOperator.score,
       time_spent: '02:15',
       completed_missions: currentOperator.completedMissions || 1,
@@ -86,8 +113,7 @@ export const PodiumView: React.FC<PodiumViewProps> = ({
     });
     if (success) {
       setHasSubmittedCurrent(true);
-      const freshScores = await getRemoteLeaderboard();
-      if (freshScores.length > 0) setLeaderboard(freshScores);
+      refreshScores();
     }
     setIsSubmitting(false);
   };
@@ -151,23 +177,23 @@ export const PodiumView: React.FC<PodiumViewProps> = ({
 
         <form onSubmit={handleRegister} className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
           <div>
-            <label className="text-xs text-slate-400 block mb-1">Nom / Prénom du client :</label>
+            <label className="text-xs text-slate-400 block mb-1">Nom / Prénom de l'Invité :</label>
             <input
               type="text"
               value={nameInput}
               onChange={(e) => setNameInput(e.target.value)}
-              placeholder="Ex: Jean Dupont"
-              className="w-full bg-slate-950 border border-slate-700 px-3.5 py-2 rounded-xl text-sm text-white focus:outline-none focus:border-sky-500 font-semibold"
+              placeholder="Ex: Thomas (Invité)"
+              className="w-full bg-slate-950 border border-slate-700 px-3.5 py-2 rounded-xl text-sm text-amber-300 focus:outline-none focus:border-amber-400 font-semibold"
             />
           </div>
 
           <div>
-            <label className="text-xs text-slate-400 block mb-1">Entreprise / Organisme / Labo :</label>
+            <label className="text-xs text-slate-400 block mb-1">Collaborateur GT / Organisme :</label>
             <input
               type="text"
               value={companyInput}
               onChange={(e) => setCompanyInput(e.target.value)}
-              placeholder="Ex: CEA LETI, Partenaire..."
+              placeholder="Ex: Jeremy (GT Logistics)"
               className="w-full bg-slate-950 border border-slate-700 px-3.5 py-2 rounded-xl text-sm text-white focus:outline-none focus:border-sky-500 font-semibold"
             />
           </div>
@@ -175,9 +201,9 @@ export const PodiumView: React.FC<PodiumViewProps> = ({
           <div className="flex items-end">
             <button
               type="submit"
-              className="w-full py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm shadow-md shadow-sky-600/30 transition-all"
+              className="w-full py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm shadow-md shadow-sky-600/30 transition-all cursor-pointer"
             >
-              Mettre à jour l'Opérateur
+              Mettre à jour le Binôme
             </button>
           </div>
         </form>
@@ -188,13 +214,13 @@ export const PodiumView: React.FC<PodiumViewProps> = ({
             <div className="flex items-center space-x-2">
               <Star className="w-5 h-5 text-amber-400" />
               <span className="text-sm font-semibold text-slate-200">
-                Score du shift actuel : <strong className="text-emerald-400 font-mono">{currentOperator.score} pts</strong> ({currentOperator.completedMissions} missions)
+                Score de la manche : <strong className="text-emerald-400 font-mono">{currentOperator.score} pts</strong> ({currentOperator.completedMissions} missions)
               </span>
             </div>
             <button
               onClick={handlePublishScore}
               disabled={isSubmitting || hasSubmittedCurrent}
-              className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center space-x-2 transition-all shadow-md ${
+              className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center space-x-2 transition-all shadow-md cursor-pointer ${
                 hasSubmittedCurrent
                   ? 'bg-emerald-900/40 text-emerald-400 border border-emerald-500/30 cursor-default'
                   : 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20'
@@ -208,7 +234,7 @@ export const PodiumView: React.FC<PodiumViewProps> = ({
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  <span>{isSubmitting ? 'Publication en cours...' : 'Publier mon Score au Classement Général'}</span>
+                  <span>{isSubmitting ? 'Publication en cours...' : 'Publier mon Score au Classement'}</span>
                 </>
               )}
             </button>
@@ -218,14 +244,31 @@ export const PodiumView: React.FC<PodiumViewProps> = ({
 
       {/* Leaderboard Table */}
       <div className="bg-slate-900 rounded-3xl border border-slate-800 shadow-xl overflow-hidden flex-1">
-        <div className="p-4 bg-slate-950/60 border-b border-slate-800 flex justify-between items-center">
+        <div className="p-4 bg-slate-950/60 border-b border-slate-800 flex flex-wrap justify-between items-center gap-2">
           <div className="flex items-center space-x-2">
             <span className="font-mono text-xs font-bold text-slate-300 uppercase">Tableau d'Honneur Cloud 25 Ans</span>
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 font-mono">
               {leaderboard.length} participants
             </span>
           </div>
-          <span className="text-xs text-amber-400 font-mono font-bold">Session en cours : {currentOperator.score} pts</span>
+
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-amber-400 font-mono font-bold hidden sm:inline">
+              Session en cours : {currentOperator.score} pts
+            </span>
+
+            {/* Clear all scores button */}
+            {leaderboard.length > 0 && (
+              <button
+                onClick={handleResetAll}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 text-xs font-mono font-bold transition-all cursor-pointer"
+                title="Purger tous les scores pour repartir à zéro pour l'événement"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Purger tout le classement</span>
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="divide-y divide-slate-800/60">
@@ -264,7 +307,7 @@ export const PodiumView: React.FC<PodiumViewProps> = ({
             </div>
           ) : (
             leaderboard.map((row, idx) => (
-            <div key={row.id || idx} className="p-4 flex items-center justify-between hover:bg-slate-800/30 transition-colors">
+            <div key={row.id || idx} className="p-4 flex items-center justify-between hover:bg-slate-800/40 transition-colors group">
               <div className="flex items-center space-x-3">
                 <div className={`w-8 h-8 rounded-full font-black flex items-center justify-center text-sm ${
                   idx === 0 
@@ -283,7 +326,7 @@ export const PodiumView: React.FC<PodiumViewProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-4">
                 <div className="text-right">
                   <div className="flex items-center space-x-1 text-slate-400 text-xs font-mono justify-end">
                     <Clock className="w-3 h-3" />
@@ -293,6 +336,17 @@ export const PodiumView: React.FC<PodiumViewProps> = ({
                     {row.score} pts
                   </span>
                 </div>
+
+                {/* Delete button per score */}
+                {row.id && (
+                  <button
+                    onClick={() => handleDeleteScore(row.id!, row.name)}
+                    className="opacity-0 group-hover:opacity-100 p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 hover:text-rose-300 border border-rose-500/30 transition-all cursor-pointer"
+                    title={`Supprimer définitivement le score de ${row.name}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
           )))}

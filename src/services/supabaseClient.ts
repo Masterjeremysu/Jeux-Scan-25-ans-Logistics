@@ -78,9 +78,25 @@ export async function getRemoteLeaderboard(): Promise<RemoteScore[]> {
 export async function resetAllScores(): Promise<boolean> {
   if (!supabase) return false;
   try {
-    const { error } = await supabase.from('scores').delete().neq('score', -999999);
+    const { error } = await supabase.from('scores').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     return !error;
   } catch {
+    return false;
+  }
+}
+
+// Delete a single score by ID
+export async function deleteScoreById(id: string): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from('scores').delete().eq('id', id);
+    if (error) {
+      console.warn('[Supabase] Erreur suppression score:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] Exception deleteScoreById:', err);
     return false;
   }
 }
@@ -124,17 +140,17 @@ export async function broadcastScan(activity: Omit<LiveActivityEvent, 'id' | 'cr
 
 const generateChannelId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-// Realtime subscription for scores table
-export function subscribeToScores(onNewScore: (score: RemoteScore) => void) {
+// Realtime subscription for scores table (INSERT, DELETE, UPDATE)
+export function subscribeToScores(onChanged: () => void) {
   if (!supabase) return () => {};
 
   const channel = supabase
     .channel(generateChannelId('scores'))
     .on(
       'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'scores' },
-      (payload) => {
-        onNewScore(payload.new as RemoteScore);
+      { event: '*', schema: 'public', table: 'scores' },
+      () => {
+        onChanged();
       }
     )
     .subscribe();

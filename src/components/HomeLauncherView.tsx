@@ -45,12 +45,12 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
   const [gameMode, setGameMode] = useState<'duel' | 'solo'>('duel');
   
   // Duo 1 state
-  const [d1Cea, setD1Cea] = useState(() => localStorage.getItem('cea_d1_cea') || 'Jeremy (CEA)');
-  const [d1Client, setD1Client] = useState(() => localStorage.getItem('cea_d1_client') || 'Thomas (Invité)');
+  const [d1Cea, setD1Cea] = useState(() => localStorage.getItem('gt_d1_collab') || 'Jeremy (GT)');
+  const [d1Client, setD1Client] = useState(() => localStorage.getItem('gt_d1_guest') || 'Thomas (Invité)');
 
   // Duo 2 state
-  const [d2Cea, setD2Cea] = useState(() => localStorage.getItem('cea_d2_cea') || 'Sarah (CEA)');
-  const [d2Client, setD2Client] = useState(() => localStorage.getItem('cea_d2_client') || 'Alexandre (Invité)');
+  const [d2Cea, setD2Cea] = useState(() => localStorage.getItem('gt_d2_collab') || 'Sarah (GT)');
+  const [d2Client, setD2Client] = useState(() => localStorage.getItem('gt_d2_guest') || 'Alexandre (Invité)');
 
   // Solo station selection
   const [soloStation, setSoloStation] = useState('poste-1');
@@ -63,14 +63,14 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
   const handleLaunchDuel = (e: React.FormEvent) => {
     e.preventDefault();
     soundService.playSuccessJingle();
-    localStorage.setItem('cea_d1_cea', d1Cea);
-    localStorage.setItem('cea_d1_client', d1Client);
-    localStorage.setItem('cea_d2_cea', d2Cea);
-    localStorage.setItem('cea_d2_client', d2Client);
+    localStorage.setItem('gt_d1_collab', d1Cea);
+    localStorage.setItem('gt_d1_guest', d1Client);
+    localStorage.setItem('gt_d2_collab', d2Cea);
+    localStorage.setItem('gt_d2_guest', d2Client);
 
     onStartDuel(
-      { cea: d1Cea.trim() || 'Agent CEA 1', client: d1Client.trim() || 'Invité 1' },
-      { cea: d2Cea.trim() || 'Agent CEA 2', client: d2Client.trim() || 'Invité 2' }
+      { cea: d1Cea.trim() || 'Collaborateur GT 1', client: d1Client.trim() || 'Invité 1' },
+      { cea: d2Cea.trim() || 'Collaborateur GT 2', client: d2Client.trim() || 'Invité 2' }
     );
   };
 
@@ -81,7 +81,7 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
     onStartSolo(
       soloStation,
       stName,
-      { cea: d1Cea.trim() || 'Agent CEA', client: d1Client.trim() || 'Client Invité' }
+      { cea: d1Cea.trim() || 'Collaborateur GT', client: d1Client.trim() || 'Invité' }
     );
   };
 
@@ -176,13 +176,13 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-300 mb-1">
-                      Collaborateur CEA
+                      Collaborateur GT
                     </label>
                     <input
                       type="text"
                       value={d1Cea}
                       onChange={(e) => setD1Cea(e.target.value)}
-                      placeholder="Prénom ou Nom"
+                      placeholder="Ex: Jeremy (GT)"
                       className="w-full bg-slate-900 border border-slate-700 focus:border-sky-400 rounded-xl px-3.5 py-2.5 text-sm text-white font-semibold focus:outline-none transition-colors"
                       required
                     />
@@ -190,7 +190,7 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
 
                   <div>
                     <label className="block text-xs font-bold text-slate-300 mb-1">
-                      Client / Invité
+                      Invité
                     </label>
                     <input
                       type="text"
@@ -221,13 +221,13 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-300 mb-1">
-                      Collaborateur CEA
+                      Collaborateur GT
                     </label>
                     <input
                       type="text"
                       value={d2Cea}
                       onChange={(e) => setD2Cea(e.target.value)}
-                      placeholder="Prénom ou Nom"
+                      placeholder="Ex: Sarah (GT)"
                       className="w-full bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-xl px-3.5 py-2.5 text-sm text-white font-semibold focus:outline-none transition-colors"
                       required
                     />
@@ -235,7 +235,7 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
 
                   <div>
                     <label className="block text-xs font-bold text-slate-300 mb-1">
-                      Client / Invité
+                      Invité
                     </label>
                     <input
                       type="text"
@@ -302,13 +302,13 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
 
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Collaborateur CEA
+                  Collaborateur GT
                 </label>
                 <input
                   type="text"
                   value={d1Cea}
                   onChange={(e) => setD1Cea(e.target.value)}
-                  placeholder="Prénom"
+                  placeholder="Ex: Jeremy (GT)"
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-semibold focus:outline-none"
                   required
                 />
@@ -316,7 +316,7 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
 
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Invité / Client
+                  Invité
                 </label>
                 <input
                   type="text"

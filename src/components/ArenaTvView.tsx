@@ -129,11 +129,11 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig }) => {
     });
 
     // Subscribe to scores leaderboard updates
-    const unsubScores = subscribeToScores((newScore) => {
-      setTopScores((prev) => {
-        const merged = [newScore, ...prev.filter((s) => s.id !== newScore.id)];
-        return merged.sort((a, b) => b.score - a.score).slice(0, 5);
-      });
+    const unsubScores = subscribeToScores(async () => {
+      const scores = await getRemoteLeaderboard();
+      if (isMounted) {
+        setTopScores(scores.slice(0, 5));
+      }
     });
 
     return () => {
@@ -280,7 +280,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig }) => {
                 </div>
                 <div className="mt-1.5 flex flex-wrap gap-2 text-xs font-mono">
                   <span className="text-sky-300 font-bold bg-sky-950/80 px-2 py-0.5 rounded-md border border-sky-800/50">
-                    Agent CEA : {station.operator_cea}
+                    Collaborateur GT : {station.operator_cea}
                   </span>
                   <span className="text-amber-300 font-bold bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-800/50">
                     Invité : {station.client_guest}
