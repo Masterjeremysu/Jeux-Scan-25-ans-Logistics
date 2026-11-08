@@ -5,6 +5,7 @@ import {
   subscribeToStationsLive, 
   getRemoteLeaderboard, 
   subscribeToScores,
+  resetAllLiveStations,
   RemoteScore,
   isSupabaseConfigured 
 } from '../services/supabaseClient';
@@ -69,6 +70,17 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig }) => {
   const handleResetMatchTime = () => {
     setIsMatchRunning(false);
     setMatchSeconds(180);
+  };
+
+  const handleResetArena = async () => {
+    if (window.confirm('Voulez-vous remettre l\'arène à zéro (effacer les scores en direct et réinitialiser les 2 postes en attente) ?')) {
+      await resetAllLiveStations();
+      const fresh = await getStationsLive();
+      setStations(fresh);
+      setIsMatchRunning(false);
+      setMatchSeconds(180);
+      setLastEventMsg('Arène remise à zéro • En attente des nouveaux duos');
+    }
   };
 
   const baseUrl = (appConfig.publicUrl || 'https://jeux-scan-25-ans-logistics.vercel.app').replace(/\/$/, '');
@@ -218,6 +230,13 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig }) => {
               title="Réinitialiser le chrono (3 min)"
             >
               <RotateCcw className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleResetArena}
+              className="px-2.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 text-xs font-mono font-bold flex items-center space-x-1 transition-all cursor-pointer"
+              title="Remettre les 2 postes et les scores à zéro"
+            >
+              <span>Vider l'Arène (0 pts)</span>
             </button>
           </div>
         </div>

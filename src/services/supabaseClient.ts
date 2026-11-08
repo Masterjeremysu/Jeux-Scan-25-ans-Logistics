@@ -348,6 +348,54 @@ export async function updateStationLive(station: Partial<DuoStation> & { station
   }
 }
 
+// Reset all live stations to idle, 0 pts, 0%
+export async function resetAllLiveStations(): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const { error: e1 } = await supabase
+      .from('stations_live')
+      .update({
+        operator_cea: 'Jeremy (GT)',
+        client_guest: 'En attente...',
+        team_name: 'Duo 1 (Bleu)',
+        current_mission_title: 'En attente du départ...',
+        progress_percent: 0,
+        current_step_index: 0,
+        total_steps: 5,
+        score: 0,
+        combo: 0,
+        status: 'idle',
+        last_scan_code: null,
+        last_scan_status: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('station_id', 'poste-1');
+
+    const { error: e2 } = await supabase
+      .from('stations_live')
+      .update({
+        operator_cea: 'Sarah (GT)',
+        client_guest: 'En attente...',
+        team_name: 'Duo 2 (Orange)',
+        current_mission_title: 'En attente du départ...',
+        progress_percent: 0,
+        current_step_index: 0,
+        total_steps: 5,
+        score: 0,
+        combo: 0,
+        status: 'idle',
+        last_scan_code: null,
+        last_scan_status: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('station_id', 'poste-2');
+
+    return !e1 && !e2;
+  } catch {
+    return false;
+  }
+}
+
 // Subscribe to Live Stations updates (for TV Arena & Battle display)
 export function subscribeToStationsLive(onStationUpdate: (station: DuoStation) => void) {
   if (!supabase) return () => {};

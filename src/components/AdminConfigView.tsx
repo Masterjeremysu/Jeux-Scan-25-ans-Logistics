@@ -41,6 +41,7 @@ import {
   saveAppConfig, 
   resetAllScores, 
   resetLiveActivity,
+  resetAllLiveStations,
   fetchDistractions,
   saveDistraction,
   deleteDistraction,
@@ -208,13 +209,14 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     }
   };
 
-  // Reset scores on podium
+  // Reset scores on podium and TV arena stations
   const handleClearScores = async () => {
-    if (confirm('Attention : Voulez-vous vraiment effacer tous les scores du classement pour repartir à zéro le jour J ?')) {
+    if (confirm('Attention : Voulez-vous vraiment effacer tous les scores du classement ET réinitialiser les 2 postes TV à zéro ?')) {
       const ok = await resetAllScores();
+      await resetAllLiveStations();
       if (ok) {
         setAdminScores([]);
-        alert('Le tableau des scores a été remis à zéro avec succès !');
+        alert('Le classement et l\'arène TV ont été remis à zéro avec succès !');
       } else {
         alert('Erreur lors de la remise à zéro.');
       }
