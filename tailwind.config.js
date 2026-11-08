@@ -22,7 +22,8 @@ export default {
       },
       fontFamily: {
         mono: ['"JetBrains Mono"', '"Fira Code"', 'Consolas', 'monospace'],
-        sans: ['Inter', 'system-ui', 'sans-serif']
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['"Chakra Petch"', 'Inter', 'system-ui', 'sans-serif']
       }
     },
   },

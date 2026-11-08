@@ -836,6 +836,18 @@ export const App: React.FC = () => {
     );
   }
 
+  // DEDICATED 55" ARENA TV BROADCAST (FULLSCREEN ESPORT / TV BROADCAST MODE WITHOUT WEB NAVBAR)
+  if (currentView === 'arena') {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+        <ArenaTvView
+          appConfig={appConfig}
+          onBackToHome={() => handleSelectView('home')}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       {/* Top Header */}
@@ -891,10 +903,6 @@ export const App: React.FC = () => {
             onTriggerSurpriseOrder={handleTriggerSurpriseOrder}
             onStartNewMatch={handleStartNewShift}
           />
-        )}
-
-        {currentView === 'arena' && (
-          <ArenaTvView appConfig={appConfig} />
         )}
 
         {currentView === 'erp' && (
