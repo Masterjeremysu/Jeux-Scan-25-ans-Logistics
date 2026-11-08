@@ -56,7 +56,7 @@
     margin: 6mm;
   }
 
-  /* 1. RESET HTML & BODY & BREAK ALL FLEX CHAINS */
+  /* 1. RESET HTML & BODY & BREAK ALL FLEX/OVERFLOW CHAINS */
   html,
   body,
   #root,
@@ -80,12 +80,11 @@
     print-color-adjust: exact !important;
   }
 
-  /* 2. UNIVERSAL HIDE SCREEN-ONLY ELEMENTS */
+  /* 2. UNIVERSAL HIDE SCREEN-ONLY CONTROLS */
   .no-print,
   header,
   nav,
-  button,
-  .backdrop-blur-md {
+  button {
     display: none !important;
   }
 
@@ -169,25 +168,44 @@
 
   /* ----------------------------------------------------
      5. MODE ÉTIQUETTE UNITAIRE
+     Masque la planche et affiche uniquement le sticker unitaire
      ---------------------------------------------------- */
-  body.printing-single-label main,
-  body.printing-single-label header,
-  body.printing-single-label nav,
   body.printing-single-label #printable-sheet {
     display: none !important;
   }
 
-  body.printing-single-label #single-label-print-card {
+  body.printing-single-label .single-label-modal-wrapper {
+    display: block !important;
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  body.printing-single-label .single-label-modal-box {
+    display: block !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    width: 100% !important;
+  }
+
+  #single-label-print-card {
     display: flex !important;
     visibility: visible !important;
     position: static !important;
-    margin: 30mm auto !important;
-    width: 105mm !important;
+    margin: 40mm auto !important;
+    width: 110mm !important;
     max-width: 95vw !important;
     padding: 8mm !important;
     background: #ffffff !important;
     border: 2px dashed #000000 !important;
     border-radius: 8px !important;
     box-shadow: none !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }

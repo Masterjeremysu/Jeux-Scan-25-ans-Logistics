@@ -175,14 +175,16 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
   };
 
   const executeSinglePrint = () => {
-    document.body.classList.remove('printing-labels');
+    document.body.classList.remove('diplome-print-mode');
     document.body.classList.add('printing-single-label');
-    window.print();
-    // Reset after print dialog closes
     setTimeout(() => {
-      document.body.classList.remove('printing-single-label');
-      document.body.classList.add('printing-labels');
-    }, 1000);
+      window.print();
+    }, 50);
+  };
+
+  const closeSinglePrint = () => {
+    document.body.classList.remove('printing-single-label');
+    setSingleItemToPrint(null);
   };
 
   return (
@@ -376,11 +378,11 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
           SINGLE LABEL PRINT MODAL & ISOLATED PRINT CARD
           ======================================================== */}
       {singleItemToPrint && (
-        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative text-center">
+        <div className="single-label-modal-wrapper fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 print:static print:inset-auto print:bg-white print:p-0 print:m-0 print:block print:w-full">
+          <div className="single-label-modal-box bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative text-center print:bg-white print:border-none print:p-0 print:m-0 print:shadow-none print:max-w-none print:w-full print:block">
             {/* Close Button */}
             <button
-              onClick={() => setSingleItemToPrint(null)}
+              onClick={closeSinglePrint}
               className="no-print absolute top-4 right-4 p-2 rounded-full bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
@@ -399,7 +401,7 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
             {/* The Actual Isolated Single Label for Printing */}
             <div
               id="single-label-print-card"
-              className="bg-white text-slate-950 p-6 rounded-2xl border-2 border-dashed border-gray-500 shadow-md my-4 flex flex-col items-center justify-center text-center"
+              className="bg-white text-slate-950 p-6 rounded-2xl border-2 border-dashed border-gray-500 shadow-md my-4 flex flex-col items-center justify-center text-center print:border-2 print:border-dashed print:border-black print:m-0 print:p-6 print:w-[110mm] print:mx-auto"
             >
               <div className="flex items-center space-x-2 mb-2">
                 <span className="text-[10px] font-black uppercase tracking-widest text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300 font-mono">
@@ -427,7 +429,7 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
             {/* Modal Actions */}
             <div className="no-print mt-6 flex items-center justify-center gap-3">
               <button
-                onClick={() => setSingleItemToPrint(null)}
+                onClick={closeSinglePrint}
                 className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer"
               >
                 Annuler
