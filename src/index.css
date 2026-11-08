@@ -47,89 +47,128 @@
 }
 
 /* ============================================================
-   PRINT STYLES: DIPLÔME D'HONNEUR & PLANCHES D'ÉTIQUETTES A4
+   ROBUST UNIVERSAL PRINT STYLES (A4 CHROME / EDGE / FIREFOX)
    ============================================================ */
 @media print {
-  /* Default page settings */
+  /* Default page margins */
   @page {
     size: auto;
     margin: 6mm;
   }
 
-  html, body {
-    background: #ffffff !important;
-    background-color: #ffffff !important;
-    color: #000000 !important;
+  /* 1. RESET HTML & BODY & BREAK ALL FLEX CHAINS */
+  html,
+  body,
+  #root,
+  #root > div,
+  main,
+  [class*="min-h-"] {
+    display: block !important;
+    position: static !important;
     width: 100% !important;
     height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
     margin: 0 !important;
     padding: 0 !important;
     overflow: visible !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    float: none !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Universal hide for screen elements */
+  /* 2. UNIVERSAL HIDE SCREEN-ONLY ELEMENTS */
   .no-print,
   header,
   nav,
-  button {
+  button,
+  .backdrop-blur-md {
     display: none !important;
   }
 
   /* ----------------------------------------------------
-     MODE DIPLÔME D'HONNEUR
-     Masque toute l'application derrière et affiche le diplôme
+     3. DIPLÔME D'HONNEUR PRINT
      ---------------------------------------------------- */
   body.diplome-print-mode main,
   body.diplome-print-mode header,
   body.diplome-print-mode nav,
-  body.diplome-print-mode #root > div > main,
-  body.diplome-print-mode #root > div > header {
+  body.diplome-print-mode #root > div > main {
     display: none !important;
   }
 
-  body.diplome-print-mode {
-    background: #ffffff !important;
-  }
-
   body.diplome-print-mode .diplome-modal-wrapper {
-    position: static !important;
     display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
     background: transparent !important;
     padding: 0 !important;
     margin: 0 !important;
-    width: 100% !important;
-    height: auto !important;
   }
 
-  body.diplome-print-mode #diplome-printable-card {
+  #diplome-printable-card {
     display: block !important;
     visibility: visible !important;
+    position: static !important;
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 auto !important;
     background: #fffdf9 !important;
     box-shadow: none !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
   /* ----------------------------------------------------
-     MODE PLANCHE D'ÉTIQUETTES (A4 Portrait / Haute Résolution)
+     4. PLANCHE D'ÉTIQUETTES (A4 PORTRAIT)
      ---------------------------------------------------- */
-  body.printing-labels #printable-sheet {
+  #printable-sheet {
     display: block !important;
     visibility: visible !important;
+    position: static !important;
     width: 100% !important;
+    max-width: 100% !important;
     margin: 0 !important;
-    padding: 0 !important;
+    padding: 2mm !important;
     background: #ffffff !important;
     box-shadow: none !important;
   }
 
+  #printable-sheet .grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  #printable-sheet .group {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    background: #ffffff !important;
+    border: 1.5px dashed #475569 !important;
+    padding: 6px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Force all Barcode SVGs to be crisp and visible */
+  svg[id^="barcode-svg-"],
+  svg[id^="single-barcode-svg-"] {
+    display: block !important;
+    visibility: visible !important;
+    max-width: 100% !important;
+    height: auto !important;
+    margin: 0 auto !important;
+  }
+
   /* ----------------------------------------------------
-     MODE ÉTIQUETTE UNITAIRE (Sticker / Format individuel)
+     5. MODE ÉTIQUETTE UNITAIRE
      ---------------------------------------------------- */
   body.printing-single-label main,
   body.printing-single-label header,
@@ -141,7 +180,8 @@
   body.printing-single-label #single-label-print-card {
     display: flex !important;
     visibility: visible !important;
-    margin: 20mm auto !important;
+    position: static !important;
+    margin: 30mm auto !important;
     width: 105mm !important;
     max-width: 95vw !important;
     padding: 8mm !important;

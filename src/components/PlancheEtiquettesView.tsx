@@ -25,9 +25,10 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
   const [singleItemToPrint, setSingleItemToPrint] = useState<BarcodeItem | null>(null);
 
   useEffect(() => {
-    document.body.classList.add('printing-labels');
+    document.body.classList.remove('diplome-print-mode');
+    document.body.classList.remove('printing-single-label');
     return () => {
-      document.body.classList.remove('printing-labels');
+      document.body.classList.remove('printing-single-label');
     };
   }, []);
 
@@ -162,12 +163,11 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
     if (type) {
       setFilterType(type);
     }
-    // Remove single mode if any
+    document.body.classList.remove('diplome-print-mode');
     document.body.classList.remove('printing-single-label');
-    document.body.classList.add('printing-labels');
     setTimeout(() => {
       window.print();
-    }, 150);
+    }, 50);
   };
 
   const handlePrintSingle = (item: BarcodeItem) => {
@@ -186,7 +186,7 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
   };
 
   return (
-    <div className="min-h-[calc(100vh-65px)] p-4 flex flex-col gap-4">
+    <div className="min-h-[calc(100vh-65px)] p-4 flex flex-col gap-4 print:min-h-0 print:p-0 print:m-0 print:block print:w-full">
       {/* Top Controls Banner (hidden on print) */}
       <div className="no-print bg-slate-900 rounded-2xl p-5 border border-slate-800 flex flex-col gap-4 shadow-xl shrink-0">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -291,7 +291,7 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
       {/* Printable Sheet (Standard A4 White Sheet) */}
       <div
         id="printable-sheet"
-        className="bg-white text-slate-900 p-8 rounded-2xl shadow-2xl max-w-5xl mx-auto w-full print:m-0 print:p-2 print:shadow-none print:w-full print:border-none"
+        className="bg-white text-slate-900 p-8 rounded-2xl shadow-2xl max-w-5xl mx-auto w-full print:m-0 print:p-2 print:shadow-none print:w-full print:border-none print:block print:visible"
       >
         {/* Header of the sheet */}
         <div className="border-b-2 border-gray-900 pb-4 mb-6 flex justify-between items-end">
