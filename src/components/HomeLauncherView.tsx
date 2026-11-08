@@ -330,13 +330,25 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
               </div>
             </div>
 
-            <div className="flex justify-center">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 type="submit"
-                className="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base rounded-2xl shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition-all hover:scale-105 cursor-pointer"
+                className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm rounded-2xl shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2 transition-all hover:scale-105 cursor-pointer"
               >
-                <Play className="w-5 h-5" />
-                <span>COMMENCER LA MISSION</span>
+                <Play className="w-5 h-5 fill-current" />
+                <span>JOUER SUR CET ÉCRAN</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  handleLaunchSolo({ preventDefault: () => {} } as any);
+                  setShowQrModal(true);
+                }}
+                className="w-full sm:w-auto px-6 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-sm rounded-2xl flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <QrCode className="w-5 h-5 text-emerald-400" />
+                <span>FLASHER SUR SCANNETTE ZEBRA</span>
               </button>
             </div>
           </form>
