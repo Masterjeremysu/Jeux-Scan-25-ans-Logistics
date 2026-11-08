@@ -10,6 +10,7 @@ import { PodiumView } from './components/PodiumView';
 import { DiplomeModal } from './components/DiplomeModal';
 import { barcodeListener } from './services/barcodeListener';
 import { soundService } from './services/soundService';
+import { submitScore, broadcastScan } from './services/supabaseClient';
 
 let logCounter = 0;
 const generateUniqueLogId = () => `log-${Date.now()}-${++logCounter}-${Math.random().toString(36).slice(2, 7)}`;
@@ -108,11 +109,38 @@ export const App: React.FC = () => {
       // Check if full mission completed
       const isMissionDone = updatedSteps.every((s) => s.completed);
 
-      setOperator((prev) => ({
-        ...prev,
-        score: prev.score + (isMissionDone ? activeMission.basePoints : 150),
-        completedMissions: isMissionDone ? prev.completedMissions + 1 : prev.completedMissions
-      }));
+      setOperator((prev) => {
+        const nextScore = prev.score + (isMissionDone ? activeMission.basePoints : 150);
+        const nextMissions = isMissionDone ? prev.completedMissions + 1 : prev.completedMissions;
+
+        // Auto-sync completed mission to Supabase
+        if (isMissionDone) {
+          submitScore({
+            name: prev.name || 'Invité 25 Ans',
+            company: prev.companyOrRole || 'CEA Grenoble',
+            score: nextScore,
+            time_spent: '02:00',
+            completed_missions: nextMissions,
+            accuracy: prev.accuracy || 100
+          }).catch(() => {});
+        }
+
+        return {
+          ...prev,
+          score: nextScore,
+          completedMissions: nextMissions
+        };
+      });
+
+      // Broadcast scan activity to Supabase Realtime
+      broadcastScan({
+        station_name: 'Poste Opérateur',
+        operator_name: operator.name || 'Invité 25 Ans',
+        barcode: cleanedCode,
+        action_type: 'VALID_SCAN',
+        message: `✓ Étape ${activeStepIndex + 1} : ${activeStep.targetLabel}`,
+        status: 'valid'
+      }).catch(() => {});
 
       if (isMissionDone) {
         setTimeout(() => {
@@ -150,6 +178,15 @@ export const App: React.FC = () => {
       // MISMATCH! Invalid scan
       triggerFlash('red');
       soundService.playErrorBuzz();
+
+      broadcastScan({
+        station_name: 'Poste Opérateur',
+        operator_name: operator.name || 'Invité 25 Ans',
+        barcode: cleanedCode,
+        action_type: 'INVALID_SCAN',
+        message: `✗ Erreur scan (${cleanedCode})`,
+        status: 'invalid'
+      }).catch(() => {});
 
       setLogs((prev) => [
         {
