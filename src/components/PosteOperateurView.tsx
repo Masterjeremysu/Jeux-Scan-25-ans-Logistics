@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import JsBarcode from 'jsbarcode';
 import { Mission, ScanLog, InventoryItem, DuoStation, LiveHazard } from '../types';
+import { GtStockLabel } from './GtStockLabel';
 import { 
   CheckCircle2, 
   MapPin, 
@@ -45,44 +45,6 @@ interface PosteOperateurViewProps {
   onStartNewMatch?: () => void;
   onBackToHome?: () => void;
 }
-
-// Scannable SVG barcode ticket (ultra clean and responsive)
-const BarcodeTicket: React.FC<{ code: string; label?: string }> = ({ code, label }) => {
-  const svgRef = useRef<SVGSVGElement>(null);
-
-  useEffect(() => {
-    if (svgRef.current && code) {
-      try {
-        JsBarcode(svgRef.current, code, {
-          format: 'CODE128',
-          lineColor: '#0f172a',
-          width: 2.0,
-          height: 48,
-          displayValue: true,
-          fontSize: 13,
-          font: 'monospace',
-          fontOptions: 'bold',
-          margin: 6,
-          background: '#ffffff'
-        });
-      } catch (err) {
-        console.error('JsBarcode error', err);
-      }
-    }
-  }, [code]);
-
-  return (
-    <div className="bg-white text-slate-900 px-4 py-2.5 rounded-2xl shadow-xl border-2 border-slate-300 inline-flex flex-col items-center justify-center shrink-0">
-      {label && (
-        <span className="text-[10px] font-black uppercase tracking-wider text-slate-600 mb-1 font-mono text-center max-w-[240px] truncate">
-          {label}
-        </span>
-      )}
-      <svg ref={svgRef} className="max-w-full h-auto"></svg>
-      <span className="text-[9px] text-slate-400 font-mono mt-0.5 tracking-tight">Scannable à la douchette</span>
-    </div>
-  );
-};
 
 export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
   missions,
@@ -283,7 +245,12 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
                 {hazardSecondsRemaining ?? activeHazard.time_limit_seconds}s
               </span>
             </div>
-            <BarcodeTicket code={activeHazard.expected_barcode} label="ALÉA" />
+            <GtStockLabel
+              barcode={activeHazard.expected_barcode}
+              crLabel={activeHazard.title}
+              type="hazard"
+              size="compact"
+            />
           </div>
         </div>
       )}
@@ -335,25 +302,35 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
             </div>
 
             {/* TARGET CODE & SCANNABLE BARCODE (HERO DISPLAY) */}
-            <div className="my-6 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-8 bg-slate-950/70 p-5 sm:p-7 rounded-3xl border border-slate-800">
+            <div className="my-6 flex flex-col md:flex-row items-center justify-around gap-6 bg-slate-950/80 p-5 sm:p-7 rounded-3xl border border-slate-800/80 shadow-inner">
               {/* Target info */}
-              <div className="text-center sm:text-left space-y-1">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-bold block">
-                  Cible physique à viser :
-                </span>
-                <div className="text-2xl sm:text-3xl font-black text-sky-300 font-mono tracking-wider">
+              <div className="text-center md:text-left space-y-2 max-w-sm">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-[11px] font-mono font-bold text-sky-300">
+                  <span>Étiquette Stock Réelle GT</span>
+                </div>
+                <div className="text-3xl sm:text-4xl font-black text-white font-mono tracking-wider">
                   {currentStep.expectedBarcode}
                 </div>
-                <div className="text-xs text-slate-300 font-semibold">
-                  {currentStep.targetLabel}
+                {currentStep.lrCode && (
+                  <div className="text-sm font-mono font-black text-amber-400 bg-slate-900/90 px-3 py-1 rounded-xl border border-slate-800 inline-block">
+                    <span className="text-slate-400 font-medium">L/R : </span>{currentStep.lrCode}
+                  </div>
+                )}
+                <div className="text-xs text-slate-300 font-bold uppercase tracking-wide">
+                  {currentStep.crLabel || currentStep.targetLabel}
                 </div>
               </div>
 
-              {/* Scannable Barcode SVG */}
-              <BarcodeTicket
-                code={currentStep.expectedBarcode}
-                label={currentStep.targetLabel}
-              />
+              {/* Scannable Barcode Real GT Stock Label */}
+              <div className="shrink-0 drop-shadow-xl transform hover:scale-105 transition-transform duration-200">
+                <GtStockLabel
+                  barcode={currentStep.expectedBarcode}
+                  lrCode={currentStep.lrCode}
+                  crLabel={currentStep.crLabel || currentStep.targetLabel}
+                  type={currentStep.barcodeType}
+                  size="standard"
+                />
+              </div>
             </div>
 
             {/* BIG CLICKABLE ACTION BUTTON (FOR BACKUP OR TOUCHSCREEN) */}

@@ -17,6 +17,8 @@ export const MISSIONS: Mission[] = [
         expectedBarcode: 'LOC-B01-T03',
         barcodeType: 'location',
         targetLabel: 'LOC-B01-T03 (Allée B - Tiroir T03)',
+        lrCode: 'LOC_B01_T03',
+        crLabel: 'ARMOIRE ALLEE B TIROIR T03',
         completed: false,
         hint: 'Visez l\'étiquette jaune sur le tiroir T03.'
       },
@@ -26,6 +28,8 @@ export const MISSIONS: Mission[] = [
         expectedBarcode: 'ART-KF40-INOX',
         barcodeType: 'article',
         targetLabel: 'Bride KF40 Inox [1/2]',
+        lrCode: 'BRD_KF40',
+        crLabel: 'BRIDE A VIDE KF40 INOX 316L',
         completed: false,
         hint: 'Scannez le code-barres fixé sur la première bride en inox.'
       },
@@ -35,6 +39,8 @@ export const MISSIONS: Mission[] = [
         expectedBarcode: 'ART-KF40-INOX',
         barcodeType: 'article',
         targetLabel: 'Bride KF40 Inox [2/2]',
+        lrCode: 'BRD_KF40',
+        crLabel: 'BRIDE A VIDE KF40 INOX 316L',
         completed: false,
         hint: 'Scannez à nouveau pour valider la deuxième quantité.'
       },
@@ -44,6 +50,8 @@ export const MISSIONS: Mission[] = [
         expectedBarcode: 'ART-CARTON-EXP',
         barcodeType: 'package',
         targetLabel: 'Carton Double Cannelure CEA',
+        lrCode: 'CTN_DBL1',
+        crLabel: 'CARTON DOUBLE CANNELURE CEA',
         completed: false,
         hint: 'Visez l\'étiquette du carton d\'expédition sur la table.'
       },
@@ -53,6 +61,8 @@ export const MISSIONS: Mission[] = [
         expectedBarcode: 'DOCK-LETI-17',
         barcodeType: 'dock',
         targetLabel: 'Quai Expédition Bât. 17 - LETI',
+        lrCode: 'QAI_BAT17',
+        crLabel: 'QUAI EXPEDITION BATIMENT 17',
         completed: false,
         hint: 'Scannez le panneau du Quai Bât. 17 pour clore la mission.'
       }
@@ -74,6 +84,8 @@ export const MISSIONS: Mission[] = [
         expectedBarcode: 'LOC-SB-C01',
         barcodeType: 'location',
         targetLabel: 'LOC-SB-C01 (Armoire Salle Blanche)',
+        lrCode: 'LOC_SB_C01',
+        crLabel: 'SALLE BLANCHE ARMOIRE C01',
         completed: false,
         hint: 'Visez l\'armoire propre ISO 5 étiquetée LOC-SB-C01.'
       },
@@ -83,6 +95,8 @@ export const MISSIONS: Mission[] = [
         expectedBarcode: 'ART-WAFER-300MM',
         barcodeType: 'article',
         targetLabel: 'Lot Wafers Silicium 300mm',
+        lrCode: 'WFR_S300',
+        crLabel: 'LOT WAFERS SILICIUM PUR 300MM',
         completed: false,
         hint: 'Visez le code-barres de la cassette transparente de wafers.'
       },
@@ -92,6 +106,8 @@ export const MISSIONS: Mission[] = [
         expectedBarcode: 'ART-SACHET-ESD',
         barcodeType: 'article',
         targetLabel: 'Sachet Double Ensachage ESD',
+        lrCode: 'SAC_ESD2',
+        crLabel: 'SACHET DOUBLE ENSACHAGE ESD',
         completed: false,
         hint: 'Scannez le sachet de protection électrostatique.'
       },
@@ -101,6 +117,8 @@ export const MISSIONS: Mission[] = [
         expectedBarcode: 'ART-SCEL-SECURITE',
         barcodeType: 'seal',
         targetLabel: 'Scellé Inviolable IATA',
+        lrCode: 'SCL_IATA',
+        crLabel: 'SCELLE INVIOLABLE IATA SECURISE',
         completed: false,
         hint: 'Visez l\'étiquette rouge du scellé de sécurité.'
       },
@@ -110,6 +128,8 @@ export const MISSIONS: Mission[] = [
         expectedBarcode: 'DOCK-INTL-FRET',
         barcodeType: 'dock',
         targetLabel: 'Quai Fret International',
+        lrCode: 'QAI_INTL',
+        crLabel: 'QUAI FRET INTERNATIONAL',
         completed: false,
         hint: 'Scannez l\'étiquette de destination Quai International.'
       }
@@ -131,6 +151,8 @@ export const MISSIONS: Mission[] = [
         expectedBarcode: 'BL-EDWARDS-9941',
         barcodeType: 'package',
         targetLabel: 'BL Fournisseur Edwards n°9941',
+        lrCode: 'BL_EDW41',
+        crLabel: 'BON DE LIVRAISON FOURNISSEUR',
         completed: false,
         hint: 'Visez le document du bon de livraison.'
       },
@@ -140,6 +162,8 @@ export const MISSIONS: Mission[] = [
         expectedBarcode: 'ART-KF40-INOX',
         barcodeType: 'article',
         targetLabel: 'Bride à Vide KF40 Inox',
+        lrCode: 'BRD_KF40',
+        crLabel: 'BRIDE A VIDE KF40 INOX 316L',
         completed: false,
         hint: 'Scannez le code sur la pièce livrée pour vérifier la conformité.'
       },
@@ -149,6 +173,8 @@ export const MISSIONS: Mission[] = [
         expectedBarcode: 'LOC-B01-T03',
         barcodeType: 'location',
         targetLabel: 'Emplacement de rangement LOC-B01-T03',
+        lrCode: 'LOC_B01_T03',
+        crLabel: 'ARMOIRE ALLEE B TIROIR T03',
         completed: false,
         hint: 'Scannez le tiroir de destination pour mettre à jour l\'ERP.'
       }

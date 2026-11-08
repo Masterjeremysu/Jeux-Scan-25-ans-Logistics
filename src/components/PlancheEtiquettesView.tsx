@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import JsBarcode from 'jsbarcode';
 import { InventoryItem, Mission, Distraction } from '../types';
-import { BARCODE_CATALOG } from '../data/initialData';
-import { Printer, Scissors, Filter, Sparkles, CheckCircle2, X, Eye, Tag } from 'lucide-react';
+import { BARCODE_CATALOG, BarcodeItemCatalog } from '../data/initialData';
+import { Printer, Filter, X, Tag } from 'lucide-react';
+import { GtStockLabel } from './GtStockLabel';
 
 interface PlancheEtiquettesViewProps {
   inventory?: InventoryItem[];
@@ -10,10 +10,12 @@ interface PlancheEtiquettesViewProps {
   distractions?: Distraction[];
 }
 
-interface BarcodeItem {
+export interface BarcodeItem {
   code: string;
   label: string;
   type: string;
+  lrCode?: string;
+  crLabel?: string;
 }
 
 export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
@@ -34,60 +36,74 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
 
   // Dynamically compute all barcodes needed from inventory, missions and distractions
   const allItems = useMemo<BarcodeItem[]>(() => {
-    if (!inventory || !missions) return BARCODE_CATALOG;
-
     const map = new Map<string, BarcodeItem>();
 
-    // 1. Locations and articles from inventory
-    inventory.forEach((item) => {
-      if (item.location && !map.has(item.location)) {
-        map.set(item.location, {
-          code: item.location,
-          label: `Emplacement ${item.location} (${item.name})`,
-          type: 'location'
-        });
-      }
-      if (item.sku && !map.has(item.sku)) {
-        map.set(item.sku, {
-          code: item.sku,
-          label: `${item.name} [${item.sku}]`,
-          type: 'article'
-        });
-      }
-    });
-
-    // 2. Mission steps
-    missions.forEach((m) => {
-      m.steps.forEach((s) => {
-        if (!map.has(s.expectedBarcode)) {
-          map.set(s.expectedBarcode, {
-            code: s.expectedBarcode,
-            label: s.targetLabel || s.expectedBarcode,
-            type: s.barcodeType || 'article'
-          });
-        }
+    // 1. Base catalog first (with official GT reference lines L/R & C/R)
+    BARCODE_CATALOG.forEach((bc: BarcodeItemCatalog) => {
+      map.set(bc.code, {
+        code: bc.code,
+        label: bc.label,
+        type: bc.type,
+        lrCode: bc.lrCode || bc.code.replace(/^(ART|LOC)-/, '').replace(/-/g, '_'),
+        crLabel: bc.crLabel || bc.label.toUpperCase()
       });
     });
 
-    // 3. Emergency & Distraction barcodes (e.g. Aléas Stand)
+    // 2. Locations and articles from active inventory
+    if (inventory) {
+      inventory.forEach((item) => {
+        if (item.location && !map.has(item.location)) {
+          map.set(item.location, {
+            code: item.location,
+            label: `Emplacement ${item.location} (${item.name})`,
+            type: 'location',
+            lrCode: item.location.replace('LOC-', 'LOC_').replace(/-/g, '_'),
+            crLabel: `EMPLACEMENT ${item.name.toUpperCase()}`
+          });
+        }
+        if (item.sku && !map.has(item.sku)) {
+          map.set(item.sku, {
+            code: item.sku,
+            label: `${item.name} [${item.sku}]`,
+            type: 'article',
+            lrCode: item.lrCode || item.sku.replace('ART-', 'REF_').replace(/-/g, '_'),
+            crLabel: item.crLabel || item.name.toUpperCase()
+          });
+        }
+      });
+    }
+
+    // 3. Mission steps
+    if (missions) {
+      missions.forEach((m) => {
+        m.steps.forEach((s) => {
+          if (!map.has(s.expectedBarcode)) {
+            map.set(s.expectedBarcode, {
+              code: s.expectedBarcode,
+              label: s.targetLabel || s.expectedBarcode,
+              type: s.barcodeType || 'article',
+              lrCode: s.lrCode || s.expectedBarcode.replace(/^(ART|LOC)-/, '').replace(/-/g, '_'),
+              crLabel: s.crLabel || s.targetLabel.toUpperCase()
+            });
+          }
+        });
+      });
+    }
+
+    // 4. Emergency & Distraction barcodes (e.g. Aléas Stand)
     if (distractions && distractions.length > 0) {
       distractions.forEach((d) => {
         if (d.expected_barcode && !map.has(d.expected_barcode)) {
           map.set(d.expected_barcode, {
             code: d.expected_barcode,
             label: `⚡ ALÉA : ${d.barcode_label || d.title}`,
-            type: 'seal'
+            type: 'seal',
+            lrCode: 'ALEA_URG',
+            crLabel: (d.barcode_label || d.title).toUpperCase()
           });
         }
       });
     }
-
-    // Merge with any base catalog items
-    BARCODE_CATALOG.forEach((bc) => {
-      if (!map.has(bc.code)) {
-        map.set(bc.code, bc);
-      }
-    });
 
     return Array.from(map.values());
   }, [inventory, missions, distractions]);
@@ -110,54 +126,6 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
       seal: allItems.filter((i) => i.type === 'seal').length
     };
   }, [allItems]);
-
-  // Generate barcodes in the grid
-  useEffect(() => {
-    items.forEach((item) => {
-      const el = document.getElementById(`barcode-svg-${item.code}`);
-      if (el) {
-        try {
-          JsBarcode(el, item.code, {
-            format: 'CODE128',
-            lineColor: '#000000',
-            width: 2.0,
-            height: 50,
-            displayValue: true,
-            fontSize: 13,
-            font: 'monospace',
-            fontOptions: 'bold',
-            margin: 6
-          });
-        } catch {
-          // Fallback
-        }
-      }
-    });
-  }, [items]);
-
-  // Generate barcode in single print preview
-  useEffect(() => {
-    if (singleItemToPrint) {
-      const el = document.getElementById(`single-barcode-svg-${singleItemToPrint.code}`);
-      if (el) {
-        try {
-          JsBarcode(el, singleItemToPrint.code, {
-            format: 'CODE128',
-            lineColor: '#000000',
-            width: 2.4,
-            height: 64,
-            displayValue: true,
-            fontSize: 15,
-            font: 'monospace',
-            fontOptions: 'bold',
-            margin: 8
-          });
-        } catch {
-          // Fallback
-        }
-      }
-    }
-  }, [singleItemToPrint]);
 
   const handlePrintSheet = (type?: string) => {
     if (type) {
@@ -195,14 +163,14 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
           <div>
             <div className="flex items-center space-x-2">
               <h2 className="text-xl font-extrabold text-white tracking-tight">
-                IMPRESSION DES ÉTIQUETTES CODE-BARRES PHYSIQUES
+                ÉTIQUETTES DE STOCK OFFICIELLES GT LOGISTICS
               </h2>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                {items.length} étiquettes prêtes
+                {items.length} étiquettes au format officiel GT
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              Imprimez soit la planche complète, soit par catégorie (emplacements, articles, aléas), ou directement chaque étiquette à l'unité.
+              Modèle conforme à vos étiquettes de stock réelles : Logo GT officiel rouge & bleu, Code-128, lignes <strong>L/R</strong> (référence abrégée) et <strong>C/R</strong> (désignation industrielle).
             </p>
           </div>
 
@@ -218,10 +186,10 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
           </div>
         </div>
 
-        {/* Categories / Type Filters & Direct Print Shortcuts */}
+        {/* Categories / Type Filters */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-800/80">
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
-            <span className="text-slate-400 font-bold uppercase text-[10px] mr-2 flex items-center">
+            <span className="text-slate-400 font-bold uppercase text-[10px] mr-2 flex items-center font-mono">
               <Filter className="w-3 h-3 mr-1 text-amber-500" />
               Filtrer par type :
             </span>
@@ -238,17 +206,6 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
             </button>
 
             <button
-              onClick={() => setFilterType('location')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                filterType === 'location'
-                  ? 'bg-amber-500 text-slate-950 shadow'
-                  : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
-              }`}
-            >
-              📍 Emplacements seuls ({counts.location})
-            </button>
-
-            <button
               onClick={() => setFilterType('article')}
               className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                 filterType === 'article'
@@ -256,7 +213,18 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
                   : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
               }`}
             >
-              📦 Articles & Pièces ({counts.article})
+              📦 Articles & Stock ({counts.article})
+            </button>
+
+            <button
+              onClick={() => setFilterType('location')}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                filterType === 'location'
+                  ? 'bg-amber-500 text-slate-950 shadow'
+                  : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              📍 Emplacements & Tiroirs ({counts.location})
             </button>
 
             <button
@@ -285,7 +253,7 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
           </div>
 
           <div className="text-[11px] text-slate-400 italic">
-            Astuce : Survolez n'importe quelle étiquette ci-dessous pour l'imprimer seule à l'unité.
+            Astuce : Chaque étiquette reproduit fidèlement le modèle thermique GT Logistics.
           </div>
         </div>
       </div>
@@ -293,10 +261,10 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
       {/* Printable Sheet (Standard A4 White Sheet) */}
       <div
         id="printable-sheet"
-        className="bg-white text-slate-900 p-8 rounded-2xl shadow-2xl max-w-5xl mx-auto w-full print:m-0 print:p-2 print:shadow-none print:w-full print:border-none print:block print:visible"
+        className="bg-white text-slate-900 p-6 sm:p-8 rounded-2xl shadow-2xl max-w-5xl mx-auto w-full print:m-0 print:p-2 print:shadow-none print:w-full print:border-none print:block print:visible"
       >
         {/* Header of the sheet */}
-        <div className="border-b-2 border-gray-900 pb-4 mb-6 flex justify-between items-end">
+        <div className="border-b-2 border-gray-900 pb-3 mb-6 flex justify-between items-end">
           <div>
             <div className="flex items-center space-x-2">
               <span className="text-xs font-black uppercase tracking-widest text-amber-700 bg-amber-100 px-2 py-0.5 rounded border border-amber-300 font-mono">
@@ -304,60 +272,45 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
               </span>
               <span className="text-xs font-bold text-gray-500 font-mono">SITE CEA GRENOBLE</span>
             </div>
-            <h1 className="text-2xl font-black text-gray-950 tracking-tight mt-1">
-              PLANCHE D'ADRESSAGE & CODES-BARRES RÉELS
+            <h1 className="text-2xl font-black text-gray-950 tracking-tight mt-1 font-mono">
+              PLANCHE D'ÉTIQUETTES DE STOCK OFFICIELLES
             </h1>
             <p className="text-xs text-gray-600 font-mono">
-              Codes-barres Code-128 haute lisibilité pour douchette USB, pistolet laser et scannettes Zebra
+              Modèle conforme GT Logistics avec Code-128, Référence, L/R et C/R
             </p>
           </div>
           <div className="text-right font-mono text-xs text-gray-500">
             <span className="block font-bold text-gray-900 text-sm">{items.length} Étiquettes</span>
-            <span>Format Standard A4 (Découpe manuelle)</span>
+            <span>Format Standard A4 (Grille 3 colonnes)</span>
           </div>
         </div>
 
         {/* Labels Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 print:grid-cols-3 print:gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 print:grid-cols-3 print:gap-2.5">
           {items.map((item) => (
             <div
               key={item.code}
-              className="group relative border-2 border-dashed border-gray-400 p-3 rounded-lg flex flex-col items-center justify-between text-center bg-white print:border-gray-500 print:break-inside-avoid shadow-xs hover:border-amber-500 transition-colors"
+              className="group relative bg-white border border-gray-300 hover:border-amber-500 rounded-xl p-2.5 transition-all flex flex-col justify-between shadow-xs print:border-dashed print:border-gray-500 print:break-inside-avoid"
             >
-              {/* Badge type */}
-              <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-gray-100 text-gray-800 border border-gray-300 mb-1 font-mono">
-                {item.type === 'location'
-                  ? '📍 EMPLACEMENT / TIROIR'
-                  : item.type === 'article'
-                  ? '📦 ARTICLE / COMPOSANT'
-                  : item.type === 'package'
-                  ? '📫 COLIS CARTON'
-                  : item.type === 'seal'
-                  ? '⚡ SCELLÉ / ALÉA'
-                  : '⚓ QUAI EXPÉDITION'}
-              </span>
+              {/* Authentic GT Stock Label Component */}
+              <GtStockLabel
+                barcode={item.code}
+                lrCode={item.lrCode}
+                crLabel={item.crLabel}
+                type={item.type}
+                size="standard"
+                className="w-full"
+              />
 
-              {/* Designation */}
-              <p className="text-xs font-bold text-gray-900 mb-2 leading-tight">
-                {item.label}
-              </p>
+              {/* Action: Single print button (screen only) */}
+              <div className="no-print w-full flex items-center justify-between mt-2 pt-1 border-t border-gray-100">
+                <span className="text-[9px] font-mono font-bold text-gray-500 uppercase">
+                  {item.type === 'location' ? '📍 Emplacement' : item.type === 'package' ? '📫 Colis' : '📦 Article'}
+                </span>
 
-              {/* Barcode SVG */}
-              <div className="bg-white p-1 rounded border border-gray-200 w-full flex items-center justify-center">
-                <svg id={`barcode-svg-${item.code}`} className="max-w-full h-auto"></svg>
-              </div>
-
-              {/* Footer of label: cut indicator & single print button */}
-              <div className="w-full flex items-center justify-between mt-2 pt-1 border-t border-gray-100">
-                <div className="text-[8px] text-gray-500 uppercase font-mono flex items-center space-x-1">
-                  <span>✂️</span>
-                  <span>Découpe</span>
-                </div>
-
-                {/* Single Print Button (visible on screen only) */}
                 <button
                   onClick={() => handlePrintSingle(item)}
-                  className="no-print px-2 py-1 rounded-md bg-amber-50 hover:bg-amber-500 text-amber-900 hover:text-slate-950 font-bold text-[10px] border border-amber-300 transition-all flex items-center space-x-1 cursor-pointer"
+                  className="px-2 py-1 rounded bg-amber-50 hover:bg-amber-500 text-amber-900 hover:text-slate-950 font-bold text-[10px] border border-amber-300 transition-all flex items-center space-x-1 cursor-pointer font-mono"
                   title="Imprimer cette étiquette individuellement"
                 >
                   <Printer className="w-3 h-3" />
@@ -369,8 +322,8 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
         </div>
 
         <div className="mt-8 pt-4 border-t border-gray-300 flex justify-between items-center text-xs text-gray-500 font-mono">
-          <span>© GT Logistics • Système de Picking & Traçabilité Réseau</span>
-          <span>Édition Spéciale 25 Ans de Partenariat CEA</span>
+          <span>© GT Logistics • Modèle d'Étiquetage Officiel WMS</span>
+          <span>Édition 25 Ans • CEA Grenoble</span>
         </div>
       </div>
 
@@ -391,39 +344,26 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
             <div className="no-print mb-4 text-left">
               <div className="flex items-center space-x-2 text-amber-400">
                 <Tag className="w-5 h-5" />
-                <h3 className="text-base font-bold text-white">Impression d'Étiquette Unitaire</h3>
+                <h3 className="text-base font-bold text-white">Impression d'Étiquette Unitaire GT Logistics</h3>
               </div>
               <p className="text-xs text-slate-400 mt-1">
-                Aperçu haute fidélité pour impression individuelle (format sticker ou feuille centrée) :
+                Aperçu de l'étiquette au format standard thermique ou feuille centrée :
               </p>
             </div>
 
             {/* The Actual Isolated Single Label for Printing */}
             <div
               id="single-label-print-card"
-              className="bg-white text-slate-950 p-6 rounded-2xl border-2 border-dashed border-gray-500 shadow-md my-4 flex flex-col items-center justify-center text-center print:border-2 print:border-dashed print:border-black print:m-0 print:p-6 print:w-[110mm] print:mx-auto"
+              className="bg-white text-slate-950 p-4 rounded-xl border-2 border-dashed border-gray-500 shadow-md my-4 flex flex-col items-center justify-center text-center print:border-2 print:border-dashed print:border-black print:m-0 print:p-6 print:w-[110mm] print:mx-auto"
             >
-              <div className="flex items-center space-x-2 mb-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300 font-mono">
-                  GT LOGISTICS • 25 ANS
-                </span>
-                <span className="text-[9px] font-bold text-gray-600 uppercase font-mono">
-                  {singleItemToPrint.type === 'location' ? '📍 EMPLACEMENT' : '📦 ARTICLE'}
-                </span>
-              </div>
-
-              <h4 className="text-sm sm:text-base font-extrabold text-gray-950 mb-3 max-w-sm leading-tight">
-                {singleItemToPrint.label}
-              </h4>
-
-              <div className="bg-white p-2 rounded border border-gray-300 mb-2 w-full flex items-center justify-center">
-                <svg id={`single-barcode-svg-${singleItemToPrint.code}`} className="max-w-full h-auto"></svg>
-              </div>
-
-              <div className="text-[9px] font-mono text-gray-500 flex justify-between w-full px-2 mt-1">
-                <span>Réf: {singleItemToPrint.code}</span>
-                <span>CEA GRENOBLE</span>
-              </div>
+              <GtStockLabel
+                barcode={singleItemToPrint.code}
+                lrCode={singleItemToPrint.lrCode}
+                crLabel={singleItemToPrint.crLabel}
+                type={singleItemToPrint.type}
+                size="large"
+                className="w-full"
+              />
             </div>
 
             {/* Modal Actions */}

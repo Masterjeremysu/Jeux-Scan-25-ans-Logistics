@@ -62,7 +62,7 @@ export interface LiveHazard {
 
 export interface InventoryItem {
   id: string;
-  sku: string; // e.g. "ART-KF40-INOX"
+  sku: string; // e.g. "REF191000000478" ou "ART-KF40-INOX"
   name: string;
   category: string;
   location: string; // e.g. "LOC-B01-T03"
@@ -71,6 +71,8 @@ export interface InventoryItem {
   critical: boolean;
   batch: string;
   description: string;
+  lrCode?: string; // L/R : Ligne / Localisation Référence (e.g. "JNT_A001")
+  crLabel?: string; // C/R : Code Référence / Désignation (e.g. "JOINT TORIQUE KALREZ (TUBE)")
 }
 
 export interface MissionStep {
@@ -79,6 +81,8 @@ export interface MissionStep {
   expectedBarcode: string;
   barcodeType: 'location' | 'article' | 'package' | 'seal' | 'dock';
   targetLabel: string;
+  lrCode?: string; // L/R : Référence courte pour l'étiquette physique
+  crLabel?: string; // C/R : Désignation industrielle en majuscules
   quantity?: number;
   scannedCount?: number;
   completed: boolean;
