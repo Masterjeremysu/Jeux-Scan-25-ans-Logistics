@@ -601,19 +601,50 @@ export const App: React.FC = () => {
         }, 400);
       }
 
-      // Live ERP Stock Update
+      // Live ERP Stock Update & Scenarios Actions
       if (cleanedCode === 'ART-KF40-INOX') {
-        setInventory((prevInv) =>
-          prevInv.map((item) =>
+        // Préparation / Picking : Décrémentation du stock
+        setInventory((prevInv) => {
+          const nextInv = prevInv.map((item) =>
             item.sku === 'ART-KF40-INOX' ? { ...item, quantity: Math.max(0, item.quantity - 1) } : item
-          )
-        );
+          );
+          broadcastLocalRealtime('INVENTORY_UPDATED', nextInv);
+          return nextInv;
+        });
+        showToast({
+          title: 'WMS : Sortie de Stock (-1)',
+          message: 'Bride KF40 Inox prélevée pour commande',
+          type: 'info'
+        });
+      } else if (cleanedCode === 'ZONE_POMPE_GRILLE_41') {
+        // Collecte / Retour en stock : Incrémentation du stock
+        setInventory((prevInv) => {
+          const nextInv = prevInv.map((item) =>
+            item.sku === 'REF191000007490' ? { ...item, quantity: item.quantity + 1 } : item
+          );
+          broadcastLocalRealtime('INVENTORY_UPDATED', nextInv);
+          return nextInv;
+        });
+        showToast({
+          title: 'WMS : Entrée en Stock (+1)',
+          message: 'Joint Kalrez réintégré en Zone Pompe Grille 41',
+          type: 'success'
+        });
+      } else if (cleanedCode === 'ZONE_RECEPTION_CENTRALE') {
+        // Manutention & Expédition vers l'étranger : Notification client
+        showToast({
+          title: 'Expédition Internationale Confirmée',
+          message: 'Colis déposé à La Réception Centrale. Le client a été notifié par email.',
+          type: 'success'
+        });
       } else if (cleanedCode === 'BL-EDWARDS-9941') {
-        setInventory((prevInv) =>
-          prevInv.map((item) =>
+        setInventory((prevInv) => {
+          const nextInv = prevInv.map((item) =>
             item.sku === 'ART-KF40-INOX' ? { ...item, quantity: item.quantity + 5 } : item
-          )
-        );
+          );
+          broadcastLocalRealtime('INVENTORY_UPDATED', nextInv);
+          return nextInv;
+        });
       }
 
       setLogs((prev) => [

@@ -159,7 +159,10 @@ export const BARCODE_CATALOG: BarcodeItemCatalog[] = [
   { code: 'LOC-ETA2-NIV2', label: 'Étagère 2 • Niveau 2 (Milieu)', type: 'location', lrCode: 'ETA_2_N2', crLabel: 'ETAGERE 2 NIVEAU MILIEU' },
   { code: 'LOC-ETA2-NIV3', label: 'Étagère 2 • Niveau 3 (Haut)', type: 'location', lrCode: 'ETA_2_N3', crLabel: 'ETAGERE 2 NIVEAU HAUT' },
 
-  // Quais d'Expédition du stand
+  // Quais d'Expédition du stand & Réception Centrale
+  { code: 'ZONE_RECEPTION_CENTRALE', label: 'La Réception Centrale (Départs Étranger)', type: 'dock', lrCode: 'REC_CENT', crLabel: 'LA RECEPTION CENTRALE DEPARTS' },
+  { code: 'LOC-ETAGERE-COLLECTE', label: 'Étagère de Collecte & Retours Clients', type: 'location', lrCode: 'ETA_COLLECT', crLabel: 'ETAGERE DE COLLECTE CLIENTS' },
+  { code: 'LOC-ETAGERE-LIVRAISON', label: 'Étagère de Livraison & Dépôt Client', type: 'location', lrCode: 'ETA_LIVR', crLabel: 'ETAGERE LIVRAISON CLIENT' },
   { code: 'DOCK-EXPED-01', label: 'Quai Expédition A (Poste 1)', type: 'dock', lrCode: 'QAI_EXP_A', crLabel: 'QUAI EXPEDITION POSTE 1' },
   { code: 'DOCK-EXPED-02', label: 'Quai Expédition B (Poste 2)', type: 'dock', lrCode: 'QAI_EXP_B', crLabel: 'QUAI EXPEDITION POSTE 2' },
   { code: 'DOCK-LETI-17', label: 'Quai Expédition Bâtiment 17 - LETI', type: 'dock', lrCode: 'QAI_BAT17', crLabel: 'QUAI EXPEDITION BATIMENT 17' },
@@ -184,6 +187,7 @@ export const BARCODE_CATALOG: BarcodeItemCatalog[] = [
   { code: 'ART-CARTON-EXP', label: 'Colis : Carton Expédition Sécurisé', type: 'package', lrCode: 'CTN_DBL1', crLabel: 'CARTON DOUBLE CANNELURE CEA' },
   { code: 'ART-SCEL-SECURITE', label: 'Sécurité : Scellé Numéroté Inviolable', type: 'seal', lrCode: 'SCL_IATA', crLabel: 'SCELLE INVIOLABLE IATA SECURISE' },
 
-  // Bons de réception / Transporteur
+  // Bons de réception / Transporteur & Manutention
+  { code: 'DOC-TRANSPORT-INTL', label: 'Document de Transport International (Bordereau Colis)', type: 'package', lrCode: 'DOC_TRP', crLabel: 'DOCUMENT TRANSPORT EXPEDITION' },
   { code: 'BL-EDWARDS-9941', label: 'Bon de Livraison Fournisseur Edwards n°9941', type: 'package', lrCode: 'BL_EDW41', crLabel: 'BON DE LIVRAISON FOURNISSEUR' }
 ];
