@@ -88,15 +88,27 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
 ];
 
 export const BARCODE_CATALOG = [
-  // Emplacements physiques
+  // Étagères Stand Physique (2 étagères x 3 niveaux)
+  { code: 'LOC-ETA1-NIV1', label: 'Étagère 1 • Niveau 1 (Bas)', type: 'location' },
+  { code: 'LOC-ETA1-NIV2', label: 'Étagère 1 • Niveau 2 (Milieu)', type: 'location' },
+  { code: 'LOC-ETA1-NIV3', label: 'Étagère 1 • Niveau 3 (Haut)', type: 'location' },
+  { code: 'LOC-ETA2-NIV1', label: 'Étagère 2 • Niveau 1 (Bas)', type: 'location' },
+  { code: 'LOC-ETA2-NIV2', label: 'Étagère 2 • Niveau 2 (Milieu)', type: 'location' },
+  { code: 'LOC-ETA2-NIV3', label: 'Étagère 2 • Niveau 3 (Haut)', type: 'location' },
+
+  // Quais d'Expédition du stand
+  { code: 'DOCK-EXPED-01', label: 'Quai Expédition A (Poste 1)', type: 'dock' },
+  { code: 'DOCK-EXPED-02', label: 'Quai Expédition B (Poste 2)', type: 'dock' },
+  { code: 'DOCK-LETI-17', label: 'Quai Expédition Bâtiment 17 - LETI', type: 'dock' },
+  { code: 'DOCK-INTL-FRET', label: 'Quai Expédition Fret International', type: 'dock' },
+
+  // Emplacements physiques classiques
   { code: 'LOC-B01-T03', label: 'Emplacement Allée B - Tiroir T03 (Brides KF40)', type: 'location' },
   { code: 'LOC-B01-T04', label: 'Emplacement Allée B - Tiroir T04 (Joints Viton)', type: 'location' },
   { code: 'LOC-SB-C01', label: 'Emplacement Salle Blanche - Armoire C01 (Wafers)', type: 'location' },
   { code: 'LOC-PACK-ZONE', label: 'Emplacement Table Emballage & Conditionnement', type: 'location' },
-  { code: 'DOCK-LETI-17', label: 'Quai Expédition Bâtiment 17 - LETI', type: 'dock' },
-  { code: 'DOCK-INTL-FRET', label: 'Quai Expédition Fret International', type: 'dock' },
 
-  // Articles & Pièces
+  // Articles & Pièces sur étagères
   { code: 'ART-KF40-INOX', label: 'Pièce : Bride à Vide KF40 Inox', type: 'article' },
   { code: 'ART-VITON-KF40', label: 'Pièce : Joint Viton KF40', type: 'article' },
   { code: 'ART-WAFER-300MM', label: 'Boîte : Wafers Silicium 300mm FOSB', type: 'article' },

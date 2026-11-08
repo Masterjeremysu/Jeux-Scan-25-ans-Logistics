@@ -20,7 +20,13 @@ import {
   Sparkles,
   QrCode,
   Package,
-  Award
+  Award,
+  Play,
+  Pause,
+  RotateCcw,
+  Swords,
+  Timer,
+  Smartphone
 } from 'lucide-react';
 
 interface ArenaTvViewProps {
@@ -31,6 +37,41 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig }) => {
   const [stations, setStations] = useState<DuoStation[]>([]);
   const [topScores, setTopScores] = useState<RemoteScore[]>([]);
   const [lastEventMsg, setLastEventMsg] = useState<string>('En attente du départ du duel...');
+  const [gameMode, setGameMode] = useState<'duel' | 'chrono'>('duel');
+  const [matchSeconds, setMatchSeconds] = useState<number>(180);
+  const [isMatchRunning, setIsMatchRunning] = useState<boolean>(false);
+
+  // Match Countdown Timer
+  useEffect(() => {
+    if (!isMatchRunning) return;
+    const timer = setInterval(() => {
+      setMatchSeconds((prev) => {
+        if (prev <= 1) {
+          setIsMatchRunning(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isMatchRunning]);
+
+  const formatMatchTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+  };
+
+  const handleToggleMatch = () => {
+    setIsMatchRunning((prev) => !prev);
+  };
+
+  const handleResetMatchTime = () => {
+    setIsMatchRunning(false);
+    setMatchSeconds(180);
+  };
+
+  const baseUrl = (appConfig.publicUrl || 'https://jeux-scan-25-ans-logistics.vercel.app').replace(/\/$/, '');
 
   useEffect(() => {
     let isMounted = true;
@@ -105,7 +146,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig }) => {
   return (
     <div className="min-h-[calc(100vh-65px)] p-3 sm:p-6 flex flex-col gap-5 max-w-7xl mx-auto w-full select-none">
       {/* Top TV Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950/80 to-slate-900 rounded-3xl p-5 sm:p-7 border border-indigo-500/30 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950/80 to-slate-900 rounded-3xl p-5 sm:p-7 border border-indigo-500/30 shadow-2xl flex flex-col lg:flex-row items-center justify-between gap-4">
         <div className="flex items-center space-x-4">
           <div className="w-14 h-14 rounded-2xl bg-indigo-600/30 border border-indigo-400/40 flex items-center justify-center text-indigo-400 shadow-lg shadow-indigo-600/30 shrink-0">
             <Tv className="w-8 h-8 animate-pulse text-indigo-300" />
@@ -121,8 +162,63 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig }) => {
               </span>
             </div>
             <p className="text-xs sm:text-sm text-slate-300 mt-1 font-mono">
-              Course en direct des binômes : Opérateur CEA 🤝 Client Invité
+              Écran Concentrateur 55" • Stand Logistique 25 Ans
             </p>
+          </div>
+        </div>
+
+        {/* Center: Match Mode Switch & Countdown Clock */}
+        <div className="flex flex-wrap items-center justify-center gap-3 bg-slate-950/80 p-3 rounded-2xl border border-indigo-500/30 font-mono">
+          {/* Mode Switcher */}
+          <div className="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs">
+            <button
+              onClick={() => setGameMode('duel')}
+              className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg font-bold transition-all ${
+                gameMode === 'duel' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Swords className="w-3.5 h-3.5" />
+              <span>Duel 2 Duos</span>
+            </button>
+            <button
+              onClick={() => setGameMode('chrono')}
+              className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg font-bold transition-all ${
+                gameMode === 'chrono' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Timer className="w-3.5 h-3.5" />
+              <span>Défi Chrono</span>
+            </button>
+          </div>
+
+          {/* Giant Countdown Clock */}
+          <div className="flex items-center space-x-2 px-3 py-1 bg-slate-900 rounded-xl border border-slate-800">
+            <Clock className="w-4 h-4 text-amber-400 animate-pulse" />
+            <span className="text-2xl font-black text-amber-300 tracking-wider">
+              {formatMatchTime(matchSeconds)}
+            </span>
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center space-x-1">
+            <button
+              onClick={handleToggleMatch}
+              className={`p-2 rounded-xl text-xs font-bold flex items-center space-x-1 transition-all ${
+                isMatchRunning
+                  ? 'bg-amber-600 hover:bg-amber-500 text-slate-950'
+                  : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
+              }`}
+              title={isMatchRunning ? 'Mettre en pause' : 'Démarrer le chrono du match'}
+            >
+              {isMatchRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
+            </button>
+            <button
+              onClick={handleResetMatchTime}
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs border border-slate-700 transition-colors"
+              title="Réinitialiser le chrono (3 min)"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
@@ -130,7 +226,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig }) => {
         <div className="bg-slate-950/80 px-4 py-2 rounded-2xl border border-slate-800 flex items-center space-x-2 text-xs font-mono text-slate-300 shrink-0">
           <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
           <span className="text-emerald-400 font-bold">INFO :</span>
-          <span className="truncate max-w-[280px]">{lastEventMsg}</span>
+          <span className="truncate max-w-[220px]">{lastEventMsg}</span>
         </div>
       </div>
 
@@ -300,30 +396,49 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig }) => {
           </div>
         </div>
 
-        {/* Guest QR Code Card */}
-        <div className="bg-gradient-to-br from-indigo-950/40 to-slate-900 rounded-3xl p-5 sm:p-6 border border-indigo-500/30 shadow-xl flex flex-col items-center justify-between text-center">
-          <div className="space-y-2">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-600/30 border border-indigo-500/40 mx-auto flex items-center justify-center text-indigo-400">
-              <QrCode className="w-5 h-5" />
+        {/* Zebra Scannettes & Mobile Fast Connect Panel */}
+        <div className="bg-slate-900 rounded-3xl p-5 border border-slate-800 shadow-xl flex flex-col justify-between">
+          <div className="flex items-center space-x-2 mb-3 pb-2 border-b border-slate-800">
+            <Smartphone className="w-5 h-5 text-sky-400" />
+            <h4 className="text-xs font-black text-white uppercase tracking-wider font-mono">
+              Connexion Rapide Scannettes Zebra
+            </h4>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 text-center">
+            {/* Zebra 1 */}
+            <div className="bg-slate-950 p-3 rounded-2xl border border-sky-500/40 flex flex-col items-center justify-between">
+              <span className="text-[11px] font-bold text-sky-300 font-mono">Poste 1 (Bleu)</span>
+              <div className="my-1.5 bg-white p-1.5 rounded-xl shadow">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(`${baseUrl}/#poste-1`)}`}
+                  alt="QR Code Poste 1"
+                  className="w-20 h-20"
+                />
+              </div>
+              <span className="text-[9px] text-slate-400 font-mono">Visez avec Zebra 1</span>
             </div>
-            <h4 className="text-sm font-black text-white">REJOINDRE SUR MOBILE</h4>
-            <p className="text-xs text-slate-300">
-              Scannez pour suivre le classement en direct ou consulter votre diplôme souvenir :
-            </p>
+
+            {/* Zebra 2 */}
+            <div className="bg-slate-950 p-3 rounded-2xl border border-amber-500/40 flex flex-col items-center justify-between">
+              <span className="text-[11px] font-bold text-amber-300 font-mono">Poste 2 (Orange)</span>
+              <div className="my-1.5 bg-white p-1.5 rounded-xl shadow">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(`${baseUrl}/#poste-2`)}`}
+                  alt="QR Code Poste 2"
+                  className="w-20 h-20"
+                />
+              </div>
+              <span className="text-[9px] text-slate-400 font-mono">Visez avec Zebra 2</span>
+            </div>
           </div>
 
-          {/* Dynamic QR Code representation */}
-          <div className="my-3 bg-white p-3 rounded-2xl shadow-lg border-2 border-slate-200">
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(appConfig.publicUrl || 'https://jeux-scan-25-ans-logistics.vercel.app')}`}
-              alt="QR Code Classement Mobile"
-              className="w-32 h-32"
-            />
+          {/* Spectator QR link */}
+          <div className="mt-3 pt-2.5 border-t border-slate-800 text-center">
+            <span className="text-[10px] text-slate-400 block font-mono">
+              Spectateurs : <a href={`${baseUrl}/#podium`} target="_blank" rel="noreferrer" className="text-emerald-400 underline font-bold">classement live sur mobile</a>
+            </span>
           </div>
-
-          <span className="text-[11px] font-mono text-sky-400 font-bold truncate max-w-[200px]">
-            {(appConfig.publicUrl || 'https://jeux-scan-25-ans-logistics.vercel.app').replace(/^https?:\/\//, '')}
-          </span>
         </div>
       </div>
     </div>

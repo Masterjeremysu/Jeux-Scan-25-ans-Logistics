@@ -45,6 +45,7 @@ interface PosteOperateurViewProps {
   activeHazard?: LiveHazard | null;
   hazardSecondsRemaining?: number;
   onTriggerSurpriseOrder?: () => void;
+  onStartNewMatch?: () => void;
 }
 
 // On-screen scannable SVG barcode for douchette or visual reference
@@ -105,7 +106,8 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
   liveStations,
   activeHazard,
   hazardSecondsRemaining,
-  onTriggerSurpriseOrder
+  onTriggerSurpriseOrder,
+  onStartNewMatch
 }) => {
   const [manualInput, setManualInput] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'article' | 'location' | 'package'>('all');
@@ -202,6 +204,18 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
             <span>Duo : <strong className="text-sky-300">{operatorCea}</strong> 🤝 <strong className="text-amber-300">{clientGuest}</strong></span>
             <Edit3 className="w-3 h-3 text-slate-400" />
           </button>
+
+          {/* New Match Button (Shuffles missions for fresh duo) */}
+          {onStartNewMatch && (
+            <button
+              onClick={onStartNewMatch}
+              className="flex items-center space-x-1.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 px-3 py-1.5 rounded-xl text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
+              title="Démarrer une nouvelle manche pour un nouveau duo (mélange aléatoire des missions)"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Nouveau Match (Mélanger)</span>
+            </button>
+          )}
         </div>
 
         {/* Right: Combo & Scanner Status */}
@@ -591,31 +605,67 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
             </div>
           </div>
 
-          {/* Quick Stock ERP Card */}
-          <div className="bg-slate-900 rounded-3xl p-4 border border-slate-800 shadow-xl flex flex-col h-[280px]">
-            <div className="flex items-center justify-between pb-2.5 border-b border-slate-800 shrink-0">
-              <span className="text-xs font-bold font-mono text-slate-200 uppercase">Aperçu Stock Réel (ERP)</span>
-              <span className="text-[10px] text-slate-400 font-mono">Mis à jour au scan</span>
+          {/* ARCADE DUEL & CHALLENGE RADAR (Replacing ERP stock with live gaming excitement) */}
+          <div className="bg-gradient-to-br from-slate-900 via-indigo-950/30 to-slate-900 rounded-3xl p-4 border border-indigo-500/30 shadow-xl flex flex-col justify-between h-[280px]">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800 shrink-0">
+              <div className="flex items-center space-x-2">
+                <Swords className="w-4 h-4 text-amber-400 animate-pulse" />
+                <span className="text-xs font-bold font-mono text-white uppercase">Radar Duel & Record</span>
+              </div>
+              <span className="text-[10px] text-emerald-400 font-mono font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                Direct TV
+              </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60 pt-1 pr-1">
-              {inventory.slice(0, 6).map((it) => (
-                <div key={it.id} className="py-2 flex items-center justify-between text-xs">
-                  <div>
-                    <span className="font-semibold text-slate-200 block truncate max-w-[160px]">{it.name}</span>
-                    <span className="text-[10px] font-mono text-slate-400 flex items-center space-x-1">
-                      <MapPin className="w-2.5 h-2.5 text-amber-400" />
-                      <span>{it.location}</span>
-                    </span>
+            {/* Duel opponent status */}
+            <div className="space-y-3 my-auto">
+              {otherStations.length > 0 ? (
+                otherStations.slice(0, 1).map((os) => (
+                  <div key={os.station_id} className="bg-slate-950/80 p-3 rounded-2xl border border-amber-500/30 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="text-amber-300 font-bold truncate">Adversaire : {os.team_name}</span>
+                      <span className="text-amber-400 font-bold">{os.progress_percent}%</span>
+                    </div>
+                    <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-amber-500 to-orange-400 h-full rounded-full transition-all duration-300"
+                        style={{ width: `${os.progress_percent}%` }}
+                      ></div>
+                    </div>
+                    <div className="text-[10px] font-mono text-slate-400 flex justify-between">
+                      <span>Score rival : <strong className="text-white">{os.score} pts</strong></span>
+                      <span>Combo x{os.combo || 1}</span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className={`font-mono font-bold text-sm ${it.quantity <= 10 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                      {it.quantity}
-                    </span>
-                    <span className="text-[10px] text-slate-400 ml-1">{it.unit}</span>
-                  </div>
+                ))
+              ) : (
+                <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800 text-center space-y-1">
+                  <div className="text-xs font-bold text-slate-300 font-mono">Mode Défi Solo / Chrono</div>
+                  <p className="text-[11px] text-slate-400">
+                    Connectez une 2ème scannette pour lancer le duel en face-à-face sur la TV 55" !
+                  </p>
                 </div>
-              ))}
+              )}
+
+              {/* Combo boost reminder */}
+              <div className="bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800 flex items-center justify-between text-xs font-mono">
+                <div className="flex items-center space-x-1.5 text-orange-400">
+                  <Flame className="w-4 h-4 fill-current" />
+                  <span className="font-bold">Série en cours :</span>
+                </div>
+                <span className="text-white font-black">{combo > 0 ? `x${combo} (+${combo * 50} pts)` : 'x1 (Scannez sans erreur !)'}</span>
+              </div>
+            </div>
+
+            {/* Quick action: Reset match */}
+            <div className="pt-2 border-t border-slate-800/80">
+              <button
+                onClick={onStartNewMatch || onResetMission}
+                className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span>Nouveau Duo (Mélanger les Missions)</span>
+              </button>
             </div>
           </div>
         </div>

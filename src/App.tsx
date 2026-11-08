@@ -60,7 +60,7 @@ export const App: React.FC = () => {
     eventTitle: 'CEA GRENOBLE',
     eventSubtitle: 'WMS Industrial Terminal • Shift Challenge',
     badgeLabel: 'ÉDITION 25 ANS',
-    shiftDurationSeconds: 300,
+    shiftDurationSeconds: 180,
     comboBonusPoints: 50,
     publicUrl: 'https://jeux-scan-25-ans-logistics.vercel.app',
     diplomaTitle: 'DIPLÔME D\'HONNEUR',
@@ -77,7 +77,7 @@ export const App: React.FC = () => {
   const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
   const [flashState, setFlashState] = useState<'green' | 'red' | null>(null);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
-  const [shiftSecondsRemaining, setShiftSecondsRemaining] = useState<number>(300);
+  const [shiftSecondsRemaining, setShiftSecondsRemaining] = useState<number>(180);
   const [isDiplomeOpen, setIsDiplomeOpen] = useState<boolean>(false);
 
   // Duo & Multi-station States
@@ -643,15 +643,21 @@ export const App: React.FC = () => {
     });
   };
 
-  // Start new shift for a new guest
+  // Start new shift / match with shuffled randomized missions
   const handleStartNewShift = () => {
-    setMissions((prev) =>
-      prev.map((m) => ({
+    setMissions((prev) => {
+      const shuffled = [...prev];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled.map((m) => ({
         ...m,
         steps: m.steps.map((st) => ({ ...st, completed: false }))
-      }))
-    );
-    setShiftSecondsRemaining(appConfig.shiftDurationSeconds);
+      }));
+    });
+    setCurrentMissionIndex(0);
+    setShiftSecondsRemaining(appConfig.shiftDurationSeconds || 180);
     setCombo(0);
     setOperator((prev) => ({
       ...prev,
@@ -712,6 +718,7 @@ export const App: React.FC = () => {
             activeHazard={activeHazard}
             hazardSecondsRemaining={hazardSecondsRemaining}
             onTriggerSurpriseOrder={handleTriggerSurpriseOrder}
+            onStartNewMatch={handleStartNewShift}
           />
         )}
 
