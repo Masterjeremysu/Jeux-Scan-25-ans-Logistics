@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Mission, InventoryItem, AppConfig } from '../types';
+import { Mission, InventoryItem, AppConfig, DuoStation } from '../types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -144,14 +144,12 @@ export function subscribeToLiveActivity(onActivity: (activity: LiveActivityEvent
 
 // Load App Config (from Supabase first, fallback to localStorage)
 export async function loadAppConfig(): Promise<StoredAppConfig | null> {
-  // 1. Try local storage first as quick cache
   let localData: StoredAppConfig | null = null;
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (raw) localData = JSON.parse(raw);
   } catch {}
 
-  // 2. Try Supabase for source of truth
   if (supabase) {
     try {
       const { data, error } = await supabase
@@ -169,7 +167,6 @@ export async function loadAppConfig(): Promise<StoredAppConfig | null> {
           missions: data.missions,
           inventory: Array.isArray(data.inventory) ? data.inventory : []
         };
-        // Update local cache
         try {
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(remoteConfig));
         } catch {}
@@ -185,7 +182,6 @@ export async function loadAppConfig(): Promise<StoredAppConfig | null> {
 
 // Save App Config (to Supabase and local storage)
 export async function saveAppConfig(config: StoredAppConfig): Promise<boolean> {
-  // Always update local storage
   try {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(config));
   } catch {}
@@ -233,6 +229,58 @@ export function subscribeToAppConfig(onConfigChanged: (config: StoredAppConfig) 
             missions: row.missions,
             inventory: Array.isArray(row.inventory) ? row.inventory : []
           });
+        }
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+// Fetch all live stations
+export async function getStationsLive(): Promise<DuoStation[]> {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('stations_live')
+      .select('*')
+      .order('station_id', { ascending: true });
+    if (error) return [];
+    return (data as DuoStation[]) || [];
+  } catch {
+    return [];
+  }
+}
+
+// Update station progress and Duo in Supabase
+export async function updateStationLive(station: Partial<DuoStation> & { station_id: string }): Promise<void> {
+  if (!supabase) return;
+  try {
+    await supabase
+      .from('stations_live')
+      .upsert({
+        ...station,
+        updated_at: new Date().toISOString()
+      });
+  } catch {
+    // Non-blocking
+  }
+}
+
+// Subscribe to Live Stations updates (for TV Arena & Battle display)
+export function subscribeToStationsLive(onStationUpdate: (station: DuoStation) => void) {
+  if (!supabase) return () => {};
+
+  const channel = supabase
+    .channel('stations-realtime')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'stations_live' },
+      (payload) => {
+        if (payload.new) {
+          onStationUpdate(payload.new as DuoStation);
         }
       }
     )

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import JsBarcode from 'jsbarcode';
-import { Mission, ScanLog, InventoryItem } from '../types';
+import { Mission, ScanLog, InventoryItem, DuoStation } from '../types';
 import { 
   CheckCircle2, 
   AlertTriangle, 
@@ -13,7 +13,11 @@ import {
   Zap,
   Barcode,
   Keyboard,
-  Info
+  Info,
+  Flame,
+  Users,
+  Swords,
+  Edit3
 } from 'lucide-react';
 import { BARCODE_CATALOG } from '../data/initialData';
 import { barcodeListener } from '../services/barcodeListener';
@@ -28,6 +32,14 @@ interface PosteOperateurViewProps {
   inventory: InventoryItem[];
   lastScannedCode: string | null;
   flashState: 'green' | 'red' | null;
+  stationId: string;
+  stationName: string;
+  onSelectStation: (id: string, name: string) => void;
+  operatorCea: string;
+  clientGuest: string;
+  onUpdateDuo: (cea: string, client: string) => void;
+  combo: number;
+  liveStations: DuoStation[];
 }
 
 // On-screen scannable SVG barcode for douchette or visual reference
@@ -58,14 +70,12 @@ const BarcodeTicket: React.FC<{ code: string; label?: string }> = ({ code, label
   return (
     <div className="bg-white text-slate-900 p-2.5 rounded-xl shadow-lg border-2 border-slate-200 inline-flex flex-col items-center justify-center shrink-0">
       {label && (
-        <span className="text-[10px] font-bold text-slate-700 uppercase tracking-tight mb-0.5 truncate max-w-[220px]">
+        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-600 mb-1 font-mono text-center max-w-[200px] truncate">
           {label}
         </span>
       )}
-      <svg ref={svgRef} className="max-w-[240px] h-auto" />
-      <span className="text-[8px] font-mono text-slate-400 mt-0.5 uppercase tracking-wider">
-        Scannable par douchette
-      </span>
+      <svg ref={svgRef} className="max-w-full h-auto"></svg>
+      <span className="text-[9px] text-slate-400 font-mono mt-0.5">Scannable à l'écran</span>
     </div>
   );
 };
@@ -79,16 +89,30 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
   logs,
   inventory,
   lastScannedCode,
-  flashState
+  flashState,
+  stationId,
+  stationName,
+  onSelectStation,
+  operatorCea,
+  clientGuest,
+  onUpdateDuo,
+  combo,
+  liveStations
 }) => {
   const [manualInput, setManualInput] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'article' | 'location' | 'package'>('all');
+  const [isDuoModalOpen, setIsDuoModalOpen] = useState(false);
+  const [ceaInput, setCeaInput] = useState(operatorCea);
+  const [clientInput, setClientInput] = useState(clientGuest);
   
-  const mission = missions[currentMissionIndex];
+  const mission = missions[currentMissionIndex] || missions[0];
   const currentStep = mission.steps.find((s) => !s.completed) || null;
   const progressPercent = Math.round(
     (mission.steps.filter((s) => s.completed).length / mission.steps.length) * 100
   );
+
+  // Other duel stations currently playing
+  const otherStations = liveStations.filter((s) => s.station_id !== stationId);
 
   // Global shortcut: Spacebar triggers the current target scan if not typing
   useEffect(() => {
@@ -114,6 +138,14 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
     }
   };
 
+  const handleSaveDuo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (ceaInput.trim() || clientInput.trim()) {
+      onUpdateDuo(ceaInput.trim() || 'Agent CEA', clientInput.trim() || 'Client Invité');
+      setIsDuoModalOpen(false);
+    }
+  };
+
   const filteredBarcodes = BARCODE_CATALOG.filter((bc) => {
     if (selectedFilter === 'all') return true;
     if (selectedFilter === 'article') return bc.type === 'article' || bc.type === 'seal';
@@ -123,75 +155,149 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
   });
 
   return (
-    <div className={`min-h-[calc(100vh-65px)] flex flex-col p-3 sm:p-4 gap-3.5 transition-colors duration-200 ${
+    <div className={`min-h-[calc(100vh-65px)] flex flex-col p-2.5 sm:p-4 gap-3 transition-colors duration-200 ${
       flashState === 'green' ? 'bg-emerald-950/25' : flashState === 'red' ? 'bg-rose-950/25' : ''
     }`}>
-      {/* Top Banner: Mission Selector & Priority */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 shrink-0">
-        {/* Mission Selector Tabs */}
-        <div className="lg:col-span-2 bg-slate-900/90 rounded-2xl p-2.5 sm:p-3 border border-slate-800 flex items-center gap-2 overflow-x-auto shadow-lg">
-          <span className="text-xs font-bold text-slate-400 font-mono px-2 uppercase tracking-wider whitespace-nowrap">
-            Missions 25 Ans :
-          </span>
-          {missions.map((m, idx) => {
-            const isFinished = m.steps.every((s) => s.completed);
-            const isSelected = idx === currentMissionIndex;
-            return (
-              <button
-                key={m.id}
-                onClick={() => onSelectMission(idx)}
-                className={`flex items-center space-x-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
-                  isSelected
-                    ? 'bg-sky-600 text-white border-sky-400 shadow-md shadow-sky-600/30'
-                    : isFinished
-                    ? 'bg-emerald-950/40 text-emerald-300 border-emerald-700/50 hover:bg-emerald-900/50'
-                    : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700'
-                }`}
-              >
-                {isFinished ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                ) : (
-                  <Play className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
-                )}
-                <span>Mission {idx + 1}</span>
-                <span className="text-[10px] opacity-75 hidden md:inline">
-                  ({m.priority === 'URGENCE CRITIQUE' ? 'Urgence' : m.priority === 'STANDARD' ? 'Réception Edwards' : 'Export Silicium'})
-                </span>
-              </button>
-            );
-          })}
-
-          <div className="ml-auto flex items-center gap-2 shrink-0">
-            <button
-              onClick={onResetMission}
-              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs border border-slate-700 transition-colors"
-              title="Recommencer cette mission"
+      {/* Station, Duo & Combo Banner */}
+      <div className="bg-slate-900 rounded-2xl p-3 sm:p-3.5 border border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-3">
+        {/* Left: Station & Duo identity */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Station selector */}
+          <div className="flex items-center space-x-1.5 bg-slate-950 px-2.5 py-1.5 rounded-xl border border-slate-800 font-mono text-xs">
+            <span className="text-slate-400 font-medium">Poste :</span>
+            <select
+              value={stationId}
+              onChange={(e) => {
+                const val = e.target.value;
+                const name = val === 'poste-1' ? 'Poste 1 (Scannette A)' : val === 'poste-2' ? 'Poste 2 (Scannette B)' : 'Poste 3 (Zebra Scan)';
+                onSelectStation(val, name);
+              }}
+              className="bg-transparent text-sky-400 font-bold focus:outline-none cursor-pointer"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Réinitialiser</span>
-            </button>
+              <option value="poste-1" className="bg-slate-900">Poste 1 (Scannette A)</option>
+              <option value="poste-2" className="bg-slate-900">Poste 2 (Scannette B)</option>
+              <option value="poste-3" className="bg-slate-900">Poste 3 (Zebra Scan)</option>
+            </select>
           </div>
+
+          {/* Duo Profile Pill */}
+          <button
+            onClick={() => {
+              setCeaInput(operatorCea);
+              setClientInput(clientGuest);
+              setIsDuoModalOpen(true);
+            }}
+            className="flex items-center space-x-2 bg-gradient-to-r from-indigo-950/80 to-slate-950 hover:from-indigo-900/80 px-3 py-1.5 rounded-xl border border-indigo-500/40 text-xs font-semibold text-slate-200 shadow-sm transition-all"
+            title="Cliquez pour changer le binôme (Agent CEA + Invité)"
+          >
+            <Users className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <span>Duo : <strong className="text-sky-300">{operatorCea}</strong> 🤝 <strong className="text-amber-300">{clientGuest}</strong></span>
+            <Edit3 className="w-3 h-3 text-slate-400" />
+          </button>
         </div>
 
-        {/* Scanner Douchette Status Widget */}
-        <div className="bg-slate-900/90 rounded-2xl p-2.5 sm:p-3 border border-slate-800 flex items-center justify-between shadow-lg shrink-0">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">
-              <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
+        {/* Right: Combo & Scanner Status */}
+        <div className="flex items-center space-x-2.5 ml-auto">
+          {/* Combo badge */}
+          {combo > 1 ? (
+            <div className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 text-slate-950 font-black text-xs font-mono shadow-lg shadow-orange-500/30 animate-pulse">
+              <Flame className="w-4 h-4 fill-current" />
+              <span>COMBO x{combo} (+{combo * 50} pts)</span>
             </div>
-            <div>
+          ) : (
+            <div className="hidden sm:flex items-center space-x-1 text-slate-500 text-xs font-mono">
+              <Flame className="w-3.5 h-3.5" />
+              <span>Combo x1</span>
+            </div>
+          )}
+
+          {/* Scanner Douchette Status */}
+          <div className="flex items-center space-x-1.5 bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-800 text-xs font-mono">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+            <span className="text-emerald-400 font-bold hidden sm:inline">Scannette Prête</span>
+            <span className="text-emerald-400 font-bold sm:hidden">Prêt</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Live Duel Bar (if other stations are connected) */}
+      {otherStations.length > 0 && (
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950/60 to-slate-900 rounded-2xl p-3 border border-indigo-500/30 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-2.5">
+          <div className="flex items-center space-x-2 text-xs font-mono text-slate-300 shrink-0">
+            <Swords className="w-4 h-4 text-amber-400 animate-bounce" />
+            <span className="font-bold uppercase text-white">Duel en Direct :</span>
+          </div>
+
+          <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+            {/* My station */}
+            <div className="bg-slate-950/70 px-3 py-1.5 rounded-xl border border-sky-500/40 flex items-center justify-between">
+              <span className="text-sky-300 font-bold truncate">Vous ({stationName.split(' ')[0]})</span>
               <div className="flex items-center space-x-2">
-                <span className="text-xs font-bold text-slate-200">RÉCEPTACLE DOUCHETTE</span>
-                <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                <div className="w-20 sm:w-24 bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div className="bg-sky-400 h-full rounded-full" style={{ width: `${progressPercent}%` }}></div>
+                </div>
+                <span className="text-sky-400 font-bold">{progressPercent}%</span>
               </div>
-              <p className="text-[11px] text-slate-400 font-mono">Scanner USB / Bluetooth ou Zebra actif</p>
             </div>
+
+            {/* Other station */}
+            {otherStations.slice(0, 1).map((os) => (
+              <div key={os.station_id} className="bg-slate-950/70 px-3 py-1.5 rounded-xl border border-amber-500/40 flex items-center justify-between">
+                <span className="text-amber-300 font-bold truncate">{os.station_name.split(' ')[0]} ({os.team_name})</span>
+                <div className="flex items-center space-x-2">
+                  <div className="w-20 sm:w-24 bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div className="bg-amber-400 h-full rounded-full" style={{ width: `${os.progress_percent}%` }}></div>
+                  </div>
+                  <span className="text-amber-400 font-bold">{os.progress_percent}%</span>
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="text-right">
-            <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-slate-800 text-sky-400 border border-slate-700">
-              Écoute Active
-            </span>
-          </div>
+        </div>
+      )}
+
+      {/* Top Banner: Mission Selector */}
+      <div className="bg-slate-900/90 rounded-2xl p-2.5 sm:p-3 border border-slate-800 flex items-center gap-2 overflow-x-auto shadow-lg shrink-0">
+        <span className="text-xs font-bold text-slate-400 font-mono px-2 uppercase tracking-wider whitespace-nowrap">
+          Missions :
+        </span>
+        {missions.map((m, idx) => {
+          const isFinished = m.steps.every((s) => s.completed);
+          const isSelected = idx === currentMissionIndex;
+          return (
+            <button
+              key={m.id || idx}
+              onClick={() => onSelectMission(idx)}
+              className={`flex items-center space-x-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
+                isSelected
+                  ? 'bg-sky-600 text-white border-sky-400 shadow-md shadow-sky-600/30'
+                  : isFinished
+                  ? 'bg-emerald-950/40 text-emerald-300 border-emerald-700/50 hover:bg-emerald-900/50'
+                  : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              {isFinished ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              ) : (
+                <Play className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
+              )}
+              <span>Mission {idx + 1}</span>
+              <span className="text-[10px] opacity-75 hidden md:inline">
+                ({m.title.slice(0, 20)}...)
+              </span>
+            </button>
+          );
+        })}
+
+        <div className="ml-auto flex items-center gap-2 shrink-0">
+          <button
+            onClick={onResetMission}
+            className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs border border-slate-700 transition-colors"
+            title="Recommencer cette mission"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Réinitialiser</span>
+          </button>
         </div>
       </div>
 
@@ -209,13 +315,7 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
                       {mission.code}
                     </span>
                     <span className="text-slate-600">•</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                      mission.priority === 'URGENCE CRITIQUE'
-                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                        : mission.priority === 'EXPÉDITION INTERNATIONALE'
-                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                        : 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
-                    }`}>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-sky-500/20 text-sky-300 border border-sky-500/30">
                       {mission.priority}
                     </span>
                   </div>
@@ -311,7 +411,7 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
                     <button
                       type="button"
                       onClick={() => barcodeListener.simulateScan(currentStep.expectedBarcode)}
-                      className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black text-sm flex items-center justify-center space-x-2 shadow-lg shadow-amber-500/30 transition-transform active:scale-[0.98] ring-2 ring-amber-400/50"
+                      className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black text-sm flex items-center justify-center space-x-2 shadow-lg shadow-amber-500/30 transition-transform active:scale-[0.98] ring-2 ring-amber-400/50 cursor-pointer"
                     >
                       <Zap className="w-4 h-4 fill-current shrink-0" />
                       <span>🎯 FLASHER LE CODE ATTENDU : {currentStep.expectedBarcode}</span>
@@ -328,43 +428,43 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
                   <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-2.5 shadow-lg shadow-emerald-500/20">
                     <Sparkles className="w-7 h-7" />
                   </div>
-                  <h3 className="text-xl sm:text-2xl font-black text-white">MISSION VALIDÉE AVEC SUCCÈS !</h3>
-                  <p className="text-xs sm:text-sm text-emerald-200 mt-1 max-w-md mx-auto">
-                    Toutes les étapes ont été scannées et validées sans erreur. Le stock ERP a été synchronisé.
+                  <h3 className="text-xl font-black text-emerald-400 mb-1">MISSION ACCOMPLIE AVEC SUCCÈS !</h3>
+                  <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto mb-4">
+                    Toutes les étapes ont été validées sans accroc. Le score de votre binôme a été synchronisé en temps réel sur le cloud !
                   </p>
                   <button
-                    onClick={() => onSelectMission((currentMissionIndex + 1) % missions.length)}
-                    className="mt-4 px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/30 transition-all"
+                    onClick={onResetMission}
+                    className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs"
                   >
-                    Passer à la Mission Suivante →
+                    Rejouer cette mission
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Checklist of steps */}
-            <div className="mt-4 pt-3 border-t border-slate-800">
-              <span className="text-xs font-mono font-bold text-slate-400 uppercase mb-2 block">
-                Étapes de la mission ({mission.steps.filter((s) => s.completed).length} / {mission.steps.length}) :
+            {/* Steps Checklist Overview */}
+            <div className="mt-4 pt-3 border-t border-slate-800/80">
+              <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                Étapes du flux logistique :
               </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                 {mission.steps.map((st, i) => (
                   <div
-                    key={st.id}
-                    className={`p-2 rounded-xl border text-xs flex items-center space-x-2 transition-all ${
+                    key={st.id || i}
+                    className={`p-2 rounded-xl border text-xs flex items-center space-x-2 ${
                       st.completed
-                        ? 'bg-emerald-950/40 border-emerald-600/40 text-emerald-300'
+                        ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-300'
                         : st === currentStep
-                        ? 'bg-sky-500/20 border-sky-400 text-white font-semibold ring-2 ring-sky-500/30'
-                        : 'bg-slate-950/40 border-slate-800 text-slate-400'
+                        ? 'bg-sky-950/40 border-sky-400/60 text-white font-bold'
+                        : 'bg-slate-950/40 border-slate-800 text-slate-500'
                     }`}
                   >
                     {st.completed ? (
                       <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     ) : (
-                      <span className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-mono shrink-0">
+                      <div className="w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center text-[10px] shrink-0">
                         {i + 1}
-                      </span>
+                      </div>
                     )}
                     <span className="truncate">{st.targetLabel}</span>
                   </div>
@@ -372,130 +472,31 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
               </div>
             </div>
           </div>
-
-          {/* Quick simulation bar - Organized & Categorized so NO code is clipped */}
-          <div className="bg-slate-900/90 rounded-2xl p-3 border border-slate-800 flex flex-col gap-2.5 text-xs shadow-lg">
-            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
-              <div className="flex items-center space-x-2">
-                <Barcode className="w-4 h-4 text-sky-400" />
-                <span className="font-bold text-slate-200 uppercase tracking-tight text-xs font-mono">
-                  Barre de Simulation de Codes-Barres :
-                </span>
-              </div>
-
-              {/* Filters */}
-              <div className="flex items-center space-x-1 bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[10px]">
-                <button
-                  type="button"
-                  onClick={() => setSelectedFilter('all')}
-                  className={`px-2 py-0.5 rounded ${selectedFilter === 'all' ? 'bg-sky-600 text-white font-bold' : 'text-slate-400'}`}
-                >
-                  Tous ({BARCODE_CATALOG.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedFilter('package')}
-                  className={`px-2 py-0.5 rounded ${selectedFilter === 'package' ? 'bg-sky-600 text-white font-bold' : 'text-slate-400'}`}
-                >
-                  Bons/Colis
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedFilter('article')}
-                  className={`px-2 py-0.5 rounded ${selectedFilter === 'article' ? 'bg-sky-600 text-white font-bold' : 'text-slate-400'}`}
-                >
-                  Articles
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedFilter('location')}
-                  className={`px-2 py-0.5 rounded ${selectedFilter === 'location' ? 'bg-sky-600 text-white font-bold' : 'text-slate-400'}`}
-                >
-                  Emplacements
-                </button>
-              </div>
-            </div>
-
-            {/* List of Barcodes with clear labels and buttons */}
-            <div className="flex flex-wrap items-center gap-1.5 max-h-36 overflow-y-auto pr-1">
-              {filteredBarcodes.map((bc) => {
-                const isExpected = currentStep?.expectedBarcode === bc.code;
-                return (
-                  <button
-                    key={bc.code}
-                    type="button"
-                    onClick={() => barcodeListener.simulateScan(bc.code)}
-                    className={`px-2.5 py-1.5 rounded-xl font-mono text-[11px] border flex items-center space-x-1.5 transition-all ${
-                      isExpected
-                        ? 'bg-amber-500 text-slate-950 border-amber-300 font-black shadow-md shadow-amber-500/20 scale-105 ring-2 ring-amber-400'
-                        : 'bg-slate-800/90 hover:bg-sky-600 hover:text-white text-slate-300 border-slate-700'
-                    }`}
-                    title={bc.label}
-                  >
-                    <span>{bc.code}</span>
-                    <span className="text-[9px] opacity-75 font-sans hidden sm:inline truncate max-w-[120px]">
-                      ({bc.label.split(':')[0]})
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Manual Text Input form */}
-            <form onSubmit={handleManualSubmit} className="flex items-center gap-1.5 pt-2 border-t border-slate-800/80">
-              <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">Saisie manuelle directe :</span>
-              <input
-                type="text"
-                value={manualInput}
-                onChange={(e) => setManualInput(e.target.value)}
-                placeholder="Entrez un code-barres (ex: BL-EDWARDS-9941)..."
-                className="bg-slate-950 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-sky-500 flex-1 max-w-sm"
-              />
-              <button
-                type="submit"
-                className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-bold transition-colors"
-              >
-                Valider Scan
-              </button>
-            </form>
-          </div>
         </div>
 
-        {/* Right Col: Live Douchette Terminal & Real-Time Stock Preview */}
+        {/* Right Column: Live Logs & Stocks */}
         <div className="flex flex-col gap-3.5">
-          {/* Live Scanner Terminal Box */}
+          {/* Logs Card */}
           <div className="bg-slate-900 rounded-3xl p-4 border border-slate-800 shadow-xl flex flex-col h-[280px]">
             <div className="flex items-center justify-between pb-2.5 border-b border-slate-800 shrink-0">
-              <div className="flex items-center space-x-2">
-                <Radio className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-bold font-mono text-slate-200 uppercase">Journal Scans en Direct</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                {onClearLogs && logs.length > 0 && (
-                  <button
-                    onClick={onClearLogs}
-                    className="text-[10px] text-slate-400 hover:text-slate-200 px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700"
-                  >
-                    Effacer
-                  </button>
-                )}
-                {lastScannedCode && (
-                  <span className="text-[10px] font-mono text-amber-400 px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
-                    {lastScannedCode}
-                  </span>
-                )}
-              </div>
+              <span className="text-xs font-bold font-mono text-slate-200 uppercase">Journal Scannette en Direct</span>
+              {onClearLogs && (
+                <button
+                  onClick={onClearLogs}
+                  className="text-[10px] text-slate-500 hover:text-slate-300 font-mono"
+                >
+                  Effacer
+                </button>
+              )}
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-2 pt-2.5 pr-1">
+            <div className="flex-1 overflow-y-auto space-y-2 pt-2 pr-1">
               {logs.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-4 text-slate-500">
-                  <Package className="w-8 h-8 mb-2 opacity-50" />
-                  <p className="text-xs">En attente d'un coup de laser...</p>
-                  <p className="text-[10px] text-slate-600 mt-0.5">Visez une étiquette avec votre douchette</p>
+                <div className="h-full flex items-center justify-center text-xs text-slate-500 italic text-center p-4">
+                  En attente du premier coup de douchette...
                 </div>
               ) : (
-                logs.slice(0, 15).map((log) => (
+                logs.map((log) => (
                   <div
                     key={log.id}
                     className={`p-2 rounded-xl border text-xs font-mono flex items-start justify-between gap-2 transition-all ${
@@ -522,7 +523,7 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
             </div>
           </div>
 
-          {/* Quick Stock Status Card */}
+          {/* Quick Stock ERP Card */}
           <div className="bg-slate-900 rounded-3xl p-4 border border-slate-800 shadow-xl flex flex-col h-[280px]">
             <div className="flex items-center justify-between pb-2.5 border-b border-slate-800 shrink-0">
               <span className="text-xs font-bold font-mono text-slate-200 uppercase">Aperçu Stock Réel (ERP)</span>
@@ -530,7 +531,7 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
             </div>
 
             <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60 pt-1 pr-1">
-              {inventory.slice(0, 5).map((it) => (
+              {inventory.slice(0, 6).map((it) => (
                 <div key={it.id} className="py-2 flex items-center justify-between text-xs">
                   <div>
                     <span className="font-semibold text-slate-200 block truncate max-w-[160px]">{it.name}</span>
@@ -551,6 +552,61 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Duo Name Edit Modal */}
+      {isDuoModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 rounded-3xl border border-slate-700 p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center space-x-2.5 text-white">
+              <Users className="w-5 h-5 text-indigo-400" />
+              <h3 className="text-base font-bold">Identité du Binôme (Duo Joueur)</h3>
+            </div>
+            <p className="text-xs text-slate-300">
+              Personnalisez les noms affichés sur le poste et sur l'écran TV en régie :
+            </p>
+
+            <form onSubmit={handleSaveDuo} className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Nom de l'Opérateur CEA (hôte) :</label>
+                <input
+                  type="text"
+                  value={ceaInput}
+                  onChange={(e) => setCeaInput(e.target.value)}
+                  placeholder="Ex: Pierre (Logistique)"
+                  className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-sm text-white font-semibold focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Nom du Client Invité :</label>
+                <input
+                  type="text"
+                  value={clientInput}
+                  onChange={(e) => setClientInput(e.target.value)}
+                  placeholder="Ex: Dr. Martin (LETI)"
+                  className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-sm text-white font-semibold focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDuoModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30"
+                >
+                  Valider le Duo
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

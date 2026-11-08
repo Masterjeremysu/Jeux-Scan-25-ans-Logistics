@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { ViewMode, InventoryItem, Mission, ScanLog, OperatorProfile, AppConfig } from './types';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { ViewMode, InventoryItem, Mission, ScanLog, OperatorProfile, AppConfig, DuoStation } from './types';
 import { INITIAL_INVENTORY } from './data/initialData';
 import { MISSIONS } from './data/missions';
 import { Header } from './components/Header';
@@ -7,11 +7,20 @@ import { PosteOperateurView } from './components/PosteOperateurView';
 import { StockERPView } from './components/StockERPView';
 import { PlancheEtiquettesView } from './components/PlancheEtiquettesView';
 import { PodiumView } from './components/PodiumView';
+import { ArenaTvView } from './components/ArenaTvView';
 import { AdminConfigView } from './components/AdminConfigView';
 import { DiplomeModal } from './components/DiplomeModal';
 import { barcodeListener } from './services/barcodeListener';
 import { soundService } from './services/soundService';
-import { submitScore, broadcastScan, loadAppConfig, subscribeToAppConfig } from './services/supabaseClient';
+import { 
+  submitScore, 
+  broadcastScan, 
+  loadAppConfig, 
+  subscribeToAppConfig,
+  getStationsLive,
+  updateStationLive,
+  subscribeToStationsLive
+} from './services/supabaseClient';
 
 let logCounter = 0;
 const generateUniqueLogId = () => `log-${Date.now()}-${++logCounter}-${Math.random().toString(36).slice(2, 7)}`;
@@ -34,6 +43,39 @@ export const App: React.FC = () => {
   const [shiftSecondsRemaining, setShiftSecondsRemaining] = useState<number>(300);
   const [isDiplomeOpen, setIsDiplomeOpen] = useState<boolean>(false);
 
+  // Duo & Multi-station States
+  const [stationId, setStationId] = useState<string>(() => localStorage.getItem('cea_station_id') || 'poste-1');
+  const [stationName, setStationName] = useState<string>(() => localStorage.getItem('cea_station_name') || 'Poste 1 (Scannette A)');
+  const [operatorCea, setOperatorCea] = useState<string>(() => localStorage.getItem('cea_op_name') || 'Agent CEA');
+  const [clientGuest, setClientGuest] = useState<string>(() => localStorage.getItem('cea_client_name') || 'Client Invité');
+  const [combo, setCombo] = useState<number>(0);
+  const [liveStations, setLiveStations] = useState<DuoStation[]>([]);
+
+  // Keep fresh references to avoid closure race conditions
+  const missionsRef = useRef(missions);
+  missionsRef.current = missions;
+  const currentMissionIndexRef = useRef(currentMissionIndex);
+  currentMissionIndexRef.current = currentMissionIndex;
+  const comboRef = useRef(combo);
+  comboRef.current = combo;
+  const stationIdRef = useRef(stationId);
+  stationIdRef.current = stationId;
+  const stationNameRef = useRef(stationName);
+  stationNameRef.current = stationName;
+  const operatorCeaRef = useRef(operatorCea);
+  operatorCeaRef.current = operatorCea;
+  const clientGuestRef = useRef(clientGuest);
+  clientGuestRef.current = clientGuest;
+
+  const [operator, setOperator] = useState<OperatorProfile>({
+    name: 'Duo ' + clientGuest,
+    companyOrRole: 'CEA 25 Ans',
+    score: 0,
+    completedMissions: 0,
+    accuracy: 100,
+    shiftDurationSeconds: 300
+  });
+
   // Load Remote / Custom App Config on startup
   useEffect(() => {
     async function initConfig() {
@@ -53,11 +95,16 @@ export const App: React.FC = () => {
           setInventory(stored.inventory);
         }
       }
+
+      const stList = await getStationsLive();
+      if (stList.length > 0) {
+        setLiveStations(stList);
+      }
     }
     initConfig();
 
     // Subscribe to live config updates from admin changes across stations
-    const unsub = subscribeToAppConfig((newCfg) => {
+    const unsubConfig = subscribeToAppConfig((newCfg) => {
       setAppConfig({
         eventTitle: newCfg.eventTitle,
         eventSubtitle: newCfg.eventSubtitle,
@@ -72,23 +119,24 @@ export const App: React.FC = () => {
       }
     });
 
-    return () => unsub();
+    // Subscribe to live stations updates
+    const unsubStations = subscribeToStationsLive((updatedStation) => {
+      setLiveStations((prev) => {
+        const idx = prev.findIndex((s) => s.station_id === updatedStation.station_id);
+        if (idx !== -1) {
+          const clone = [...prev];
+          clone[idx] = updatedStation;
+          return clone;
+        }
+        return [...prev, updatedStation];
+      });
+    });
+
+    return () => {
+      unsubConfig();
+      unsubStations();
+    };
   }, []);
-
-  // Keep fresh references to avoid closure race conditions
-  const missionsRef = React.useRef(missions);
-  missionsRef.current = missions;
-  const currentMissionIndexRef = React.useRef(currentMissionIndex);
-  currentMissionIndexRef.current = currentMissionIndex;
-
-  const [operator, setOperator] = useState<OperatorProfile>({
-    name: 'Invité d\'Honneur',
-    companyOrRole: 'Client CEA 25 Ans',
-    score: 0,
-    completedMissions: 0,
-    accuracy: 100,
-    shiftDurationSeconds: 300
-  });
 
   // Shift Timer Countdown
   useEffect(() => {
@@ -104,7 +152,36 @@ export const App: React.FC = () => {
     setTimeout(() => setFlashState(null), 400);
   };
 
-  // Handle barcode scanned by hardware douchette or simulated button (Clean & Pure)
+  // Station Select Handler
+  const handleSelectStation = (id: string, name: string) => {
+    setStationId(id);
+    setStationName(name);
+    localStorage.setItem('cea_station_id', id);
+    localStorage.setItem('cea_station_name', name);
+  };
+
+  // Duo Update Handler
+  const handleUpdateDuo = (cea: string, client: string) => {
+    setOperatorCea(cea);
+    setClientGuest(client);
+    localStorage.setItem('cea_op_name', cea);
+    localStorage.setItem('cea_client_name', client);
+    setOperator((prev) => ({
+      ...prev,
+      name: `Duo ${client}`,
+      companyOrRole: `Agent CEA: ${cea}`
+    }));
+
+    updateStationLive({
+      station_id: stationIdRef.current,
+      station_name: stationNameRef.current,
+      operator_cea: cea,
+      client_guest: client,
+      team_name: `Duo ${client}`
+    });
+  };
+
+  // Handle barcode scanned by hardware douchette or simulated button
   const handleBarcodeScanned = useCallback((code: string) => {
     const cleanedCode = code.trim();
     if (!cleanedCode) return;
@@ -124,7 +201,6 @@ export const App: React.FC = () => {
     const activeStepIndex = activeMission.steps.findIndex((s) => !s.completed);
 
     if (activeStepIndex === -1) {
-      // Mission already completed
       setLogs((prev) => [
         {
           id: generateUniqueLogId(),
@@ -145,6 +221,10 @@ export const App: React.FC = () => {
       triggerFlash('green');
       soundService.playSuccessChime();
 
+      // Update Combo
+      const newCombo = comboRef.current + 1;
+      setCombo(newCombo);
+
       // Update step status
       const updatedSteps = [...activeMission.steps];
       updatedSteps[activeStepIndex] = { ...activeStep, completed: true };
@@ -156,22 +236,46 @@ export const App: React.FC = () => {
 
       // Check if full mission completed
       const isMissionDone = updatedSteps.every((s) => s.completed);
+      const comboBonus = newCombo * 50;
+      const addedPoints = (isMissionDone ? activeMission.basePoints : 150) + comboBonus;
 
       setOperator((prev) => {
-        const nextScore = prev.score + (isMissionDone ? activeMission.basePoints : 150);
+        const nextScore = prev.score + addedPoints;
         const nextMissions = isMissionDone ? prev.completedMissions + 1 : prev.completedMissions;
 
         // Auto-sync completed mission to Supabase
         if (isMissionDone) {
           submitScore({
-            name: prev.name || 'Invité 25 Ans',
-            company: prev.companyOrRole || 'CEA Grenoble',
+            name: `${clientGuestRef.current} (Duo avec ${operatorCeaRef.current})`,
+            company: 'CEA 25 Ans',
             score: nextScore,
             time_spent: '02:00',
             completed_missions: nextMissions,
-            accuracy: prev.accuracy || 100
+            accuracy: 100
           }).catch(() => {});
         }
+
+        // Live Station progress update to Supabase
+        const progressPct = Math.round(
+          (updatedSteps.filter((s) => s.completed).length / updatedSteps.length) * 100
+        );
+
+        updateStationLive({
+          station_id: stationIdRef.current,
+          station_name: stationNameRef.current,
+          operator_cea: operatorCeaRef.current,
+          client_guest: clientGuestRef.current,
+          team_name: `Duo ${clientGuestRef.current}`,
+          current_mission_title: activeMission.title,
+          progress_percent: progressPct,
+          current_step_index: activeStepIndex + 1,
+          total_steps: updatedSteps.length,
+          score: nextScore,
+          combo: newCombo,
+          status: isMissionDone ? 'completed' : 'in_progress',
+          last_scan_code: cleanedCode,
+          last_scan_status: 'valid'
+        });
 
         return {
           ...prev,
@@ -182,11 +286,11 @@ export const App: React.FC = () => {
 
       // Broadcast scan activity to Supabase Realtime
       broadcastScan({
-        station_name: 'Poste Opérateur',
-        operator_name: operator.name || 'Invité 25 Ans',
+        station_name: stationNameRef.current,
+        operator_name: `${clientGuestRef.current} (avec ${operatorCeaRef.current})`,
         barcode: cleanedCode,
         action_type: 'VALID_SCAN',
-        message: `✓ Étape ${activeStepIndex + 1} : ${activeStep.targetLabel}`,
+        message: `✓ Étape ${activeStepIndex + 1} : ${activeStep.targetLabel} (+${addedPoints} pts)`,
         status: 'valid'
       }).catch(() => {});
 
@@ -218,7 +322,7 @@ export const App: React.FC = () => {
           timestamp,
           barcode: cleanedCode,
           status: 'valid',
-          message: `✓ Étape ${activeStepIndex + 1} validée : ${activeStep.targetLabel}`
+          message: `✓ Étape ${activeStepIndex + 1} validée : ${activeStep.targetLabel} (Combo x${newCombo})`
         },
         ...prev
       ]);
@@ -226,10 +330,18 @@ export const App: React.FC = () => {
       // MISMATCH! Invalid scan
       triggerFlash('red');
       soundService.playErrorBuzz();
+      setCombo(0);
+
+      updateStationLive({
+        station_id: stationIdRef.current,
+        combo: 0,
+        last_scan_code: cleanedCode,
+        last_scan_status: 'invalid'
+      });
 
       broadcastScan({
-        station_name: 'Poste Opérateur',
-        operator_name: operator.name || 'Invité 25 Ans',
+        station_name: stationNameRef.current,
+        operator_name: `${clientGuestRef.current} (avec ${operatorCeaRef.current})`,
         barcode: cleanedCode,
         action_type: 'INVALID_SCAN',
         message: `✗ Erreur scan (${cleanedCode})`,
@@ -285,12 +397,20 @@ export const App: React.FC = () => {
       };
       return updated;
     });
+    setCombo(0);
     soundService.playScanBeep();
+
+    updateStationLive({
+      station_id: stationIdRef.current,
+      progress_percent: 0,
+      current_step_index: 0,
+      combo: 0,
+      status: 'in_progress'
+    });
   };
 
   // Start new shift for a new guest
   const handleStartNewShift = () => {
-    // Reset completed steps for current missions without losing custom configured missions
     setMissions((prev) =>
       prev.map((m) => ({
         ...m,
@@ -298,20 +418,30 @@ export const App: React.FC = () => {
       }))
     );
     setShiftSecondsRemaining(appConfig.shiftDurationSeconds);
+    setCombo(0);
     setOperator((prev) => ({
       ...prev,
       score: 0,
       completedMissions: 0,
-      name: 'Nouvel Invité',
-      companyOrRole: 'Invité 25 Ans'
+      name: `Duo ${clientGuest}`,
+      companyOrRole: `Agent CEA: ${operatorCea}`
     }));
     setLogs([]);
     setCurrentView('kiosk');
     soundService.playSuccessChime();
+
+    updateStationLive({
+      station_id: stationIdRef.current,
+      progress_percent: 0,
+      current_step_index: 0,
+      score: 0,
+      combo: 0,
+      status: 'idle'
+    });
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       {/* Top Header */}
       <Header
         currentView={currentView}
@@ -337,7 +467,19 @@ export const App: React.FC = () => {
             inventory={inventory}
             lastScannedCode={lastScannedCode}
             flashState={flashState}
+            stationId={stationId}
+            stationName={stationName}
+            onSelectStation={handleSelectStation}
+            operatorCea={operatorCea}
+            clientGuest={clientGuest}
+            onUpdateDuo={handleUpdateDuo}
+            combo={combo}
+            liveStations={liveStations}
           />
+        )}
+
+        {currentView === 'arena' && (
+          <ArenaTvView appConfig={appConfig} />
         )}
 
         {currentView === 'erp' && (

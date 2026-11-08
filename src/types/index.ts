@@ -1,4 +1,22 @@
-export type ViewMode = 'kiosk' | 'erp' | 'print' | 'podium' | 'admin';
+export type ViewMode = 'kiosk' | 'erp' | 'print' | 'podium' | 'arena' | 'admin';
+
+export interface DuoStation {
+  station_id: string;
+  station_name: string;
+  operator_cea: string;
+  client_guest: string;
+  team_name: string;
+  current_mission_title: string;
+  progress_percent: number;
+  current_step_index: number;
+  total_steps: number;
+  score: number;
+  combo: number;
+  status: 'idle' | 'in_progress' | 'completed';
+  last_scan_code?: string;
+  last_scan_status?: string;
+  updated_at?: string;
+}
 
 export interface AppConfig {
   eventTitle: string;
