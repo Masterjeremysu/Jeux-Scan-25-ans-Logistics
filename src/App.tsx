@@ -18,6 +18,7 @@ import {
   submitScore, 
   broadcastScan, 
   loadAppConfig, 
+  saveAppConfig,
   subscribeToAppConfig,
   getStationsLive,
   updateStationLive,
@@ -649,12 +650,34 @@ export const App: React.FC = () => {
   };
 
   // Manual stock update in ERP view
-  const handleUpdateQuantity = (id: string, delta: number) => {
-    setInventory((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item
-      )
+  const handleUpdateQuantity = async (id: string, delta: number) => {
+    const updated = inventory.map((item) =>
+      item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item
     );
+    setInventory(updated);
+    try {
+      await saveAppConfig({
+        ...appConfig,
+        missions,
+        inventory: updated
+      });
+    } catch (e) {
+      console.warn('Failed to save quantity update to Supabase:', e);
+    }
+  };
+
+  // Full stock update (from ERP or Admin) with cloud & local persistence
+  const handleUpdateInventory = async (newInv: InventoryItem[]) => {
+    setInventory(newInv);
+    try {
+      await saveAppConfig({
+        ...appConfig,
+        missions,
+        inventory: newInv
+      });
+    } catch (e) {
+      console.warn('Failed to save inventory to Supabase:', e);
+    }
   };
 
   // Reset current mission
@@ -912,6 +935,7 @@ export const App: React.FC = () => {
           <StockERPView
             inventory={inventory}
             onUpdateQuantity={handleUpdateQuantity}
+            onUpdateInventory={handleUpdateInventory}
           />
         )}
 

@@ -80,6 +80,23 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
   const [selectedMissionIndex, setSelectedMissionIndex] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Synchronisation avec les props quand les données distantes Supabase sont chargées
+  useEffect(() => {
+    if (inventory && inventory.length > 0) {
+      setLocalInventory(inventory);
+    }
+  }, [inventory]);
+
+  useEffect(() => {
+    if (missions && missions.length > 0) {
+      setLocalMissions(missions);
+    }
+  }, [missions]);
+
+  useEffect(() => {
+    setLocalConfig(appConfig);
+  }, [appConfig]);
+
   // Hazards & Distractions States
   const [distractions, setDistractions] = useState<Distraction[]>([]);
   const [targetStationForHazard, setTargetStationForHazard] = useState<string>('all');
@@ -197,6 +214,25 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
       setSaveStatus('✓ Configuration enregistrée dans Supabase et synchronisée sur tous les postes !');
     } else {
       setSaveStatus('✓ Enregistré localement (hors-ligne)');
+    }
+    setTimeout(() => setSaveStatus(null), 3500);
+  };
+
+  // Enregistrement dédié des articles du Stock
+  const handleSaveInventory = async () => {
+    setSaveStatus('Enregistrement des articles du stock...');
+    onUpdateInventory(localInventory);
+
+    const success = await saveAppConfig({
+      ...localConfig,
+      missions: localMissions,
+      inventory: localInventory
+    });
+
+    if (success) {
+      setSaveStatus('✓ Stock & Articles enregistrés dans Supabase et synchronisés en direct !');
+    } else {
+      setSaveStatus('✓ Stock enregistré localement (hors-ligne)');
     }
     setTimeout(() => setSaveStatus(null), 3500);
   };
@@ -1266,7 +1302,14 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
               </p>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handleSaveInventory}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-black flex items-center space-x-1.5 shadow-lg shadow-emerald-500/25 cursor-pointer transition-all"
+              >
+                <Save className="w-4 h-4" />
+                <span>Enregistrer le Stock</span>
+              </button>
               <button
                 onClick={handleLoadCeaTemplate}
                 className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
@@ -1475,6 +1518,20 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Bottom Action Bar for Stock Save */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800">
+            <span className="text-xs text-slate-400 font-mono">
+              Total : <strong className="text-white">{localInventory.length}</strong> articles enregistrés dans le catalogue
+            </span>
+            <button
+              onClick={handleSaveInventory}
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-black flex items-center space-x-2 shadow-lg shadow-emerald-500/25 cursor-pointer transition-all"
+            >
+              <Save className="w-4 h-4" />
+              <span>Enregistrer & Synchroniser le Stock dans Supabase</span>
+            </button>
           </div>
         </div>
       )}
