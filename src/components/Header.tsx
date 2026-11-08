@@ -170,6 +170,15 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </button>
 
+        {/* Live Realtime Cloud & Multi-tab Pulse */}
+        <div 
+          className="hidden xl:flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-emerald-950/50 border border-emerald-500/40 text-[10px] font-mono text-emerald-400 font-bold select-none"
+          title="Synchronisation temps réel active (Supabase Cloud + Multi-onglets 0ms)"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>TEMPS RÉEL ACTIF</span>
+        </div>
+
         {/* Audio Toggle */}
         <button
           onClick={onToggleSound}

@@ -97,6 +97,30 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     setLocalConfig(appConfig);
   }, [appConfig]);
 
+  // Auto-Save debounced en temps réel : toute modification se propage automatiquement à tous les écrans
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      onUpdateAppConfig(localConfig);
+      onUpdateMissions(localMissions);
+      onUpdateInventory(localInventory);
+      saveAppConfig({
+        ...localConfig,
+        missions: localMissions,
+        inventory: localInventory
+      });
+      setSaveStatus('✓ Synchronisé en temps réel sur tous les écrans');
+      setTimeout(() => setSaveStatus(null), 2000);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [localConfig, localMissions, localInventory]);
+
   // Hazards & Distractions States
   const [distractions, setDistractions] = useState<Distraction[]>([]);
   const [targetStationForHazard, setTargetStationForHazard] = useState<string>('all');

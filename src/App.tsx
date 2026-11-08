@@ -14,6 +14,7 @@ import { ZebraPlayView } from './components/ZebraPlayView';
 import { HomeLauncherView } from './components/HomeLauncherView';
 import { barcodeListener } from './services/barcodeListener';
 import { soundService } from './services/soundService';
+import { broadcastLocalRealtime, subscribeToLocalRealtime } from './services/realtimeSyncService';
 import { 
   submitScore, 
   broadcastScan, 
@@ -257,10 +258,24 @@ export const App: React.FC = () => {
       }
     });
 
+    // Subscribe to instant local inter-tab bus (0ms)
+    const unsubLocal = subscribeToLocalRealtime((msg) => {
+      if (msg.type === 'INVENTORY_UPDATED' && Array.isArray(msg.payload)) {
+        setInventory(msg.payload);
+      } else if (msg.type === 'MISSIONS_UPDATED' && Array.isArray(msg.payload)) {
+        setMissions(msg.payload);
+      } else if (msg.type === 'CONFIG_UPDATED' && msg.payload) {
+        setAppConfig((prev) => ({ ...prev, ...msg.payload }));
+      } else if (msg.type === 'STATIONS_UPDATED' && Array.isArray(msg.payload)) {
+        setLiveStations(msg.payload);
+      }
+    });
+
     return () => {
       unsubConfig();
       unsubStations();
       unsubHazards();
+      unsubLocal();
     };
   }, []);
 
@@ -655,6 +670,7 @@ export const App: React.FC = () => {
       item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item
     );
     setInventory(updated);
+    broadcastLocalRealtime('INVENTORY_UPDATED', updated);
     try {
       await saveAppConfig({
         ...appConfig,
@@ -669,6 +685,7 @@ export const App: React.FC = () => {
   // Full stock update (from ERP or Admin) with cloud & local persistence
   const handleUpdateInventory = async (newInv: InventoryItem[]) => {
     setInventory(newInv);
+    broadcastLocalRealtime('INVENTORY_UPDATED', newInv);
     try {
       await saveAppConfig({
         ...appConfig,
@@ -677,6 +694,36 @@ export const App: React.FC = () => {
       });
     } catch (e) {
       console.warn('Failed to save inventory to Supabase:', e);
+    }
+  };
+
+  // Full missions update with cloud & local persistence
+  const handleUpdateMissions = async (newMissions: Mission[]) => {
+    setMissions(newMissions);
+    broadcastLocalRealtime('MISSIONS_UPDATED', newMissions);
+    try {
+      await saveAppConfig({
+        ...appConfig,
+        missions: newMissions,
+        inventory
+      });
+    } catch (e) {
+      console.warn('Failed to save missions to Supabase:', e);
+    }
+  };
+
+  // Full app config update with cloud & local persistence
+  const handleUpdateAppConfig = async (newConfig: AppConfig) => {
+    setAppConfig(newConfig);
+    broadcastLocalRealtime('CONFIG_UPDATED', newConfig);
+    try {
+      await saveAppConfig({
+        ...newConfig,
+        missions,
+        inventory
+      });
+    } catch (e) {
+      console.warn('Failed to save app config to Supabase:', e);
     }
   };
 
@@ -960,11 +1007,11 @@ export const App: React.FC = () => {
         {currentView === 'admin' && (
           <AdminConfigView
             appConfig={appConfig}
-            onUpdateAppConfig={setAppConfig}
+            onUpdateAppConfig={handleUpdateAppConfig}
             missions={missions}
-            onUpdateMissions={setMissions}
+            onUpdateMissions={handleUpdateMissions}
             inventory={inventory}
-            onUpdateInventory={setInventory}
+            onUpdateInventory={handleUpdateInventory}
           />
         )}
       </main>

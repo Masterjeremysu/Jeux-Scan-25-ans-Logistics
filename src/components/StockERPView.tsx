@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { InventoryItem } from '../types';
 import { 
   Search, 
@@ -37,6 +37,26 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
       setLocalItems(inventory);
     }
   }, [inventory, isEditMode]);
+
+  // Auto-synchronisation debounced : propage immédiatement toutes les frappes de l'utilisateur
+  const isInitialERP = useRef(true);
+  useEffect(() => {
+    if (isInitialERP.current) {
+      isInitialERP.current = false;
+      return;
+    }
+    if (!isEditMode) return;
+
+    const timer = setTimeout(() => {
+      if (onUpdateInventory) {
+        onUpdateInventory(localItems);
+      }
+      setSaveStatus('✓ Modifications synchronisées en direct');
+      setTimeout(() => setSaveStatus(null), 2000);
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [localItems, isEditMode, onUpdateInventory]);
 
   const filtered = localItems.filter((item) => {
     const matchesSearch = 
