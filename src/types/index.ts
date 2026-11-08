@@ -1,4 +1,4 @@
-export type ViewMode = 'kiosk' | 'erp' | 'print' | 'podium' | 'arena' | 'admin';
+export type ViewMode = 'kiosk' | 'erp' | 'print' | 'podium' | 'arena' | 'admin' | 'play';
 
 export interface DuoStation {
   station_id: string;

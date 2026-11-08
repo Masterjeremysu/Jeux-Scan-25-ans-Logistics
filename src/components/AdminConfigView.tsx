@@ -31,7 +31,11 @@ import {
   Send,
   Building,
   ShieldAlert,
-  CheckCircle2
+  CheckCircle2,
+  Swords,
+  QrCode,
+  ExternalLink,
+  Smartphone
 } from 'lucide-react';
 import { 
   saveAppConfig, 
@@ -40,7 +44,8 @@ import {
   fetchDistractions,
   saveDistraction,
   deleteDistraction,
-  triggerLiveHazard
+  triggerLiveHazard,
+  updateStationLive
 } from '../services/supabaseClient';
 import { INITIAL_INVENTORY } from '../data/initialData';
 import { MISSIONS } from '../data/missions';
@@ -85,6 +90,54 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     points_bonus: 600,
     is_active: true
   });
+
+  // Match & Zebra QR Launch States
+  const [duo1Cea, setDuo1Cea] = useState('Agent CEA 1');
+  const [duo1Client, setDuo1Client] = useState('Invité 1');
+  const [duo2Cea, setDuo2Cea] = useState('Agent CEA 2');
+  const [duo2Client, setDuo2Client] = useState('Invité 2');
+  const [showMatchQRs, setShowMatchQRs] = useState(false);
+  const [matchSeed, setMatchSeed] = useState<number>(Date.now());
+
+  const baseUrl = (localConfig.publicUrl || 'https://jeux-scan-25-ans-logistics.vercel.app').replace(/\/$/, '');
+
+  const handleLaunchMatch = async () => {
+    setSaveStatus('Création du match et synchronisation des postes...');
+    const seed = Date.now();
+    setMatchSeed(seed);
+
+    // Sync Duo 1 to Supabase
+    await updateStationLive({
+      station_id: 'poste-1',
+      station_name: 'Poste 1 (Scannette A)',
+      operator_cea: duo1Cea.trim() || 'Agent CEA 1',
+      client_guest: duo1Client.trim() || 'Invité 1',
+      team_name: `Duo ${duo1Client.trim() || 'Invité 1'}`,
+      score: 0,
+      combo: 0,
+      progress_percent: 0,
+      current_step_index: 0,
+      status: 'idle'
+    });
+
+    // Sync Duo 2 to Supabase
+    await updateStationLive({
+      station_id: 'poste-2',
+      station_name: 'Poste 2 (Scannette B)',
+      operator_cea: duo2Cea.trim() || 'Agent CEA 2',
+      client_guest: duo2Client.trim() || 'Invité 2',
+      team_name: `Duo ${duo2Client.trim() || 'Invité 2'}`,
+      score: 0,
+      combo: 0,
+      progress_percent: 0,
+      current_step_index: 0,
+      status: 'idle'
+    });
+
+    setShowMatchQRs(true);
+    setSaveStatus('✓ Match configuré ! Présentez les 2 QR Codes aux terminaux Zebra.');
+    setTimeout(() => setSaveStatus(null), 4000);
+  };
 
   // Load distractions on mount
   useEffect(() => {
@@ -439,6 +492,171 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
           <span>{saveStatus}</span>
         </div>
       )}
+
+      {/* MATCH & ZEBRA QR DISPATCHER */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950/60 to-slate-900 rounded-3xl p-5 sm:p-6 border-2 border-indigo-500/40 shadow-2xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-600/30 border border-indigo-400/40 flex items-center justify-center text-indigo-400">
+              <Swords className="w-5 h-5 text-indigo-300 animate-bounce" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-white flex items-center space-x-2">
+                <span>RÉGIE MATCH : DÉPART DUEL & GÉNÉRATEUR QR CODES ZEBRA</span>
+              </h3>
+              <p className="text-xs text-slate-300">
+                Saisissez les prénoms des joueurs, validez, et faites scanner les QR Codes générés par chaque terminal Zebra.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 shrink-0">
+            <button
+              onClick={() => window.open(`${baseUrl}/#tv`, '_blank')}
+              className="px-4 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-sky-400 border border-sky-500/40 text-xs font-mono font-bold flex items-center space-x-1.5 transition-colors cursor-pointer"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Ouvrir Arène TV 55"</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Duo Inputs Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Duo 1 (Poste 1 - Bleu) */}
+          <div className="bg-slate-950/80 p-4 rounded-2xl border-2 border-sky-500/40 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black font-mono text-sky-400 uppercase flex items-center space-x-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block"></span>
+                <span>Duo 1 • Poste 1 (Scannette A - Bleu)</span>
+              </span>
+              <span className="text-[10px] font-mono text-slate-400">Étagère 1 / Quai A</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">Nom Agent CEA :</label>
+                <input
+                  type="text"
+                  value={duo1Cea}
+                  onChange={(e) => setDuo1Cea(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-white"
+                  placeholder="Ex: Thomas"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">Nom Invité :</label>
+                <input
+                  type="text"
+                  value={duo1Client}
+                  onChange={(e) => setDuo1Client(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-white font-bold"
+                  placeholder="Ex: Sarah"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Duo 2 (Poste 2 - Orange) */}
+          <div className="bg-slate-950/80 p-4 rounded-2xl border-2 border-amber-500/40 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black font-mono text-amber-400 uppercase flex items-center space-x-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
+                <span>Duo 2 • Poste 2 (Scannette B - Orange)</span>
+              </span>
+              <span className="text-[10px] font-mono text-slate-400">Étagère 2 / Quai B</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">Nom Agent CEA :</label>
+                <input
+                  type="text"
+                  value={duo2Cea}
+                  onChange={(e) => setDuo2Cea(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-white"
+                  placeholder="Ex: Julien"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">Nom Invité :</label>
+                <input
+                  type="text"
+                  value={duo2Client}
+                  onChange={(e) => setDuo2Client(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-white font-bold"
+                  placeholder="Ex: Marc"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Button: Create Match */}
+        <button
+          onClick={handleLaunchMatch}
+          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm flex items-center justify-center space-x-2 shadow-xl shadow-emerald-500/30 transition-transform active:scale-[0.99] cursor-pointer"
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>⚡ CRÉER LE MATCH & GÉNÉRER LES QR CODES ZEBRA</span>
+        </button>
+
+        {/* Generated QR Codes Display */}
+        {showMatchQRs && (
+          <div className="bg-slate-950/90 p-5 rounded-2xl border border-indigo-500/50 space-y-3 animate-fadeIn">
+            <div className="text-center">
+              <span className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider block">
+                ✓ ACCÈS ZEBRA ACTIVÉS • FAITES SCANNER CHAQUE TERMINAL :
+              </span>
+              <p className="text-[11px] text-slate-300">
+                Ces QR Codes ouvrent directement l'écran de jeu pur (sans barre d'outils ni paramètres) avec les missions assignées.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto">
+              {/* QR Duo 1 */}
+              <div className="bg-slate-900 p-4 rounded-2xl border-2 border-sky-500/50 flex flex-col items-center text-center space-y-2">
+                <span className="text-xs font-black font-mono text-sky-400 uppercase">
+                  📱 ZEBRA 1 (BLEU)
+                </span>
+                <span className="text-[11px] font-bold text-white">
+                  Duo {duo1Client}
+                </span>
+                <div className="bg-white p-2.5 rounded-2xl shadow-xl">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(`${baseUrl}/#play?station=poste-1&seed=${matchSeed}`)}`}
+                    alt="QR Zebra 1"
+                    className="w-32 h-32"
+                  />
+                </div>
+                <span className="text-[9px] text-slate-400 font-mono">
+                  Mission : Étagère 1 • Quai A
+                </span>
+              </div>
+
+              {/* QR Duo 2 */}
+              <div className="bg-slate-900 p-4 rounded-2xl border-2 border-amber-500/50 flex flex-col items-center text-center space-y-2">
+                <span className="text-xs font-black font-mono text-amber-400 uppercase">
+                  📱 ZEBRA 2 (ORANGE)
+                </span>
+                <span className="text-[11px] font-bold text-white">
+                  Duo {duo2Client}
+                </span>
+                <div className="bg-white p-2.5 rounded-2xl shadow-xl">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(`${baseUrl}/#play?station=poste-2&seed=${matchSeed}`)}`}
+                    alt="QR Zebra 2"
+                    className="w-32 h-32"
+                  />
+                </div>
+                <span className="text-[9px] text-slate-400 font-mono">
+                  Mission : Étagère 2 • Quai B
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Navigation Tabs (Fully Responsive) */}
       <div className="flex space-x-1.5 bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800 overflow-x-auto scrollbar-none shrink-0">

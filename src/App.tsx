@@ -10,6 +10,7 @@ import { PodiumView } from './components/PodiumView';
 import { ArenaTvView } from './components/ArenaTvView';
 import { AdminConfigView } from './components/AdminConfigView';
 import { DiplomeModal } from './components/DiplomeModal';
+import { ZebraPlayView } from './components/ZebraPlayView';
 import { barcodeListener } from './services/barcodeListener';
 import { soundService } from './services/soundService';
 import { 
@@ -31,10 +32,24 @@ let logCounter = 0;
 const generateUniqueLogId = () => `log-${Date.now()}-${++logCounter}-${Math.random().toString(36).slice(2, 7)}`;
 
 const parseInitialRoute = (): { view: ViewMode; stationId?: string; stationName?: string } => {
-  const hash = window.location.hash.replace('#', '').toLowerCase();
-  const search = new URLSearchParams(window.location.search);
+  const rawHash = window.location.hash.replace('#', '');
+  const hash = rawHash.split('?')[0].toLowerCase();
+  
+  // Extract search params from either window.location.search or inside hash (e.g. #play?station=poste-1)
+  const hashQuery = rawHash.includes('?') ? rawHash.split('?')[1] : '';
+  const search = new URLSearchParams(window.location.search || hashQuery);
   const qView = (search.get('view') || '').toLowerCase();
   const qStation = (search.get('station') || '').toLowerCase();
+
+  const isPlay = hash.includes('play') || qView === 'play' || hash.startsWith('zebra');
+  if (isPlay) {
+    const targetStation = qStation || (hash.includes('poste-2') || hash.includes('zebra-2') ? 'poste-2' : hash.includes('poste-3') ? 'poste-3' : 'poste-1');
+    return {
+      view: 'play',
+      stationId: targetStation,
+      stationName: targetStation === 'poste-2' ? 'Poste 2 (Scannette B)' : targetStation === 'poste-3' ? 'Poste 3 (Zebra Scan)' : 'Poste 1 (Scannette A)'
+    };
+  }
 
   const target = hash || qView || qStation;
 
@@ -196,6 +211,24 @@ export const App: React.FC = () => {
         }
         return [...prev, updatedStation];
       });
+
+      // If this update is for this terminal, sync identity and match reset
+      if (updatedStation.station_id === stationIdRef.current) {
+        if (updatedStation.operator_cea) setOperatorCea(updatedStation.operator_cea);
+        if (updatedStation.client_guest) setClientGuest(updatedStation.client_guest);
+        if (updatedStation.status === 'idle') {
+          // Admin launched a new match!
+          setCurrentMissionIndex(0);
+          setCombo(0);
+          setShiftSecondsRemaining(appConfig.shiftDurationSeconds || 180);
+          setOperator((prev) => ({
+            ...prev,
+            score: 0,
+            completedMissions: 0,
+            name: updatedStation.team_name || `Duo ${updatedStation.client_guest}`
+          }));
+        }
+      }
     });
 
     // Subscribe to live hazards & unannounced emergencies
@@ -679,6 +712,40 @@ export const App: React.FC = () => {
       status: 'idle'
     });
   };
+
+  // DEDICATED HANDHELD ZEBRA PURE GAME MODE (NO HEADER, NO ADMIN/ERP TABS, LOCKED TO GAMEPLAY)
+  if (currentView === 'play') {
+    // Station 2 receives alternate/reversed missions so they target DIFFERENT shelves and products
+    const stationMissions = stationId === 'poste-2' ? missions.slice().reverse() : missions;
+
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+        <ZebraPlayView
+          stationId={stationId}
+          stationName={stationName}
+          operatorCea={operatorCea}
+          clientGuest={clientGuest}
+          score={operator.score}
+          combo={combo}
+          shiftSecondsRemaining={shiftSecondsRemaining}
+          missions={stationMissions}
+          currentMissionIndex={currentMissionIndex}
+          lastScannedCode={lastScannedCode}
+          flashState={flashState}
+          activeHazard={activeHazard}
+          hazardSecondsRemaining={hazardSecondsRemaining}
+          otherStations={liveStations}
+        />
+        {/* Celebration Diploma Modal */}
+        <DiplomeModal
+          isOpen={isDiplomeOpen}
+          onClose={() => setIsDiplomeOpen(false)}
+          operator={operator}
+          appConfig={appConfig}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
