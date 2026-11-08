@@ -1,5 +1,5 @@
 import React from 'react';
-import { ViewMode, OperatorProfile } from '../types';
+import { ViewMode, OperatorProfile, AppConfig } from '../types';
 import { 
   Barcode, 
   Boxes, 
@@ -11,7 +11,8 @@ import {
   Minimize2, 
   Clock, 
   User,
-  ShieldCheck
+  ShieldCheck,
+  Settings
 } from 'lucide-react';
 import { soundService } from '../services/soundService';
 
@@ -23,6 +24,7 @@ interface HeaderProps {
   onToggleSound: () => void;
   shiftSecondsRemaining: number;
   onOpenDiplome: () => void;
+  appConfig: AppConfig;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -32,7 +34,8 @@ export const Header: React.FC<HeaderProps> = ({
   soundEnabled,
   onToggleSound,
   shiftSecondsRemaining,
-  onOpenDiplome
+  onOpenDiplome,
+  appConfig
 }) => {
   const [isFullscreen, setIsFullscreen] = React.useState(false);
 
@@ -63,12 +66,12 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
         <div>
           <div className="flex items-center space-x-2">
-            <span className="text-base font-extrabold tracking-wide text-white">CEA GRENOBLE</span>
+            <span className="text-base font-extrabold tracking-wide text-white">{appConfig.eventTitle}</span>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
-              ÉDITION 25 ANS
+              {appConfig.badgeLabel}
             </span>
           </div>
-          <p className="text-xs text-slate-400 font-mono tracking-tight">WMS Industrial Terminal • Shift Challenge</p>
+          <p className="text-xs text-slate-400 font-mono tracking-tight">{appConfig.eventSubtitle}</p>
         </div>
       </div>
 
@@ -101,7 +104,7 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           <Boxes className="w-4 h-4" />
-          <span>Stocks & ERP Temps Réel</span>
+          <span>Stocks & ERP</span>
         </button>
 
         <button
@@ -116,7 +119,7 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           <Printer className="w-4 h-4" />
-          <span>Étiquettes à Imprimer</span>
+          <span>Planche Étiquettes</span>
         </button>
 
         <button
@@ -131,7 +134,23 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           <Trophy className="w-4 h-4" />
-          <span>Classement & Diplômes</span>
+          <span>Classement</span>
+        </button>
+
+        <button
+          onClick={() => {
+            soundService.playScanBeep();
+            onSelectView('admin');
+          }}
+          className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            currentView === 'admin'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+              : 'text-slate-400 hover:text-indigo-300 hover:bg-slate-800/60'
+          }`}
+          title="Panneau d'administration et configuration personnalisée"
+        >
+          <Settings className="w-4 h-4" />
+          <span>⚙️ Paramètres</span>
         </button>
       </nav>
 

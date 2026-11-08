@@ -1,14 +1,68 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import JsBarcode from 'jsbarcode';
+import { InventoryItem, Mission } from '../types';
 import { BARCODE_CATALOG } from '../data/initialData';
 import { Printer, Download, Sparkles, Scissors, Info } from 'lucide-react';
 
-export const PlancheEtiquettesView: React.FC = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
+interface PlancheEtiquettesViewProps {
+  inventory?: InventoryItem[];
+  missions?: Mission[];
+}
+
+export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
+  inventory,
+  missions
+}) => {
+  // Dynamically compute all barcodes needed from inventory and missions
+  const items = useMemo(() => {
+    if (!inventory || !missions) return BARCODE_CATALOG;
+
+    const map = new Map<string, { code: string; label: string; type: string }>();
+
+    // 1. Locations from inventory
+    inventory.forEach((item) => {
+      if (item.location && !map.has(item.location)) {
+        map.set(item.location, {
+          code: item.location,
+          label: `Emplacement ${item.location} (${item.name})`,
+          type: 'location'
+        });
+      }
+      if (item.sku && !map.has(item.sku)) {
+        map.set(item.sku, {
+          code: item.sku,
+          label: `${item.name} [${item.sku}]`,
+          type: 'article'
+        });
+      }
+    });
+
+    // 2. Mission steps
+    missions.forEach((m) => {
+      m.steps.forEach((s) => {
+        if (!map.has(s.expectedBarcode)) {
+          map.set(s.expectedBarcode, {
+            code: s.expectedBarcode,
+            label: s.targetLabel || s.expectedBarcode,
+            type: s.barcodeType || 'article'
+          });
+        }
+      });
+    });
+
+    // Merge with any base catalog items
+    BARCODE_CATALOG.forEach((bc) => {
+      if (!map.has(bc.code)) {
+        map.set(bc.code, bc);
+      }
+    });
+
+    return Array.from(map.values());
+  }, [inventory, missions]);
 
   useEffect(() => {
-    // Generate barcodes for all items in the catalog
-    BARCODE_CATALOG.forEach((item) => {
+    // Generate barcodes for all items in the computed catalog
+    items.forEach((item) => {
       const el = document.getElementById(`barcode-svg-${item.code}`);
       if (el) {
         try {
@@ -28,7 +82,7 @@ export const PlancheEtiquettesView: React.FC = () => {
         }
       }
     });
-  }, []);
+  }, [items]);
 
   const handlePrint = () => {
     window.print();
@@ -42,7 +96,7 @@ export const PlancheEtiquettesView: React.FC = () => {
           <div className="flex items-center space-x-2">
             <h2 className="text-xl font-extrabold text-white">PLANCHE D'ÉTIQUETTES CODE-BARRES À IMPRIMER</h2>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-              PRÊT POUR DOUCHETTE
+              {items.length} CODES GÉNÉRÉS
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
@@ -50,47 +104,41 @@ export const PlancheEtiquettesView: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-2 text-xs text-amber-300 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20">
-            <Scissors className="w-4 h-4 text-amber-400" />
-            <span>Format Code-128 Haute Lisibilité Laser</span>
-          </div>
-
-          <button
-            onClick={handlePrint}
-            className="flex items-center space-x-2 px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/30 transition-all"
-          >
-            <Printer className="w-4 h-4" />
-            <span>Lancer l'Impression A4 (Ctrl+P)</span>
-          </button>
-        </div>
+        <button
+          onClick={handlePrint}
+          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-sm shadow-lg shadow-amber-500/20 transition-all flex items-center space-x-2 cursor-pointer"
+        >
+          <Printer className="w-4 h-4" />
+          <span>Imprimer la Planche A4 (Ctrl+P)</span>
+        </button>
       </div>
 
-      {/* Printable Sheet (Standard A4 Grid) */}
+      {/* Printable Sheet (Standard A4 White Sheet) */}
       <div 
-        ref={containerRef}
-        className="bg-white text-black p-8 rounded-3xl shadow-2xl border border-slate-700 max-w-5xl mx-auto w-full print:border-none print:shadow-none print:p-0 print:max-w-none"
+        id="printable-sheet" 
+        className="bg-white text-slate-900 p-8 rounded-2xl shadow-2xl max-w-5xl mx-auto w-full print:m-0 print:p-2 print:shadow-none print:w-full"
       >
-        <div className="border-b-2 border-black pb-4 mb-6 flex justify-between items-end">
+        {/* Header of the sheet */}
+        <div className="border-b-2 border-gray-900 pb-4 mb-6 flex justify-between items-end">
           <div>
-            <h1 className="text-2xl font-black tracking-tight text-black">CEA GRENOBLE • MAGASIN LOGISTIQUE</h1>
-            <p className="text-xs text-gray-700 font-mono">Planche d'identification des colis, pièces et emplacements — Challenge 25 Ans</p>
+            <h1 className="text-2xl font-black text-gray-950 tracking-tight">CEA GRENOBLE • WMS & ERP LOGISTIQUE</h1>
+            <p className="text-xs text-gray-600 font-mono">Planche d'adressage et codes-barres réels Code-128 pour douchette USB</p>
           </div>
-          <div className="text-right text-xs font-mono text-gray-600">
-            Page 1/1 • Format A4
+          <div className="text-right font-mono text-xs text-gray-500">
+            <span>Événement 25 Ans • Format Standard A4</span>
           </div>
         </div>
 
-        {/* Barcode Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {BARCODE_CATALOG.map((item) => (
+        {/* Labels Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 print:grid-cols-3 print:gap-3">
+          {items.map((item) => (
             <div
               key={item.code}
-              className="border-2 border-dashed border-gray-400 p-3 rounded-lg flex flex-col items-center justify-between bg-white text-center page-break-inside-avoid relative"
+              className="border-2 border-dashed border-gray-400 p-3 rounded-lg flex flex-col items-center justify-between text-center bg-white print:border-gray-500 print:break-inside-avoid"
             >
               {/* Badge type */}
               <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-gray-100 text-gray-800 border border-gray-300 mb-1">
-                {item.type === 'location' ? '📍 EMPLACEMENT' : item.type === 'article' ? '📦 ARTICLE / PIÈCE' : item.type === 'package' ? '📫 COLIS CARTON' : '🔒 SCELLÉ'}
+                {item.type === 'location' ? '📍 EMPLACEMENT' : item.type === 'article' ? '📦 ARTICLE / PIÈCE' : item.type === 'package' ? '📫 COLIS CARTON' : item.type === 'seal' ? '🔒 SCELLÉ' : '⚓ QUAI'}
               </span>
 
               {/* Designation */}
@@ -110,7 +158,7 @@ export const PlancheEtiquettesView: React.FC = () => {
         </div>
 
         <div className="mt-8 pt-4 border-t border-gray-300 text-center text-xs text-gray-500 font-mono">
-          © CEA Grenoble 2026 • Système d'Adressage & Picking WMS v25.0
+          © CEA Grenoble • Système d'Adressage & Picking WMS v25.0
         </div>
       </div>
     </div>

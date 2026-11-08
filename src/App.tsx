@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ViewMode, InventoryItem, Mission, ScanLog, OperatorProfile } from './types';
+import { ViewMode, InventoryItem, Mission, ScanLog, OperatorProfile, AppConfig } from './types';
 import { INITIAL_INVENTORY } from './data/initialData';
 import { MISSIONS } from './data/missions';
 import { Header } from './components/Header';
@@ -7,10 +7,11 @@ import { PosteOperateurView } from './components/PosteOperateurView';
 import { StockERPView } from './components/StockERPView';
 import { PlancheEtiquettesView } from './components/PlancheEtiquettesView';
 import { PodiumView } from './components/PodiumView';
+import { AdminConfigView } from './components/AdminConfigView';
 import { DiplomeModal } from './components/DiplomeModal';
 import { barcodeListener } from './services/barcodeListener';
 import { soundService } from './services/soundService';
-import { submitScore, broadcastScan } from './services/supabaseClient';
+import { submitScore, broadcastScan, loadAppConfig, subscribeToAppConfig } from './services/supabaseClient';
 
 let logCounter = 0;
 const generateUniqueLogId = () => `log-${Date.now()}-${++logCounter}-${Math.random().toString(36).slice(2, 7)}`;
@@ -19,13 +20,60 @@ export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewMode>('kiosk');
   const [inventory, setInventory] = useState<InventoryItem[]>(INITIAL_INVENTORY);
   const [missions, setMissions] = useState<Mission[]>(MISSIONS);
+  const [appConfig, setAppConfig] = useState<AppConfig>({
+    eventTitle: 'CEA GRENOBLE',
+    eventSubtitle: 'WMS Industrial Terminal • Shift Challenge',
+    badgeLabel: 'ÉDITION 25 ANS',
+    shiftDurationSeconds: 300
+  });
   const [currentMissionIndex, setCurrentMissionIndex] = useState<number>(0);
   const [logs, setLogs] = useState<ScanLog[]>([]);
   const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
   const [flashState, setFlashState] = useState<'green' | 'red' | null>(null);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
-  const [shiftSecondsRemaining, setShiftSecondsRemaining] = useState<number>(300); // 5 minutes shift
+  const [shiftSecondsRemaining, setShiftSecondsRemaining] = useState<number>(300);
   const [isDiplomeOpen, setIsDiplomeOpen] = useState<boolean>(false);
+
+  // Load Remote / Custom App Config on startup
+  useEffect(() => {
+    async function initConfig() {
+      const stored = await loadAppConfig();
+      if (stored) {
+        setAppConfig({
+          eventTitle: stored.eventTitle,
+          eventSubtitle: stored.eventSubtitle,
+          badgeLabel: stored.badgeLabel,
+          shiftDurationSeconds: stored.shiftDurationSeconds
+        });
+        setShiftSecondsRemaining(stored.shiftDurationSeconds);
+        if (stored.missions && stored.missions.length > 0) {
+          setMissions(stored.missions);
+        }
+        if (stored.inventory && stored.inventory.length > 0) {
+          setInventory(stored.inventory);
+        }
+      }
+    }
+    initConfig();
+
+    // Subscribe to live config updates from admin changes across stations
+    const unsub = subscribeToAppConfig((newCfg) => {
+      setAppConfig({
+        eventTitle: newCfg.eventTitle,
+        eventSubtitle: newCfg.eventSubtitle,
+        badgeLabel: newCfg.badgeLabel,
+        shiftDurationSeconds: newCfg.shiftDurationSeconds
+      });
+      if (newCfg.missions && newCfg.missions.length > 0) {
+        setMissions(newCfg.missions);
+      }
+      if (newCfg.inventory && newCfg.inventory.length > 0) {
+        setInventory(newCfg.inventory);
+      }
+    });
+
+    return () => unsub();
+  }, []);
 
   // Keep fresh references to avoid closure race conditions
   const missionsRef = React.useRef(missions);
@@ -242,8 +290,14 @@ export const App: React.FC = () => {
 
   // Start new shift for a new guest
   const handleStartNewShift = () => {
-    setMissions(MISSIONS);
-    setShiftSecondsRemaining(300);
+    // Reset completed steps for current missions without losing custom configured missions
+    setMissions((prev) =>
+      prev.map((m) => ({
+        ...m,
+        steps: m.steps.map((st) => ({ ...st, completed: false }))
+      }))
+    );
+    setShiftSecondsRemaining(appConfig.shiftDurationSeconds);
     setOperator((prev) => ({
       ...prev,
       score: 0,
@@ -267,6 +321,7 @@ export const App: React.FC = () => {
         onToggleSound={toggleSound}
         shiftSecondsRemaining={shiftSecondsRemaining}
         onOpenDiplome={() => setIsDiplomeOpen(true)}
+        appConfig={appConfig}
       />
 
       {/* Main View Router */}
@@ -293,7 +348,10 @@ export const App: React.FC = () => {
         )}
 
         {currentView === 'print' && (
-          <PlancheEtiquettesView />
+          <PlancheEtiquettesView
+            inventory={inventory}
+            missions={missions}
+          />
         )}
 
         {currentView === 'podium' && (
@@ -303,6 +361,17 @@ export const App: React.FC = () => {
               setOperator((prev) => ({ ...prev, name, companyOrRole: company }));
             }}
             onStartNewShift={handleStartNewShift}
+          />
+        )}
+
+        {currentView === 'admin' && (
+          <AdminConfigView
+            appConfig={appConfig}
+            onUpdateAppConfig={setAppConfig}
+            missions={missions}
+            onUpdateMissions={setMissions}
+            inventory={inventory}
+            onUpdateInventory={setInventory}
           />
         )}
       </main>

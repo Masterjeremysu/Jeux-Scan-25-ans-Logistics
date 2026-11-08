@@ -1,4 +1,11 @@
-export type ViewMode = 'kiosk' | 'erp' | 'print' | 'podium';
+export type ViewMode = 'kiosk' | 'erp' | 'print' | 'podium' | 'admin';
+
+export interface AppConfig {
+  eventTitle: string;
+  eventSubtitle: string;
+  badgeLabel: string;
+  shiftDurationSeconds: number;
+}
 
 export interface InventoryItem {
   id: string;
