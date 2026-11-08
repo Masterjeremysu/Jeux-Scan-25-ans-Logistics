@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import JsBarcode from 'jsbarcode';
 import { InventoryItem, Mission, Distraction } from '../types';
 import { BARCODE_CATALOG } from '../data/initialData';
-import { Printer, Download, Sparkles, Scissors, Info } from 'lucide-react';
+import { Printer, Scissors, Filter, Sparkles, CheckCircle2 } from 'lucide-react';
 
 interface PlancheEtiquettesViewProps {
   inventory?: InventoryItem[];
@@ -15,8 +15,17 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
   missions,
   distractions
 }) => {
+  const [filterType, setFilterType] = useState<string>('all');
+
+  useEffect(() => {
+    document.body.classList.add('printing-labels');
+    return () => {
+      document.body.classList.remove('printing-labels');
+    };
+  }, []);
+
   // Dynamically compute all barcodes needed from inventory, missions and distractions
-  const items = useMemo(() => {
+  const allItems = useMemo(() => {
     if (!inventory || !missions) return BARCODE_CATALOG;
 
     const map = new Map<string, { code: string; label: string; type: string }>();
@@ -75,8 +84,13 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
     return Array.from(map.values());
   }, [inventory, missions, distractions]);
 
+  const items = useMemo(() => {
+    if (filterType === 'all') return allItems;
+    return allItems.filter((i) => i.type === filterType);
+  }, [allItems, filterType]);
+
   useEffect(() => {
-    // Generate barcodes for all items in the computed catalog
+    // Generate barcodes for all items currently rendered
     items.forEach((item) => {
       const el = document.getElementById(`barcode-svg-${item.code}`);
       if (el) {
@@ -84,8 +98,8 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
           JsBarcode(el, item.code, {
             format: 'CODE128',
             lineColor: '#000000',
-            width: 1.8,
-            height: 48,
+            width: 2.0,
+            height: 52,
             displayValue: true,
             fontSize: 13,
             font: 'monospace',
@@ -109,38 +123,79 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
       <div className="no-print bg-slate-900 rounded-2xl p-4 border border-slate-800 flex flex-wrap items-center justify-between gap-4 shadow-lg shrink-0">
         <div>
           <div className="flex items-center space-x-2">
-            <h2 className="text-xl font-extrabold text-white">PLANCHE D'ÉTIQUETTES CODE-BARRES À IMPRIMER</h2>
+            <h2 className="text-xl font-extrabold text-white">PLANCHE D'ÉTIQUETTES CODE-BARRES PHYSIQUES</h2>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-              {items.length} CODES GÉNÉRÉS
+              {items.length} CODES SÉLECTIONNÉS
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            Imprimez cette page sur papier A4, découpez les étiquettes et collez-les sur vos vrais cartons, tiroirs et pièces sur la table !
+            Imprimez cette planche sur papier blanc A4 standard, découpez les étiquettes et collez-les sur vos vrais cartons, tiroirs et pièces pour la douchette physique !
           </p>
         </div>
 
-        <button
-          onClick={handlePrint}
-          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-sm shadow-lg shadow-amber-500/20 transition-all flex items-center space-x-2 cursor-pointer"
-        >
-          <Printer className="w-4 h-4" />
-          <span>Imprimer la Planche A4 (Ctrl+P)</span>
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Quick Filter */}
+          <div className="flex items-center bg-slate-800 rounded-xl p-1 border border-slate-700 text-xs">
+            <button
+              onClick={() => setFilterType('all')}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                filterType === 'all' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Tous ({allItems.length})
+            </button>
+            <button
+              onClick={() => setFilterType('location')}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                filterType === 'location' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Emplacements
+            </button>
+            <button
+              onClick={() => setFilterType('article')}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                filterType === 'article' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Articles
+            </button>
+          </div>
+
+          <button
+            onClick={handlePrint}
+            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-sm shadow-lg shadow-amber-500/20 transition-all flex items-center space-x-2 cursor-pointer"
+          >
+            <Printer className="w-4 h-4" />
+            <span>Imprimer la Planche A4 (Ctrl+P)</span>
+          </button>
+        </div>
       </div>
 
       {/* Printable Sheet (Standard A4 White Sheet) */}
-      <div 
-        id="printable-sheet" 
-        className="bg-white text-slate-900 p-8 rounded-2xl shadow-2xl max-w-5xl mx-auto w-full print:m-0 print:p-2 print:shadow-none print:w-full"
+      <div
+        id="printable-sheet"
+        className="bg-white text-slate-900 p-8 rounded-2xl shadow-2xl max-w-5xl mx-auto w-full print:m-0 print:p-2 print:shadow-none print:w-full print:border-none"
       >
         {/* Header of the sheet */}
         <div className="border-b-2 border-gray-900 pb-4 mb-6 flex justify-between items-end">
           <div>
-            <h1 className="text-2xl font-black text-gray-950 tracking-tight">CEA GRENOBLE • WMS & ERP LOGISTIQUE</h1>
-            <p className="text-xs text-gray-600 font-mono">Planche d'adressage et codes-barres réels Code-128 pour douchette USB</p>
+            <div className="flex items-center space-x-2">
+              <span className="text-xs font-black uppercase tracking-widest text-amber-700 bg-amber-100 px-2 py-0.5 rounded border border-amber-300 font-mono">
+                GT LOGISTICS • ÉDITION 25 ANS
+              </span>
+              <span className="text-xs font-bold text-gray-500 font-mono">SITE CEA GRENOBLE</span>
+            </div>
+            <h1 className="text-2xl font-black text-gray-950 tracking-tight mt-1">
+              PLANCHE D'ADRESSAGE & CODES-BARRES RÉELS
+            </h1>
+            <p className="text-xs text-gray-600 font-mono">
+              Codes-barres Code-128 haute lisibilité pour douchette USB, pistolet laser et scannettes Zebra
+            </p>
           </div>
           <div className="text-right font-mono text-xs text-gray-500">
-            <span>Événement 25 Ans • Format Standard A4</span>
+            <span className="block font-bold text-gray-900">{items.length} Étiquettes</span>
+            <span>Format Standard A4 (Découpe manuelle)</span>
           </div>
         </div>
 
@@ -149,11 +204,19 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
           {items.map((item) => (
             <div
               key={item.code}
-              className="border-2 border-dashed border-gray-400 p-3 rounded-lg flex flex-col items-center justify-between text-center bg-white print:border-gray-500 print:break-inside-avoid"
+              className="border-2 border-dashed border-gray-400 p-3 rounded-lg flex flex-col items-center justify-between text-center bg-white print:border-gray-500 print:break-inside-avoid shadow-xs"
             >
               {/* Badge type */}
-              <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-gray-100 text-gray-800 border border-gray-300 mb-1">
-                {item.type === 'location' ? '📍 EMPLACEMENT' : item.type === 'article' ? '📦 ARTICLE / PIÈCE' : item.type === 'package' ? '📫 COLIS CARTON' : item.type === 'seal' ? '🔒 SCELLÉ' : '⚓ QUAI'}
+              <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-gray-100 text-gray-800 border border-gray-300 mb-1 font-mono">
+                {item.type === 'location'
+                  ? '📍 EMPLACEMENT / TIROIR'
+                  : item.type === 'article'
+                  ? '📦 ARTICLE / COMPOSANT'
+                  : item.type === 'package'
+                  ? '📫 COLIS CARTON'
+                  : item.type === 'seal'
+                  ? '⚡ SCELLÉ / ALÉA'
+                  : '⚓ QUAI EXPÉDITION'}
               </span>
 
               {/* Designation */}
@@ -162,18 +225,22 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
               </p>
 
               {/* Barcode SVG */}
-              <svg id={`barcode-svg-${item.code}`} className="max-w-full h-auto"></svg>
+              <div className="bg-white p-1 rounded border border-gray-200">
+                <svg id={`barcode-svg-${item.code}`} className="max-w-full h-auto"></svg>
+              </div>
 
               {/* Small cut indicator */}
-              <div className="text-[8px] text-gray-400 mt-1 uppercase font-mono">
-                ✂️ Découper le long des pointillés
+              <div className="text-[8px] text-gray-500 mt-2 uppercase font-mono flex items-center justify-center space-x-1">
+                <span>✂️</span>
+                <span>Ligne de coupe</span>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="mt-8 pt-4 border-t border-gray-300 text-center text-xs text-gray-500 font-mono">
-          © CEA Grenoble • Système d'Adressage & Picking WMS v25.0
+        <div className="mt-8 pt-4 border-t border-gray-300 flex justify-between items-center text-xs text-gray-500 font-mono">
+          <span>© GT Logistics • Système de Picking & Traçabilité Réseau</span>
+          <span>Édition Spéciale 25 Ans de Partenariat CEA</span>
         </div>
       </div>
     </div>

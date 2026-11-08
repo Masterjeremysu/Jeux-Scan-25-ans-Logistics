@@ -830,6 +830,9 @@ export const App: React.FC = () => {
           isOpen={isDiplomeOpen}
           onClose={() => setIsDiplomeOpen(false)}
           operator={operator}
+          collaboratorName={operatorCea}
+          guestName={clientGuest}
+          stationName={stationName}
           appConfig={appConfig}
         />
       </div>
@@ -947,6 +950,9 @@ export const App: React.FC = () => {
         isOpen={isDiplomeOpen}
         onClose={() => setIsDiplomeOpen(false)}
         operator={operator}
+        collaboratorName={operatorCea}
+        guestName={clientGuest}
+        stationName={stationName}
         appConfig={appConfig}
       />
     </div>

@@ -46,16 +46,96 @@
   background: #475569;
 }
 
-/* Print Styles for A4 barcode sheets */
+/* ============================================================
+   PRINT STYLES: DIPLÔME D'HONNEUR & PLANCHES D'ÉTIQUETTES A4
+   ============================================================ */
 @media print {
-  body {
-    background: white !important;
-    color: black !important;
+  /* Set standard high-fidelity print environment */
+  @page {
+    size: auto;
+    margin: 8mm;
   }
-  .no-print {
+
+  html, body {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Universal print hide */
+  .no-print,
+  header,
+  nav,
+  button,
+  .backdrop-blur-md {
     display: none !important;
   }
-  .print-only {
-    display: block !important;
+
+  /* ----------------------------------------------------
+     MODE DIPLÔME D'HONNEUR (A4 Landscape / Pleine Page)
+     Masque absolument TOUTE l'interface du jeu en arrière-plan
+     ---------------------------------------------------- */
+  body.diplome-print-mode {
+    background: #ffffff !important;
+    overflow: hidden !important;
+  }
+
+  body.diplome-print-mode * {
+    visibility: hidden !important;
+  }
+
+  body.diplome-print-mode #diplome-printable-card,
+  body.diplome-print-mode #diplome-printable-card * {
+    visibility: visible !important;
+  }
+
+  body.diplome-print-mode #diplome-printable-card {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 10mm !important;
+    box-sizing: border-box !important;
+    background: #ffffff !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    z-index: 9999999 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* ----------------------------------------------------
+     MODE PLANCHE D'ÉTIQUETTES (A4 Portrait / Haute Résolution)
+     Masque tous les contrôles et n'affiche que la planche
+     ---------------------------------------------------- */
+  body.printing-labels #printable-sheet,
+  body.printing-labels #printable-sheet * {
+    visibility: visible !important;
+  }
+
+  body.printing-labels #printable-sheet {
+    position: relative !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  body.printing-labels .no-print {
+    display: none !important;
   }
 }
