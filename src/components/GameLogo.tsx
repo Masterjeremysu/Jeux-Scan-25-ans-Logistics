@@ -22,8 +22,9 @@ export const GameLogo: React.FC<GameLogoProps> = ({
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [tempUrl, setTempUrl] = useState('');
 
-  // Priority: customLogoUrl prop -> localStorage -> default SVG branding
-  const activeLogoUrl = !imgError ? (customLogoUrl || localStorage.getItem('gt_cea_logo_url') || '/logo.png') : null;
+  // Utilise l'URL personnalisée si explicitement définie, sinon rendu vectoriel SVG GT/CEA (évite toute erreur 404 sur /logo.png)
+  const explicitUrl = customLogoUrl || (typeof window !== 'undefined' ? localStorage.getItem('gt_cea_logo_url') : null);
+  const activeLogoUrl = !imgError && explicitUrl && explicitUrl.trim() !== '' ? explicitUrl : null;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

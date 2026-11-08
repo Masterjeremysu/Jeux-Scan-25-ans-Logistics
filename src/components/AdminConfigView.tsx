@@ -77,7 +77,6 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
   const [localConfig, setLocalConfig] = useState<AppConfig>(appConfig);
   const [localMissions, setLocalMissions] = useState<Mission[]>(missions);
   const [localInventory, setLocalInventory] = useState<InventoryItem[]>(inventory);
-  const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [selectedMissionIndex, setSelectedMissionIndex] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -98,7 +97,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     setLocalConfig(appConfig);
   }, [appConfig]);
 
-  // Auto-Save debounced en temps réel : toute modification se propage automatiquement à tous les écrans
+  // Auto-Save debounced en temps réel : toute modification se propage automatiquement à tous les écrans sans saut d'affichage
   const isInitialMount = useRef(true);
   useEffect(() => {
     if (isInitialMount.current) {
@@ -115,8 +114,6 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         missions: localMissions,
         inventory: localInventory
       });
-      setSaveStatus('✓ Synchronisé en temps réel sur tous les écrans');
-      setTimeout(() => setSaveStatus(null), 2000);
     }, 600);
 
     return () => clearTimeout(timer);
@@ -176,7 +173,6 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
   const baseUrl = (localConfig.publicUrl || 'https://jeux-scan-25-ans-logistics.vercel.app').replace(/\/$/, '');
 
   const handleLaunchMatch = async () => {
-    setSaveStatus('Création du match et synchronisation des postes...');
     const seed = Date.now();
     setMatchSeed(seed);
 
@@ -209,8 +205,11 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     });
 
     setShowMatchQRs(true);
-    setSaveStatus('✓ Match configuré ! Présentez les 2 QR Codes aux terminaux Zebra.');
-    setTimeout(() => setSaveStatus(null), 4000);
+    showToast({
+      title: 'Match Configuré !',
+      message: 'Scannez les 2 QR Codes sur les terminaux Zebra pour démarrer le duel',
+      type: 'success'
+    });
   };
 
   // Load distractions on mount
@@ -224,7 +223,6 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
   // Save to Cloud and local state
   const handleSaveAll = async () => {
-    setSaveStatus('Sauvegarde dans Supabase en cours...');
     onUpdateAppConfig(localConfig);
     onUpdateMissions(localMissions);
     onUpdateInventory(localInventory);
@@ -236,21 +234,22 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     });
 
     if (success) {
-      setSaveStatus('✓ Configuration enregistrée dans Supabase et synchronisée sur tous les postes !');
       showToast({
         title: 'Configuration Enregistrée',
         message: 'Synchronisée dans Supabase et répercutée en direct',
         type: 'success'
       });
     } else {
-      setSaveStatus('✓ Enregistré localement (hors-ligne)');
+      showToast({
+        title: 'Enregistré localement',
+        message: 'Stocké dans le navigateur (mode hors-ligne)',
+        type: 'info'
+      });
     }
-    setTimeout(() => setSaveStatus(null), 3500);
   };
 
   // Enregistrement dédié des articles du Stock
   const handleSaveInventory = async () => {
-    setSaveStatus('Enregistrement des articles du stock...');
     onUpdateInventory(localInventory);
 
     const success = await saveAppConfig({
@@ -260,16 +259,18 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     });
 
     if (success) {
-      setSaveStatus('✓ Stock & Articles enregistrés dans Supabase et synchronisés en direct !');
       showToast({
         title: 'Stock Enregistré',
         message: `${localInventory.length} articles sauvegardés et synchronisés`,
         type: 'success'
       });
     } else {
-      setSaveStatus('✓ Stock enregistré localement (hors-ligne)');
+      showToast({
+        title: 'Enregistré localement',
+        message: 'Stocké dans le navigateur (mode hors-ligne)',
+        type: 'info'
+      });
     }
-    setTimeout(() => setSaveStatus(null), 3500);
   };
 
   // Import Template CEA
@@ -283,7 +284,11 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
       action: () => {
         setLocalMissions(MISSIONS);
         setLocalInventory(INITIAL_INVENTORY);
-        setSaveStatus('Modèle CEA chargé dans l\'éditeur. Cliquez sur Sauvegarder pour propager aux postes.');
+        showToast({
+          title: 'Modèle CEA Chargé',
+          message: '3 missions standard et articles réels chargés dans l\'éditeur',
+          type: 'info'
+        });
       }
     });
   };
@@ -396,7 +401,11 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         if (Array.isArray(parsed.missions)) setLocalMissions(parsed.missions);
         if (Array.isArray(parsed.inventory)) setLocalInventory(parsed.inventory);
         setSelectedMissionIndex(0);
-        setSaveStatus('✓ Fichier JSON importé avec succès ! Cliquez sur "Enregistrer" pour appliquer.');
+        showToast({
+          title: 'Import Réussi',
+          message: 'Fichier JSON importé avec succès dans l\'éditeur',
+          type: 'success'
+        });
       } catch {
         setConfirmConfig({
           isOpen: true,
@@ -603,17 +612,32 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         points_bonus: 600,
         is_active: true
       });
-      setSaveStatus('✓ Modèle d\'aléa enregistré avec succès dans Supabase !');
-      setTimeout(() => setSaveStatus(null), 3000);
+      showToast({
+        title: 'Aléa Enregistré',
+        message: 'Modèle d\'aléa enregistré avec succès dans Supabase',
+        type: 'success'
+      });
     }
   };
 
   // Delete distraction template
-  const handleDeleteDistractionTemplate = async (id: string) => {
-    if (confirm('Voulez-vous supprimer ce modèle d\'aléa ?')) {
-      await deleteDistraction(id);
-      setDistractions((prev) => prev.filter((d) => d.id !== id));
-    }
+  const handleDeleteDistractionTemplate = (id: string) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Supprimer ce modèle d\'aléa ?',
+      message: 'Cet aléa sera retiré définitivement de la bibliothèque.',
+      confirmLabel: 'Supprimer',
+      variant: 'danger',
+      action: async () => {
+        await deleteDistraction(id);
+        setDistractions((prev) => prev.filter((d) => d.id !== id));
+        showToast({
+          title: 'Aléa Retiré',
+          message: 'Le modèle d\'aléa a été supprimé',
+          type: 'info'
+        });
+      }
+    });
   };
 
   // Add client to catalog
@@ -665,14 +689,6 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
           </button>
         </div>
       </div>
-
-      {/* Save Notification */}
-      {saveStatus && (
-        <div className="bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 px-4 py-3 rounded-2xl text-xs font-semibold flex items-center space-x-2 shadow-lg">
-          <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>{saveStatus}</span>
-        </div>
-      )}
 
       {/* MATCH & ZEBRA QR DISPATCHER */}
       <div className="bg-gradient-to-r from-slate-900 via-indigo-950/60 to-slate-900 rounded-3xl p-5 sm:p-6 border-2 border-indigo-500/40 shadow-2xl space-y-4">
@@ -1069,13 +1085,25 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                   </button>
                   <button
                     onClick={() => {
-                      if (confirm('Supprimer cette mission ?')) {
-                        const updated = localMissions.filter((_, i) => i !== selectedMissionIndex);
-                        setLocalMissions(updated);
-                        setSelectedMissionIndex(Math.max(0, selectedMissionIndex - 1));
-                      }
+                      setConfirmConfig({
+                        isOpen: true,
+                        title: 'Supprimer cette mission ?',
+                        message: `Voulez-vous supprimer définitivement la mission "${localMissions[selectedMissionIndex]?.title || 'en cours'}" ?`,
+                        confirmLabel: 'Supprimer',
+                        variant: 'danger',
+                        action: () => {
+                          const updated = localMissions.filter((_, i) => i !== selectedMissionIndex);
+                          setLocalMissions(updated);
+                          setSelectedMissionIndex(Math.max(0, selectedMissionIndex - 1));
+                          showToast({
+                            title: 'Mission Supprimée',
+                            message: 'La mission a été retirée',
+                            type: 'info'
+                          });
+                        }
+                      });
                     }}
-                    className="p-2 rounded-xl bg-rose-900/40 hover:bg-rose-800 text-rose-300 text-xs flex items-center space-x-1"
+                    className="p-2 rounded-xl bg-rose-900/40 hover:bg-rose-800 text-rose-300 text-xs flex items-center space-x-1 cursor-pointer"
                     title="Supprimer cette mission"
                   >
                     <Trash2 className="w-3.5 h-3.5" />

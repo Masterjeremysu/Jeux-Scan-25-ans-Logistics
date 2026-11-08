@@ -29,7 +29,6 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isEditMode, setIsEditMode] = useState(false);
   const [localItems, setLocalItems] = useState<InventoryItem[]>(inventory);
-  const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   // Synchronisation lorsque l'inventaire distant change
@@ -52,8 +51,6 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
       if (onUpdateInventory) {
         onUpdateInventory(localItems);
       }
-      setSaveStatus('✓ Modifications synchronisées en direct');
-      setTimeout(() => setSaveStatus(null), 2000);
     }, 700);
 
     return () => clearTimeout(timer);
@@ -105,12 +102,10 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
   // Enregistrer toutes les modifications dans Supabase et l'ERP
   const handleSaveAll = async () => {
     setIsSaving(true);
-    setSaveStatus('Enregistrement dans Supabase en cours...');
     try {
       if (onUpdateInventory) {
         await onUpdateInventory(localItems);
       }
-      setSaveStatus('✓ Stock ERP enregistré dans Supabase et synchronisé en direct !');
       showToast({
         title: 'Stock ERP Enregistré',
         message: `${localItems.length} références synchronisées en direct sur tous les postes`,
@@ -118,10 +113,13 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
       });
       setIsEditMode(false);
     } catch (err) {
-      setSaveStatus('⚠️ Erreur lors de l\'enregistrement cloud.');
+      showToast({
+        title: 'Erreur Cloud',
+        message: 'Impossible de synchroniser avec Supabase pour le moment',
+        type: 'warning'
+      });
     } finally {
       setIsSaving(false);
-      setTimeout(() => setSaveStatus(null), 4000);
     }
   };
 
@@ -234,26 +232,6 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Save Status Notification Banner */}
-      {saveStatus && (
-        <div className={`p-3 rounded-2xl border text-xs font-mono font-bold flex items-center justify-between shadow-lg transition-all ${
-          saveStatus.includes('✓') 
-            ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300' 
-            : 'bg-amber-950/80 border-amber-500 text-amber-300'
-        }`}>
-          <div className="flex items-center space-x-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
-            <span>{saveStatus}</span>
-          </div>
-          <button 
-            onClick={() => setSaveStatus(null)}
-            className="text-slate-400 hover:text-white text-xs underline font-sans"
-          >
-            Fermer
-          </button>
-        </div>
-      )}
 
       {/* Stock Table */}
       <div className="bg-slate-900 rounded-3xl border border-slate-800 flex-1 overflow-hidden shadow-xl flex flex-col">
