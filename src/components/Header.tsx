@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ViewMode, OperatorProfile, AppConfig } from '../types';
 import { 
   Barcode, 
-  Boxes, 
   Printer, 
   Trophy, 
   Volume2, 
@@ -10,13 +9,15 @@ import {
   Maximize2, 
   Minimize2, 
   Clock, 
-  User,
-  ShieldCheck,
-  Settings,
-  Tv,
-  ExternalLink,
-  Home,
-  Flame
+  User, 
+  Sliders, 
+  Tv, 
+  ExternalLink, 
+  Sparkles,
+  Wifi,
+  ChevronDown,
+  Layers,
+  Award
 } from 'lucide-react';
 import { soundService } from '../services/soundService';
 import { GameLogo } from './GameLogo';
@@ -41,11 +42,10 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSound,
   shiftSecondsRemaining,
   onOpenDiplome,
-  appConfig,
-  onUpdateLogo
+  appConfig
 }) => {
-  const [isFullscreen, setIsFullscreen] = React.useState(false);
-  const [isMultiScreenOpen, setIsMultiScreenOpen] = React.useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMultiScreenOpen, setIsMultiScreenOpen] = useState(false);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -65,17 +65,29 @@ export const Header: React.FC<HeaderProps> = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Clean operator display name
+  const cleanOperatorName = operator.name.replace(/\(Invité\)/gi, '').replace(/^Duo\s+/i, '').trim();
+
+  const navItems: { id: ViewMode; label: string; icon: React.FC<{ className?: string }>; badge?: string; badgeColor?: string }[] = [
+    { id: 'home', label: 'Accueil', icon: Sparkles },
+    { id: 'kiosk', label: 'Poste Scanner', icon: Barcode },
+    { id: 'arena', label: 'Arène TV 55"', icon: Tv, badge: 'DIRECT', badgeColor: 'bg-rose-500 text-white' },
+    { id: 'podium', label: 'Podium & Records', icon: Trophy },
+    { id: 'print', label: 'Étiquettes', icon: Printer },
+    { id: 'admin', label: 'Régie & ERP', icon: Sliders },
+  ];
+
   return (
-    <header className="no-print bg-slate-900/95 border-b border-slate-800 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-2.5 flex flex-col md:flex-row items-center justify-between gap-2.5 select-none sticky top-0 z-40">
-      {/* Brand / Logo (Clickable to Home) */}
-      <div className="flex items-center justify-between w-full md:w-auto space-x-3 shrink-0">
+    <header className="no-print bg-slate-950/90 border-b border-slate-800/80 backdrop-blur-xl px-3 sm:px-5 py-2.5 flex items-center justify-between gap-4 select-none sticky top-0 z-40">
+      {/* 1. BRAND & IDENTITY (Left) */}
+      <div className="flex items-center space-x-3 shrink-0">
         <button
           onClick={() => {
             soundService.playScanBeep();
             onSelectView('home');
           }}
-          className="text-left cursor-pointer hover:opacity-90 transition-opacity"
-          title="Retour à la page d'accueil / lancement de jeu"
+          className="flex items-center space-x-3 text-left cursor-pointer group transition-all"
+          title="Accueil du jeu"
         >
           <GameLogo
             customLogoUrl={appConfig.customLogoUrl}
@@ -83,212 +95,179 @@ export const Header: React.FC<HeaderProps> = ({
             showSubtitle={false}
             allowUpload={false}
           />
-        </button>
-
-        {/* Mobile quick tools */}
-        <div className="flex md:hidden items-center space-x-1.5">
-          <div className="flex items-center space-x-1 bg-slate-800/80 px-2 py-1 rounded-lg border border-slate-700/60 font-mono text-xs text-amber-300 font-bold">
-            <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            <span>{formatTime(shiftSecondsRemaining)}</span>
+          <div className="hidden lg:flex flex-col">
+            <div className="flex items-center space-x-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-emerald-400">
+                WMS CONNECTÉ
+              </span>
+            </div>
+            <span className="text-[11px] font-semibold text-slate-400 tracking-tight">
+              25 Ans de Partenariat CEA
+            </span>
           </div>
-          <button
-            onClick={onToggleSound}
-            className="p-1.5 rounded-lg bg-slate-800 text-slate-300 border border-slate-700"
-          >
-            {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-emerald-400" /> : <VolumeX className="w-3.5 h-3.5 text-rose-400" />}
-          </button>
-        </div>
+        </button>
       </div>
 
-      {/* Navigation Tabs (Horizontal scroll on mobile) */}
-      <nav className="flex items-center space-x-1 bg-slate-950/70 p-1 rounded-xl border border-slate-800 w-full md:w-auto overflow-x-auto scrollbar-none shrink-0">
-        <button
-          onClick={() => {
-            soundService.playScanBeep();
-            onSelectView('home');
-          }}
-          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-            currentView === 'home'
-              ? 'bg-gradient-to-r from-sky-600 to-indigo-600 text-white shadow-md shadow-sky-600/30'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-          }`}
-        >
-          <Home className="w-3.5 h-3.5 shrink-0" />
-          <span>Accueil Jeu</span>
-        </button>
-
-        <button
-          onClick={() => {
-            soundService.playScanBeep();
-            onSelectView('kiosk');
-          }}
-          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-            currentView === 'kiosk'
-              ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-          }`}
-        >
-          <Barcode className="w-3.5 h-3.5 shrink-0" />
-          <span>Poste Opérateur</span>
-        </button>
-
-        <button
-          onClick={() => {
-            soundService.playScanBeep();
-            onSelectView('arena');
-          }}
-          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-            currentView === 'arena'
-              ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30'
-              : 'text-rose-400 hover:text-rose-200 hover:bg-slate-800/60'
-          }`}
-          title="Écran Grand Format pour TV / Spectateurs"
-        >
-          <Tv className="w-3.5 h-3.5 shrink-0" />
-          <span>📺 Arène TV 55"</span>
-        </button>
-
-        <button
-          onClick={() => {
-            soundService.playScanBeep();
-            onSelectView('podium');
-          }}
-          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-            currentView === 'podium'
-              ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-          }`}
-        >
-          <Trophy className="w-3.5 h-3.5 shrink-0" />
-          <span>Classement</span>
-        </button>
-
-        <button
-          onClick={() => {
-            soundService.playScanBeep();
-            onSelectView('print');
-          }}
-          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-            currentView === 'print'
-              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-          }`}
-        >
-          <Printer className="w-3.5 h-3.5 shrink-0" />
-          <span>Étiquettes</span>
-        </button>
-
-        <button
-          onClick={() => {
-            soundService.playScanBeep();
-            onSelectView('admin');
-          }}
-          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-            currentView === 'admin'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-indigo-300 hover:bg-slate-800/60'
-          }`}
-          title="Panneau d'administration et configuration personnalisée"
-        >
-          <Settings className="w-3.5 h-3.5 shrink-0" />
-          <span>⚙️ Paramètres</span>
-        </button>
+      {/* 2. DOCK-STYLE CENTER NAVIGATION (Center) */}
+      <nav className="flex items-center p-1 bg-slate-900/90 rounded-2xl border border-slate-800/80 shadow-inner overflow-x-auto scrollbar-none">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = currentView === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                soundService.playScanBeep();
+                onSelectView(item.id);
+              }}
+              className={`relative flex items-center space-x-2 px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-150 cursor-pointer ${
+                isActive
+                  ? 'bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-sky-600/30 border border-sky-400/30'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+              }`}
+            >
+              <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+              <span className="tracking-tight">{item.label}</span>
+              {item.badge && (
+                <span
+                  className={`text-[9px] font-extrabold uppercase font-mono px-1.5 py-0.2 rounded-full leading-tight shrink-0 ${
+                    item.badgeColor || 'bg-sky-500 text-white'
+                  }`}
+                >
+                  {item.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </nav>
 
-      {/* Operator stats & tools (Desktop) */}
-      <div className="hidden md:flex items-center space-x-2 shrink-0">
-        {/* Timer */}
-        <div className="flex items-center space-x-1.5 bg-slate-800/80 px-2.5 py-1.5 rounded-lg border border-slate-700/60">
+      {/* 3. COCKPIT CONTROLS & PLAYER IDENTITY (Right) */}
+      <div className="flex items-center space-x-2 shrink-0">
+        {/* Active Shift Timer */}
+        <div className="hidden sm:flex items-center space-x-1.5 bg-slate-900/80 px-2.5 py-1.5 rounded-xl border border-slate-800 text-xs font-mono font-bold text-amber-400 shadow-xs">
           <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-          <span className="font-mono text-xs font-bold text-amber-300">
-            {formatTime(shiftSecondsRemaining)}
-          </span>
+          <span>{formatTime(shiftSecondsRemaining)}</span>
         </div>
 
-        {/* Operator Badge */}
+        {/* Player Profile & Diplome Button */}
         <button
           onClick={onOpenDiplome}
-          className="flex items-center space-x-1.5 bg-slate-800/80 hover:bg-slate-700/80 px-2.5 py-1.5 rounded-lg border border-slate-700/60 transition-colors"
-          title="Cliquez pour voir votre diplôme"
+          className="flex items-center space-x-2 bg-slate-900 hover:bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700/80 transition-all cursor-pointer group shadow-xs"
+          title="Consulter et imprimer le Diplôme d'Honneur"
         >
-          <User className="w-3.5 h-3.5 text-sky-400" />
-          <span className="text-xs font-medium text-slate-200 max-w-[100px] truncate">{operator.name}</span>
-          <span className="text-xs font-mono font-bold text-emerald-400">+{operator.score} pts</span>
+          <div className="w-5 h-5 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-[10px]">
+            <Award className="w-3.5 h-3.5" />
+          </div>
+          <div className="flex flex-col text-left">
+            <span className="text-[11px] font-bold text-slate-200 group-hover:text-white max-w-[120px] truncate leading-tight">
+              {cleanOperatorName || 'Invité'}
+            </span>
+            <span className="text-[10px] font-mono font-extrabold text-emerald-400 leading-tight">
+              +{operator.score} pts
+            </span>
+          </div>
         </button>
 
         {/* Audio Toggle */}
         <button
           onClick={onToggleSound}
-          className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors border border-slate-700/60"
-          title={soundEnabled ? 'Désactiver le son' : 'Activer les bips scanner'}
+          className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors border border-slate-800 cursor-pointer"
+          title={soundEnabled ? 'Couper les effets sonores' : 'Activer les bips scannette'}
         >
-          {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-rose-400" />}
+          {soundEnabled ? (
+            <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+          ) : (
+            <VolumeX className="w-3.5 h-3.5 text-rose-400" />
+          )}
         </button>
 
         {/* Fullscreen Toggle */}
         <button
           onClick={toggleFullscreen}
-          className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors border border-slate-700/60"
-          title="Plein écran (Mode Borne)"
+          className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors border border-slate-800 cursor-pointer hidden md:flex"
+          title="Basculer en Plein Écran (Mode Borne Kiosque)"
         >
-          {isFullscreen ? <Minimize2 className="w-4 h-4 text-sky-400" /> : <Maximize2 className="w-4 h-4 text-slate-300" />}
+          {isFullscreen ? (
+            <Minimize2 className="w-3.5 h-3.5 text-sky-400" />
+          ) : (
+            <Maximize2 className="w-3.5 h-3.5" />
+          )}
         </button>
 
-        {/* Multi-screen window launcher */}
+        {/* Multi-screen Manager Dropdown */}
         <div className="relative">
           <button
             onClick={() => setIsMultiScreenOpen(!isMultiScreenOpen)}
-            className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-sky-950/80 hover:bg-sky-900/80 text-sky-300 border border-sky-500/30 text-xs font-mono font-bold cursor-pointer transition-colors"
-            title="Ouvrir des fenêtres dédiées (TV 55 pouces, Postes 1 & 2, Régie)"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-950 to-slate-900 hover:from-indigo-900 hover:to-slate-850 text-indigo-300 border border-indigo-700/40 text-xs font-semibold cursor-pointer transition-all shadow-xs"
+            title="Ouvrir les fenêtres autonomes (Écran TV 55'', Scannette Zebra 1 & 2)"
           >
-            <ExternalLink className="w-3.5 h-3.5" />
+            <Layers className="w-3.5 h-3.5 text-indigo-400" />
             <span className="hidden xl:inline">Multi-Écrans</span>
+            <ChevronDown className="w-3 h-3 text-indigo-400" />
           </button>
 
           {isMultiScreenOpen && (
-            <div className="absolute right-0 mt-2 w-64 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 z-50 flex flex-col gap-1.5 text-xs font-mono">
-              <div className="px-2.5 py-1 text-[10px] text-slate-400 font-bold uppercase border-b border-slate-800">
-                Ouvrir dans un nouvel onglet :
+            <div className="absolute right-0 mt-2 w-72 bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl p-2.5 z-50 flex flex-col gap-1 text-xs">
+              <div className="px-3 py-1.5 text-[10px] text-slate-400 font-bold uppercase tracking-wider font-mono border-b border-slate-800 mb-1">
+                Ouvrir un Écran Dédié :
               </div>
+
               <a
                 href="#tv"
                 target="_blank"
                 rel="noreferrer"
                 onClick={() => setIsMultiScreenOpen(false)}
-                className="flex items-center justify-between p-2 rounded-xl bg-slate-950 hover:bg-indigo-950 text-indigo-300 transition-colors"
+                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/80 hover:bg-rose-950/60 text-slate-200 hover:text-rose-200 border border-transparent hover:border-rose-500/30 transition-all font-medium"
               >
-                <span>📺 Grande TV 55" (Arène Live)</span>
-                <ExternalLink className="w-3 h-3" />
+                <div className="flex items-center space-x-2">
+                  <Tv className="w-4 h-4 text-rose-400" />
+                  <span>Grande TV 55" (Arène Spectateurs)</span>
+                </div>
+                <ExternalLink className="w-3 h-3 text-slate-500" />
               </a>
+
               <a
                 href="#poste-1"
                 target="_blank"
                 rel="noreferrer"
                 onClick={() => setIsMultiScreenOpen(false)}
-                className="flex items-center justify-between p-2 rounded-xl bg-slate-950 hover:bg-sky-950 text-sky-300 transition-colors"
+                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/80 hover:bg-sky-950/60 text-slate-200 hover:text-sky-200 border border-transparent hover:border-sky-500/30 transition-all font-medium"
               >
-                <span>🎯 Écran Poste 1 (Scannette A)</span>
-                <ExternalLink className="w-3 h-3" />
+                <div className="flex items-center space-x-2">
+                  <Barcode className="w-4 h-4 text-sky-400" />
+                  <span>Poste 1 (Scannette Bleue A)</span>
+                </div>
+                <ExternalLink className="w-3 h-3 text-slate-500" />
               </a>
+
               <a
                 href="#poste-2"
                 target="_blank"
                 rel="noreferrer"
                 onClick={() => setIsMultiScreenOpen(false)}
-                className="flex items-center justify-between p-2 rounded-xl bg-slate-950 hover:bg-amber-950 text-amber-300 transition-colors"
+                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/80 hover:bg-amber-950/60 text-slate-200 hover:text-amber-200 border border-transparent hover:border-amber-500/30 transition-all font-medium"
               >
-                <span>🎯 Écran Poste 2 (Scannette B)</span>
-                <ExternalLink className="w-3 h-3" />
+                <div className="flex items-center space-x-2">
+                  <Barcode className="w-4 h-4 text-amber-400" />
+                  <span>Poste 2 (Scannette Orange B)</span>
+                </div>
+                <ExternalLink className="w-3 h-3 text-slate-500" />
               </a>
+
               <a
                 href="#admin"
                 target="_blank"
                 rel="noreferrer"
                 onClick={() => setIsMultiScreenOpen(false)}
-                className="flex items-center justify-between p-2 rounded-xl bg-slate-950 hover:bg-rose-950 text-rose-300 transition-colors"
+                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/80 hover:bg-indigo-950/60 text-slate-200 hover:text-indigo-200 border border-transparent hover:border-indigo-500/30 transition-all font-medium"
               >
-                <span>🎛️ Régie Contrôle & Aléas</span>
-                <ExternalLink className="w-3 h-3" />
+                <div className="flex items-center space-x-2">
+                  <Sliders className="w-4 h-4 text-indigo-400" />
+                  <span>Régie Contrôle & Aléas</span>
+                </div>
+                <ExternalLink className="w-3 h-3 text-slate-500" />
               </a>
             </div>
           )}
