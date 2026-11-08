@@ -62,17 +62,20 @@ export interface LiveHazard {
 
 export interface InventoryItem {
   id: string;
-  sku: string; // e.g. "REF191000000478" ou "ART-KF40-INOX"
-  name: string;
+  sku: string; // e.g. "REF191000007490" ou "ART-KF40-INOX"
+  name: string; // Désignation (e.g. "JOINT TORIQUE KALREZ (TUBE)")
   category: string;
-  location: string; // e.g. "LOC-B01-T03"
+  location: string; // e.g. "ZONE_POMPE_GRILLE_41" ou "LOC-B01-T03"
   quantity: number;
   unit: string;
   critical: boolean;
   batch: string;
   description: string;
-  lrCode?: string; // L/R : Ligne / Localisation Référence (e.g. "JNT_A001")
-  crLabel?: string; // C/R : Code Référence / Désignation (e.g. "JOINT TORIQUE KALREZ (TUBE)")
+  lrCode?: string; // Réf article (e.g. "JNT_A001")
+  crLabel?: string; // Désignation complète (e.g. "JOINT TORIQUE KALREZ (TUBE)")
+  gestionnaire?: string; // Gestionnaire de stock (e.g. "GT Logistics", "CEA LETI")
+  machinePdt?: string; // Machine / Poste de travail (e.g. "Bâti Dépôt PVD", "Épitaxie MBE")
+  refEquipementier?: string; // Réf équipementier / Fournisseur (e.g. "KLZ-4079-USA", "EDW-9941")
 }
 
 export interface MissionStep {

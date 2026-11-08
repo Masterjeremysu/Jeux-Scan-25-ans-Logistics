@@ -1284,15 +1284,20 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                 onClick={() => {
                   const newItem: InventoryItem = {
                     id: `item-${Date.now()}`,
-                    sku: `ART-PIECE-${Date.now().toString().slice(-4)}`,
-                    name: 'Nouvelle Pièce',
-                    category: 'Consommables',
-                    location: 'LOC-A01-T01',
+                    sku: `REF${Date.now().toString().slice(-12)}`,
+                    lrCode: 'REF_NEW',
+                    crLabel: 'NOUVEL ARTICLE INDUSTRIEL',
+                    name: 'NOUVEL ARTICLE INDUSTRIEL',
+                    category: 'Vide & Cryo',
+                    location: 'ZONE_POMPE_GRILLE_41',
                     quantity: 10,
                     unit: 'pcs',
                     critical: false,
                     batch: 'LOT-2026',
-                    description: 'Description de la pièce...'
+                    description: 'Pièce industrielle de stock...',
+                    gestionnaire: 'GT Logistics',
+                    machinePdt: 'Poste 1',
+                    refEquipementier: 'OEM-REF-01'
                   };
                   setLocalInventory([...localInventory, newItem]);
                 }}
@@ -1308,30 +1313,51 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
             <table className="w-full text-left text-xs text-slate-300">
               <thead className="bg-slate-950/80 text-slate-400 font-mono uppercase text-[10px] border-b border-slate-800">
                 <tr>
+                  <th className="p-2.5">Réf</th>
                   <th className="p-2.5">Code SKU (Code-Barres)</th>
                   <th className="p-2.5">Désignation</th>
-                  <th className="p-2.5">Emplacement (Casier)</th>
-                  <th className="p-2.5">Qté</th>
-                  <th className="p-2.5">Unité</th>
-                  <th className="p-2.5">Catégorie</th>
-                  <th className="p-2.5">Actions</th>
+                  <th className="p-2.5">Qté en stock</th>
+                  <th className="p-2.5">Emplacement</th>
+                  <th className="p-2.5">Gestionnaire</th>
+                  <th className="p-2.5">Machine PDT</th>
+                  <th className="p-2.5">Réf Équipementier</th>
+                  <th className="p-2.5 text-center">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-slate-800/60 font-sans">
                 {localInventory.map((item, idx) => (
                   <tr key={item.id || idx} className="hover:bg-slate-800/30">
+                    {/* 1. Réf */}
+                    <td className="p-2">
+                      <input
+                        type="text"
+                        value={item.lrCode || ''}
+                        placeholder="Réf"
+                        onChange={(e) => {
+                          const updated = [...localInventory];
+                          updated[idx].lrCode = e.target.value.trim().toUpperCase();
+                          setLocalInventory(updated);
+                        }}
+                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-amber-400 font-mono font-bold w-28"
+                      />
+                    </td>
+
+                    {/* 2. Code SKU (Code-Barres) */}
                     <td className="p-2">
                       <input
                         type="text"
                         value={item.sku}
+                        placeholder="REF191000..."
                         onChange={(e) => {
                           const updated = [...localInventory];
                           updated[idx].sku = e.target.value.trim().toUpperCase();
                           setLocalInventory(updated);
                         }}
-                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-amber-300 font-mono font-bold w-36"
+                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-sky-400 font-mono font-bold w-36"
                       />
                     </td>
+
+                    {/* 3. Désignation */}
                     <td className="p-2">
                       <input
                         type="text"
@@ -1339,66 +1365,107 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                         onChange={(e) => {
                           const updated = [...localInventory];
                           updated[idx].name = e.target.value;
+                          updated[idx].crLabel = e.target.value.toUpperCase();
                           setLocalInventory(updated);
                         }}
-                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-white font-semibold w-full min-w-[180px]"
+                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-white font-semibold w-full min-w-[200px]"
                       />
                     </td>
+
+                    {/* 4. Qté en stock */}
+                    <td className="p-2 whitespace-nowrap">
+                      <div className="flex items-center space-x-1">
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const updated = [...localInventory];
+                            updated[idx].quantity = parseInt(e.target.value) || 0;
+                            setLocalInventory(updated);
+                          }}
+                          className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-emerald-400 font-mono w-16"
+                        />
+                        <input
+                          type="text"
+                          value={item.unit}
+                          onChange={(e) => {
+                            const updated = [...localInventory];
+                            updated[idx].unit = e.target.value;
+                            setLocalInventory(updated);
+                          }}
+                          className="bg-slate-950 border border-slate-700 px-1.5 py-1 rounded text-slate-400 font-mono w-12 text-center"
+                        />
+                      </div>
+                    </td>
+
+                    {/* 5. Emplacement */}
                     <td className="p-2">
                       <input
                         type="text"
                         value={item.location}
+                        placeholder="ZONE_... ou LOC-..."
                         onChange={(e) => {
                           const updated = [...localInventory];
                           updated[idx].location = e.target.value.trim().toUpperCase();
                           setLocalInventory(updated);
                         }}
-                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-sky-400 font-mono w-28"
+                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-sky-300 font-mono w-36"
                       />
                     </td>
-                    <td className="p-2">
-                      <input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => {
-                          const updated = [...localInventory];
-                          updated[idx].quantity = parseInt(e.target.value) || 0;
-                          setLocalInventory(updated);
-                        }}
-                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-emerald-400 font-mono w-16"
-                      />
-                    </td>
+
+                    {/* 6. Gestionnaire */}
                     <td className="p-2">
                       <input
                         type="text"
-                        value={item.unit}
+                        value={item.gestionnaire || ''}
+                        placeholder="GT Logistics"
                         onChange={(e) => {
                           const updated = [...localInventory];
-                          updated[idx].unit = e.target.value;
+                          updated[idx].gestionnaire = e.target.value;
                           setLocalInventory(updated);
                         }}
-                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-slate-300 font-mono w-16"
+                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-slate-200 text-xs w-28"
                       />
                     </td>
+
+                    {/* 7. Machine PDT */}
                     <td className="p-2">
                       <input
                         type="text"
-                        value={item.category}
+                        value={item.machinePdt || ''}
+                        placeholder="Poste / Machine"
                         onChange={(e) => {
                           const updated = [...localInventory];
-                          updated[idx].category = e.target.value;
+                          updated[idx].machinePdt = e.target.value;
                           setLocalInventory(updated);
                         }}
-                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-slate-300 w-28"
+                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-slate-300 font-mono text-xs w-32"
                       />
                     </td>
+
+                    {/* 8. Réf Équipementier */}
                     <td className="p-2">
+                      <input
+                        type="text"
+                        value={item.refEquipementier || ''}
+                        placeholder="Réf Fournisseur"
+                        onChange={(e) => {
+                          const updated = [...localInventory];
+                          updated[idx].refEquipementier = e.target.value;
+                          setLocalInventory(updated);
+                        }}
+                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-slate-400 font-mono text-xs w-32"
+                      />
+                    </td>
+
+                    {/* 9. Actions */}
+                    <td className="p-2 text-center">
                       <button
                         onClick={() => {
                           const updated = localInventory.filter((_, i) => i !== idx);
                           setLocalInventory(updated);
                         }}
-                        className="text-rose-400 hover:text-rose-300 p-1"
+                        className="text-rose-400 hover:text-rose-300 p-1.5 rounded hover:bg-rose-950/40"
                         title="Supprimer"
                       >
                         <Trash2 className="w-4 h-4" />
