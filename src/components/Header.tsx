@@ -14,9 +14,12 @@ import {
   ShieldCheck,
   Settings,
   Tv,
-  ExternalLink
+  ExternalLink,
+  Home,
+  Flame
 } from 'lucide-react';
 import { soundService } from '../services/soundService';
+import { GameLogo } from './GameLogo';
 
 interface HeaderProps {
   currentView: ViewMode;
@@ -27,6 +30,7 @@ interface HeaderProps {
   shiftSecondsRemaining: number;
   onOpenDiplome: () => void;
   appConfig: AppConfig;
+  onUpdateLogo?: (url: string) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -37,7 +41,8 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSound,
   shiftSecondsRemaining,
   onOpenDiplome,
-  appConfig
+  appConfig,
+  onUpdateLogo
 }) => {
   const [isFullscreen, setIsFullscreen] = React.useState(false);
   const [isMultiScreenOpen, setIsMultiScreenOpen] = React.useState(false);
@@ -62,26 +67,23 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="no-print bg-slate-900/95 border-b border-slate-800 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-2.5 flex flex-col md:flex-row items-center justify-between gap-2.5 select-none sticky top-0 z-40">
-      {/* Brand / Logo */}
+      {/* Brand / Logo (Clickable to Home) */}
       <div className="flex items-center justify-between w-full md:w-auto space-x-3 shrink-0">
-        <div className="flex items-center space-x-2.5">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-sky-600 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-600/20 border border-sky-400/30 shrink-0">
-            <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center space-x-1.5 sm:space-x-2">
-              <span className="text-sm sm:text-base font-extrabold tracking-wide text-white truncate max-w-[150px] sm:max-w-none">
-                {appConfig.eventTitle}
-              </span>
-              <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0">
-                {appConfig.badgeLabel}
-              </span>
-            </div>
-            <p className="text-[10px] sm:text-xs text-slate-400 font-mono tracking-tight hidden sm:block">
-              {appConfig.eventSubtitle}
-            </p>
-          </div>
-        </div>
+        <button
+          onClick={() => {
+            soundService.playScanBeep();
+            onSelectView('home');
+          }}
+          className="text-left cursor-pointer hover:opacity-90 transition-opacity"
+          title="Retour à la page d'accueil / lancement de jeu"
+        >
+          <GameLogo
+            customLogoUrl={appConfig.customLogoUrl}
+            size="sm"
+            showSubtitle={false}
+            allowUpload={false}
+          />
+        </button>
 
         {/* Mobile quick tools */}
         <div className="flex md:hidden items-center space-x-1.5">
@@ -100,6 +102,21 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Navigation Tabs (Horizontal scroll on mobile) */}
       <nav className="flex items-center space-x-1 bg-slate-950/70 p-1 rounded-xl border border-slate-800 w-full md:w-auto overflow-x-auto scrollbar-none shrink-0">
+        <button
+          onClick={() => {
+            soundService.playScanBeep();
+            onSelectView('home');
+          }}
+          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+            currentView === 'home'
+              ? 'bg-gradient-to-r from-sky-600 to-indigo-600 text-white shadow-md shadow-sky-600/30'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+          }`}
+        >
+          <Home className="w-3.5 h-3.5 shrink-0" />
+          <span>Accueil Jeu</span>
+        </button>
+
         <button
           onClick={() => {
             soundService.playScanBeep();
@@ -128,37 +145,7 @@ export const Header: React.FC<HeaderProps> = ({
           title="Écran Grand Format pour TV / Spectateurs"
         >
           <Tv className="w-3.5 h-3.5 shrink-0" />
-          <span>📺 Arène TV / Duel</span>
-        </button>
-
-        <button
-          onClick={() => {
-            soundService.playScanBeep();
-            onSelectView('erp');
-          }}
-          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-            currentView === 'erp'
-              ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-          }`}
-        >
-          <Boxes className="w-3.5 h-3.5 shrink-0" />
-          <span>Stocks ERP</span>
-        </button>
-
-        <button
-          onClick={() => {
-            soundService.playScanBeep();
-            onSelectView('print');
-          }}
-          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-            currentView === 'print'
-              ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-          }`}
-        >
-          <Printer className="w-3.5 h-3.5 shrink-0" />
-          <span>Étiquettes</span>
+          <span>📺 Arène TV 55"</span>
         </button>
 
         <button
@@ -168,12 +155,27 @@ export const Header: React.FC<HeaderProps> = ({
           }}
           className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
             currentView === 'podium'
-              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+              ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
           }`}
         >
           <Trophy className="w-3.5 h-3.5 shrink-0" />
           <span>Classement</span>
+        </button>
+
+        <button
+          onClick={() => {
+            soundService.playScanBeep();
+            onSelectView('print');
+          }}
+          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+            currentView === 'print'
+              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+          }`}
+        >
+          <Printer className="w-3.5 h-3.5 shrink-0" />
+          <span>Étiquettes</span>
         </button>
 
         <button

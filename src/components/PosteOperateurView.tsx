@@ -3,25 +3,21 @@ import JsBarcode from 'jsbarcode';
 import { Mission, ScanLog, InventoryItem, DuoStation, LiveHazard } from '../types';
 import { 
   CheckCircle2, 
-  AlertTriangle, 
   MapPin, 
   Package, 
-  Radio, 
-  Play, 
+  Sparkles, 
+  Zap, 
+  Flame, 
+  Users, 
+  Swords, 
+  Clock, 
+  ShieldAlert,
+  ArrowRight,
+  List,
   RotateCcw,
-  Sparkles,
-  Zap,
-  Barcode,
-  Keyboard,
-  Info,
-  Flame,
-  Users,
-  Swords,
-  Edit3,
-  Clock,
-  ShieldAlert
+  Check,
+  AlertTriangle
 } from 'lucide-react';
-import { BARCODE_CATALOG } from '../data/initialData';
 import { barcodeListener } from '../services/barcodeListener';
 
 interface PosteOperateurViewProps {
@@ -46,9 +42,10 @@ interface PosteOperateurViewProps {
   hazardSecondsRemaining?: number;
   onTriggerSurpriseOrder?: () => void;
   onStartNewMatch?: () => void;
+  onBackToHome?: () => void;
 }
 
-// On-screen scannable SVG barcode for douchette or visual reference
+// Scannable SVG barcode ticket (ultra clean and responsive)
 const BarcodeTicket: React.FC<{ code: string; label?: string }> = ({ code, label }) => {
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -57,14 +54,14 @@ const BarcodeTicket: React.FC<{ code: string; label?: string }> = ({ code, label
       try {
         JsBarcode(svgRef.current, code, {
           format: 'CODE128',
-          lineColor: '#000000',
-          width: 1.6,
-          height: 38,
+          lineColor: '#0f172a',
+          width: 2.0,
+          height: 48,
           displayValue: true,
-          fontSize: 12,
+          fontSize: 13,
           font: 'monospace',
           fontOptions: 'bold',
-          margin: 4,
+          margin: 6,
           background: '#ffffff'
         });
       } catch (err) {
@@ -74,14 +71,14 @@ const BarcodeTicket: React.FC<{ code: string; label?: string }> = ({ code, label
   }, [code]);
 
   return (
-    <div className="bg-white text-slate-900 p-2.5 rounded-xl shadow-lg border-2 border-slate-200 inline-flex flex-col items-center justify-center shrink-0">
+    <div className="bg-white text-slate-900 px-4 py-2.5 rounded-2xl shadow-xl border-2 border-slate-300 inline-flex flex-col items-center justify-center shrink-0">
       {label && (
-        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-600 mb-1 font-mono text-center max-w-[200px] truncate">
+        <span className="text-[10px] font-black uppercase tracking-wider text-slate-600 mb-1 font-mono text-center max-w-[240px] truncate">
           {label}
         </span>
       )}
       <svg ref={svgRef} className="max-w-full h-auto"></svg>
-      <span className="text-[9px] text-slate-400 font-mono mt-0.5">Scannable à l'écran</span>
+      <span className="text-[9px] text-slate-400 font-mono mt-0.5 tracking-tight">Scannable à la douchette</span>
     </div>
   );
 };
@@ -91,10 +88,8 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
   currentMissionIndex,
   onSelectMission,
   onResetMission,
-  onClearLogs,
   logs,
   inventory,
-  lastScannedCode,
   flashState,
   stationId,
   stationName,
@@ -107,22 +102,25 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
   activeHazard,
   hazardSecondsRemaining,
   onTriggerSurpriseOrder,
-  onStartNewMatch
+  onStartNewMatch,
+  onBackToHome
 }) => {
-  const [manualInput, setManualInput] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'article' | 'location' | 'package'>('all');
   const [isDuoModalOpen, setIsDuoModalOpen] = useState(false);
   const [ceaInput, setCeaInput] = useState(operatorCea);
   const [clientInput, setClientInput] = useState(clientGuest);
-  
+  const [showLogsDrawer, setShowLogsDrawer] = useState(false);
+
   const mission = missions[currentMissionIndex] || missions[0];
-  const currentStep = mission.steps.find((s) => !s.completed) || null;
+  const currentStepIndex = mission.steps.findIndex((s) => !s.completed);
+  const currentStep = currentStepIndex !== -1 ? mission.steps[currentStepIndex] : null;
+  const isMissionFinished = mission.steps.every((s) => s.completed);
+
   const progressPercent = Math.round(
     (mission.steps.filter((s) => s.completed).length / mission.steps.length) * 100
   );
 
-  // Other duel stations currently playing
-  const otherStations = liveStations.filter((s) => s.station_id !== stationId);
+  // Opponent station in duel
+  const opponentStation = liveStations.find((s) => s.station_id !== stationId);
 
   // Global shortcut: Spacebar triggers the current target scan if not typing
   useEffect(() => {
@@ -140,14 +138,6 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentStep]);
 
-  const handleManualSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (manualInput.trim()) {
-      barcodeListener.simulateScan(manualInput.trim());
-      setManualInput('');
-    }
-  };
-
   const handleSaveDuo = (e: React.FormEvent) => {
     e.preventDefault();
     if (ceaInput.trim() || clientInput.trim()) {
@@ -156,573 +146,407 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
     }
   };
 
-  const filteredBarcodes = BARCODE_CATALOG.filter((bc) => {
-    if (selectedFilter === 'all') return true;
-    if (selectedFilter === 'article') return bc.type === 'article' || bc.type === 'seal';
-    if (selectedFilter === 'location') return bc.type === 'location' || bc.type === 'dock';
-    if (selectedFilter === 'package') return bc.type === 'package';
-    return true;
-  });
+  const isDuo1 = stationId === 'poste-1';
 
   return (
-    <div className={`min-h-[calc(100vh-65px)] flex flex-col p-2.5 sm:p-4 gap-3 transition-colors duration-200 ${
-      flashState === 'green' ? 'bg-emerald-950/25' : flashState === 'red' ? 'bg-rose-950/25' : ''
+    <div className={`min-h-[calc(100vh-65px)] flex flex-col justify-between p-3 sm:p-5 max-w-5xl mx-auto w-full transition-colors duration-200 select-none ${
+      flashState === 'green' ? 'bg-emerald-950/20' : flashState === 'red' ? 'bg-rose-950/20' : ''
     }`}>
-      {/* Station, Duo & Combo Banner */}
-      <div className="bg-slate-900 rounded-2xl p-3 sm:p-3.5 border border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-3">
-        {/* Left: Station & Duo identity */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Station selector */}
-          <div className="flex items-center space-x-1.5 bg-slate-950 px-2.5 py-1.5 rounded-xl border border-slate-800 font-mono text-xs">
-            <span className="text-slate-400 font-medium">Poste :</span>
-            <select
-              value={stationId}
-              onChange={(e) => {
-                const val = e.target.value;
-                const name = val === 'poste-1' ? 'Poste 1 (Scannette A)' : val === 'poste-2' ? 'Poste 2 (Scannette B)' : 'Poste 3 (Zebra Scan)';
-                onSelectStation(val, name);
-              }}
-              className="bg-transparent text-sky-400 font-bold focus:outline-none cursor-pointer"
-            >
-              <option value="poste-1" className="bg-slate-900">Poste 1 (Scannette A)</option>
-              <option value="poste-2" className="bg-slate-900">Poste 2 (Scannette B)</option>
-              <option value="poste-3" className="bg-slate-900">Poste 3 (Zebra Scan)</option>
-            </select>
-          </div>
 
-          {/* Duo Profile Pill */}
+      {/* 1. HUD SUPÉRIEUR ÉPURÉ (Duo • Course Duel • Combo) */}
+      <div className="bg-slate-900/95 backdrop-blur-md rounded-2xl p-3 sm:p-4 border border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-3 shrink-0">
+        {/* Left: Duo Identity Pill */}
+        <div className="flex items-center gap-2">
           <button
             onClick={() => {
               setCeaInput(operatorCea);
               setClientInput(clientGuest);
               setIsDuoModalOpen(true);
             }}
-            className="flex items-center space-x-2 bg-gradient-to-r from-indigo-950/80 to-slate-950 hover:from-indigo-900/80 px-3 py-1.5 rounded-xl border border-indigo-500/40 text-xs font-semibold text-slate-200 shadow-sm transition-all"
-            title="Cliquez pour changer le binôme (Agent CEA + Invité)"
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs sm:text-sm font-bold shadow-sm transition-all hover:scale-105 cursor-pointer ${
+              isDuo1 
+                ? 'bg-sky-950/70 border-sky-500/50 text-sky-200' 
+                : 'bg-amber-950/70 border-amber-500/50 text-amber-200'
+            }`}
+            title="Modifier le Duo"
           >
-            <Users className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-            <span>Duo : <strong className="text-sky-300">{operatorCea}</strong> 🤝 <strong className="text-amber-300">{clientGuest}</strong></span>
-            <Edit3 className="w-3 h-3 text-slate-400" />
+            <Users className="w-4 h-4 shrink-0" />
+            <span>
+              <strong className="text-white">{operatorCea}</strong> 🤝 <strong className={isDuo1 ? 'text-sky-300' : 'text-amber-300'}>{clientGuest}</strong>
+            </span>
+            <span className="text-[10px] font-mono opacity-70 ml-1">({stationName.split(' ')[0]})</span>
           </button>
 
-          {/* New Match Button (Shuffles missions for fresh duo) */}
+          {/* Shuffle / Next Match */}
           {onStartNewMatch && (
             <button
               onClick={onStartNewMatch}
-              className="flex items-center space-x-1.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 px-3 py-1.5 rounded-xl text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
-              title="Démarrer une nouvelle manche pour un nouveau duo (mélange aléatoire des missions)"
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs border border-slate-700 transition-all cursor-pointer"
+              title="Mélanger les missions pour un nouveau match"
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Nouveau Match (Mélanger)</span>
+              <Sparkles className="w-4 h-4 text-emerald-400" />
             </button>
           )}
         </div>
 
+        {/* Center: Live Duel Bar (Minimalist Esport Race) */}
+        {opponentStation ? (
+          <div className="flex items-center gap-2.5 bg-slate-950/80 px-3.5 py-1.5 rounded-xl border border-indigo-500/30 text-xs font-mono">
+            <Swords className="w-3.5 h-3.5 text-amber-400 animate-bounce" />
+            <div className="flex items-center gap-2">
+              <span className="text-sky-400 font-black">Vous : {progressPercent}%</span>
+              <div className="w-20 bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div className="bg-sky-400 h-full rounded-full" style={{ width: `${progressPercent}%` }}></div>
+              </div>
+            </div>
+            <span className="text-slate-600 font-bold">VS</span>
+            <div className="flex items-center gap-2">
+              <div className="w-20 bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div className="bg-amber-400 h-full rounded-full" style={{ width: `${opponentStation.progress_percent}%` }}></div>
+              </div>
+              <span className="text-amber-400 font-black">{opponentStation.progress_percent}% ({opponentStation.team_name.split(' ')[0]})</span>
+            </div>
+          </div>
+        ) : (
+          /* Mission indicator if solo */
+          <div className="text-xs font-mono font-bold text-slate-400 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Mission {currentMissionIndex + 1}/{missions.length} : {mission.title.slice(0, 30)}</span>
+          </div>
+        )}
+
         {/* Right: Combo & Scanner Status */}
-        <div className="flex items-center space-x-2.5 ml-auto">
-          {/* Combo badge */}
+        <div className="flex items-center gap-2.5">
           {combo > 1 ? (
-            <div className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 text-slate-950 font-black text-xs font-mono shadow-lg shadow-orange-500/30 animate-pulse">
-              <Flame className="w-4 h-4 fill-current" />
-              <span>COMBO x{combo} (+{combo * 50} pts)</span>
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 text-slate-950 font-black text-xs font-mono shadow-lg shadow-orange-500/30 animate-pulse">
+              <Flame className="w-3.5 h-3.5 fill-current" />
+              <span>COMBO x{combo}</span>
             </div>
           ) : (
-            <div className="hidden sm:flex items-center space-x-1 text-slate-500 text-xs font-mono">
+            <div className="flex items-center gap-1 text-slate-500 text-xs font-mono">
               <Flame className="w-3.5 h-3.5" />
-              <span>Combo x1</span>
+              <span>x1</span>
             </div>
           )}
 
-          {/* Scanner Douchette Status */}
-          <div className="flex items-center space-x-1.5 bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-800 text-xs font-mono">
+          {/* Douchette Ready Indicator */}
+          <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-800 text-xs font-mono">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
             <span className="text-emerald-400 font-bold hidden sm:inline">Scannette Prête</span>
-            <span className="text-emerald-400 font-bold sm:hidden">Prêt</span>
           </div>
 
-          {/* Quick trigger unannounced client demand */}
-          {onTriggerSurpriseOrder && (
-            <button
-              onClick={onTriggerSurpriseOrder}
-              className="hidden lg:flex items-center space-x-1 px-2.5 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-mono font-bold transition-all cursor-pointer"
-              title="Générer une commande urgente client imprévue à scanner d'urgence"
-            >
-              <Zap className="w-3.5 h-3.5" />
-              <span>+ Aléa Client</span>
-            </button>
-          )}
+          {/* Quick Logs Drawer Toggle */}
+          <button
+            onClick={() => setShowLogsDrawer(!showLogsDrawer)}
+            className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 text-xs"
+            title="Afficher les derniers scans"
+          >
+            <List className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      {/* EMERGENCY HAZARD ALERT BANNER */}
+      {/* 2. EMERGENCY HAZARD BANNER (SIREN & FLASH DEMAND) */}
       {activeHazard && (
-        <div className="bg-gradient-to-r from-rose-950 via-red-900 to-amber-950 rounded-2xl p-4 border-2 border-red-500 shadow-2xl shadow-rose-950/70 flex flex-col md:flex-row items-center justify-between gap-4 animate-pulse">
-          <div className="flex items-center space-x-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-red-600/30 border border-red-400 flex items-center justify-center text-red-300 shrink-0">
-              <ShieldAlert className="w-7 h-7 text-red-400 animate-bounce" />
+        <div className="my-3 bg-gradient-to-r from-rose-950 via-red-900 to-amber-950 rounded-3xl p-4 sm:p-5 border-2 border-red-500 shadow-2xl shadow-rose-950/70 flex flex-col md:flex-row items-center justify-between gap-4 animate-pulse">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-red-600/30 border border-red-400 flex items-center justify-center text-red-300 shrink-0">
+              <ShieldAlert className="w-8 h-8 text-red-400 animate-bounce" />
             </div>
             <div>
-              <div className="flex items-center space-x-2">
-                <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-red-500 text-slate-950 shadow-sm">
-                  ALÉA OPÉRATIONNEL EN COURS
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-red-500 text-slate-950">
+                  ALÉA CLIENT PRIORITAIRE
                 </span>
                 <span className="text-xs font-mono font-bold text-amber-300">
                   +{activeHazard.points_bonus} PTS BONUS
                 </span>
               </div>
-              <h3 className="text-base sm:text-lg font-black text-white mt-1">
+              <h3 className="text-lg sm:text-xl font-black text-white mt-1">
                 {activeHazard.title}
               </h3>
               <p className="text-xs text-rose-200 mt-0.5">
                 {activeHazard.message}
               </p>
-              <div className="mt-2 text-xs font-mono text-white bg-red-950/90 px-3 py-1.5 rounded-xl border border-red-500/40 inline-flex flex-wrap items-center gap-2">
-                <span className="text-amber-400 font-bold">Action physique requise :</span>
-                <span>Scannez l'étiquette <strong>{activeHazard.expected_barcode}</strong> avec votre scannette !</span>
+              <div className="mt-2 text-xs font-mono text-white bg-red-950 px-3 py-1.5 rounded-xl border border-red-500/40 inline-flex items-center gap-2">
+                <span className="text-amber-400 font-bold">Action :</span>
+                <span>Scannez immédiatement : <strong>{activeHazard.expected_barcode}</strong></span>
               </div>
             </div>
           </div>
 
-          {/* Right: Countdown & Scannable Barcode fallback */}
-          <div className="flex flex-row items-center gap-3 shrink-0">
-            <div className="flex flex-col items-center bg-black/60 px-4 py-2.5 rounded-xl border border-red-500/40 font-mono text-center">
-              <div className="flex items-center space-x-1 text-red-400 text-xs font-bold">
-                <Clock className="w-3.5 h-3.5 animate-spin" />
-                <span>COMPTE À REBOURS</span>
-              </div>
-              <div className="text-2xl font-black text-amber-300">
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="flex flex-col items-center bg-black/70 px-4 py-2 rounded-2xl border border-red-500 font-mono text-center">
+              <span className="text-[10px] text-red-400 font-bold">TEMPS RESTANT</span>
+              <span className="text-3xl font-black text-amber-300">
                 {hazardSecondsRemaining ?? activeHazard.time_limit_seconds}s
-              </div>
-            </div>
-
-            <div className="hidden sm:block">
-              <BarcodeTicket code={activeHazard.expected_barcode} label="ALÉA PHYSIQUE" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Live Duel Bar (if other stations are connected) */}
-      {otherStations.length > 0 && (
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-950/60 to-slate-900 rounded-2xl p-3 border border-indigo-500/30 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-2.5">
-          <div className="flex items-center space-x-2 text-xs font-mono text-slate-300 shrink-0">
-            <Swords className="w-4 h-4 text-amber-400 animate-bounce" />
-            <span className="font-bold uppercase text-white">Duel en Direct :</span>
-          </div>
-
-          <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
-            {/* My station */}
-            <div className="bg-slate-950/70 px-3 py-1.5 rounded-xl border border-sky-500/40 flex items-center justify-between">
-              <span className="text-sky-300 font-bold truncate">Vous ({stationName.split(' ')[0]})</span>
-              <div className="flex items-center space-x-2">
-                <div className="w-20 sm:w-24 bg-slate-800 h-2 rounded-full overflow-hidden">
-                  <div className="bg-sky-400 h-full rounded-full" style={{ width: `${progressPercent}%` }}></div>
-                </div>
-                <span className="text-sky-400 font-bold">{progressPercent}%</span>
-              </div>
-            </div>
-
-            {/* Other station */}
-            {otherStations.slice(0, 1).map((os) => (
-              <div key={os.station_id} className="bg-slate-950/70 px-3 py-1.5 rounded-xl border border-amber-500/40 flex items-center justify-between">
-                <span className="text-amber-300 font-bold truncate">{os.station_name.split(' ')[0]} ({os.team_name})</span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-20 sm:w-24 bg-slate-800 h-2 rounded-full overflow-hidden">
-                    <div className="bg-amber-400 h-full rounded-full" style={{ width: `${os.progress_percent}%` }}></div>
-                  </div>
-                  <span className="text-amber-400 font-bold">{os.progress_percent}%</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Top Banner: Mission Selector */}
-      <div className="bg-slate-900/90 rounded-2xl p-2.5 sm:p-3 border border-slate-800 flex items-center gap-2 overflow-x-auto shadow-lg shrink-0">
-        <span className="text-xs font-bold text-slate-400 font-mono px-2 uppercase tracking-wider whitespace-nowrap">
-          Missions :
-        </span>
-        {missions.map((m, idx) => {
-          const isFinished = m.steps.every((s) => s.completed);
-          const isSelected = idx === currentMissionIndex;
-          return (
-            <button
-              key={m.id || idx}
-              onClick={() => onSelectMission(idx)}
-              className={`flex items-center space-x-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
-                isSelected
-                  ? 'bg-sky-600 text-white border-sky-400 shadow-md shadow-sky-600/30'
-                  : isFinished
-                  ? 'bg-emerald-950/40 text-emerald-300 border-emerald-700/50 hover:bg-emerald-900/50'
-                  : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700'
-              }`}
-            >
-              {isFinished ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              ) : (
-                <Play className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
-              )}
-              <span>Mission {idx + 1}</span>
-              <span className="text-[10px] opacity-75 hidden md:inline">
-                ({m.title.slice(0, 20)}...)
               </span>
-            </button>
-          );
-        })}
+            </div>
+            <BarcodeTicket code={activeHazard.expected_barcode} label="ALÉA" />
+          </div>
+        </div>
+      )}
 
-        <div className="ml-auto flex items-center gap-2 shrink-0">
-          <button
-            onClick={onResetMission}
-            className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs border border-slate-700 transition-colors"
-            title="Recommencer cette mission"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Réinitialiser</span>
-          </button>
+      {/* 3. CARTE D'ACTION CENTRALE GÉANTE (ARCADE ULTRA ÉPURÉE) */}
+      <div className="my-auto py-3">
+        {currentStep ? (
+          <div className="bg-slate-900/90 rounded-3xl p-5 sm:p-8 border-2 border-sky-500/50 shadow-2xl relative overflow-hidden backdrop-blur-xl">
+            {/* Top Mission Step Header */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-4 mb-4 border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-white font-black text-sm shadow-md shadow-sky-500/30">
+                  {currentStepIndex + 1}
+                </span>
+                <div>
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-sky-400">
+                    ÉTAPE {currentStepIndex + 1} SUR {mission.steps.length}
+                  </span>
+                  <h2 className="text-sm font-semibold text-slate-300">
+                    {mission.title}
+                  </h2>
+                </div>
+              </div>
+
+              {/* Step Type Pill */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-slate-950 text-slate-300 border border-slate-800">
+                  {currentStep.barcodeType === 'location' ? '📍 EMPLACEMENT' : currentStep.barcodeType === 'dock' ? '🚚 EXPÉDITION' : '📦 ARTICLE'}
+                </span>
+              </div>
+            </div>
+
+            {/* BIG ACTION INSTRUCTION */}
+            <div className="text-center my-4 sm:my-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-300 font-mono text-xs font-bold mb-3">
+                <MapPin className="w-3.5 h-3.5 text-amber-400" />
+                <span>INSTRUCTION EN DIRECT</span>
+              </div>
+
+              <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight leading-snug">
+                {currentStep.instruction}
+              </h1>
+
+              {currentStep.hint && (
+                <p className="text-xs sm:text-sm text-slate-400 font-sans mt-2 max-w-xl mx-auto">
+                  💡 {currentStep.hint}
+                </p>
+              )}
+            </div>
+
+            {/* TARGET CODE & SCANNABLE BARCODE (HERO DISPLAY) */}
+            <div className="my-6 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-8 bg-slate-950/70 p-5 sm:p-7 rounded-3xl border border-slate-800">
+              {/* Target info */}
+              <div className="text-center sm:text-left space-y-1">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-bold block">
+                  Cible physique à viser :
+                </span>
+                <div className="text-2xl sm:text-3xl font-black text-sky-300 font-mono tracking-wider">
+                  {currentStep.expectedBarcode}
+                </div>
+                <div className="text-xs text-slate-300 font-semibold">
+                  {currentStep.targetLabel}
+                </div>
+              </div>
+
+              {/* Scannable Barcode SVG */}
+              <BarcodeTicket
+                code={currentStep.expectedBarcode}
+                label={currentStep.targetLabel}
+              />
+            </div>
+
+            {/* BIG CLICKABLE ACTION BUTTON (FOR BACKUP OR TOUCHSCREEN) */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => barcodeListener.simulateScan(currentStep.expectedBarcode)}
+                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-base sm:text-lg rounded-2xl shadow-xl shadow-amber-500/25 flex items-center justify-center gap-3 transition-all hover:scale-[1.02] cursor-pointer"
+              >
+                <Zap className="w-5 h-5 text-slate-950 fill-current" />
+                <span>FLASHER LE CODE ATTENDU : {currentStep.expectedBarcode}</span>
+              </button>
+
+              <span className="text-[11px] text-slate-500 font-mono hidden sm:inline">
+                Raccourci clavier : [ESPACE]
+              </span>
+            </div>
+          </div>
+        ) : (
+          /* MISSION COMPLETED CELEBRATION CARD */
+          <div className="bg-slate-900/95 rounded-3xl p-8 border-2 border-emerald-500 text-center shadow-2xl">
+            <div className="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-12 h-12 text-emerald-400 animate-bounce" />
+            </div>
+            <h2 className="text-3xl font-black text-white">
+              MISSION ACCOMPLIE ! 🎉
+            </h2>
+            <p className="text-slate-300 text-sm max-w-md mx-auto mt-2">
+              Félicitations au Duo <strong>{operatorCea}</strong> & <strong>{clientGuest}</strong> pour cette préparation parfaite !
+            </p>
+
+            <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+              {currentMissionIndex < missions.length - 1 ? (
+                <button
+                  onClick={() => onSelectMission(currentMissionIndex + 1)}
+                  className="px-8 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-base rounded-2xl shadow-lg shadow-emerald-500/30 flex items-center gap-2 cursor-pointer"
+                >
+                  <span>Passer à la Mission Suivante</span>
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              ) : (
+                <button
+                  onClick={onStartNewMatch}
+                  className="px-8 py-3.5 bg-gradient-to-r from-sky-500 to-indigo-500 hover:from-sky-400 hover:to-indigo-400 text-white font-black text-base rounded-2xl shadow-lg shadow-sky-500/30 flex items-center gap-2 cursor-pointer"
+                >
+                  <Sparkles className="w-5 h-5" />
+                  <span>Nouveau Match (Mélanger)</span>
+                </button>
+              )}
+
+              <button
+                onClick={onResetMission}
+                className="px-5 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl font-bold text-xs flex items-center gap-1.5"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Rejouer</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 4. TIMELINE ÉPURÉE DES ÉTAPES DU FLUX LOGISTIQUE */}
+      <div className="bg-slate-900/90 rounded-2xl p-3 sm:p-4 border border-slate-800 shrink-0">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400">
+            Flux Logistique ({mission.steps.filter((s) => s.completed).length}/{mission.steps.length} étapes)
+          </span>
+          <span className="text-xs font-mono font-bold text-sky-400">{progressPercent}%</span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          {mission.steps.map((st, i) => {
+            const isDone = st.completed;
+            const isCurrent = i === currentStepIndex;
+
+            return (
+              <div
+                key={st.id || i}
+                className={`p-2 rounded-xl border text-xs flex items-center gap-2 transition-all ${
+                  isDone
+                    ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300 font-semibold'
+                    : isCurrent
+                    ? 'bg-sky-950/80 border-sky-400 text-white font-bold ring-2 ring-sky-500/30 shadow-md shadow-sky-500/20'
+                    : 'bg-slate-950/40 border-slate-800/80 text-slate-500'
+                }`}
+              >
+                {isDone ? (
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                ) : (
+                  <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] shrink-0 font-mono ${
+                    isCurrent ? 'bg-sky-500 text-slate-950 font-black' : 'border border-slate-700 text-slate-500'
+                  }`}>
+                    {i + 1}
+                  </span>
+                )}
+                <span className="truncate text-[11px]">{st.targetLabel}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Main Mission Workstation */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 flex-1 items-start">
-        {/* Left 2 Cols: Active Mission Card & Big Action Prompt */}
-        <div className="lg:col-span-2 flex flex-col gap-3.5">
-          <div className="bg-slate-900 rounded-3xl p-4 sm:p-5 border border-slate-800 shadow-xl flex flex-col justify-between relative overflow-hidden">
-            <div>
-              {/* Mission Header */}
-              <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
-                <div>
-                  <div className="flex items-center space-x-2 mb-1">
-                    <span className="text-xs font-mono font-bold text-sky-400 uppercase tracking-wider">
-                      {mission.code}
-                    </span>
-                    <span className="text-slate-600">•</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-sky-500/20 text-sky-300 border border-sky-500/30">
-                      {mission.priority}
-                    </span>
-                  </div>
-                  <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
-                    {mission.title}
-                  </h1>
-                  <p className="text-xs sm:text-sm text-slate-300 mt-0.5 flex items-center space-x-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span className="font-medium text-slate-200">{mission.client}</span>
-                  </p>
-                </div>
-
-                {/* Points Pill */}
-                <div className="text-right shrink-0 bg-slate-950/60 px-3 py-1.5 rounded-2xl border border-slate-800">
-                  <div className="text-xl sm:text-2xl font-black font-mono text-emerald-400">
-                    +{mission.basePoints}
-                  </div>
-                  <div className="text-[9px] text-slate-400 uppercase font-mono">Points Mission</div>
-                </div>
+      {/* QUICK DRAWER FOR LOGS (OPTIONAL OVERLAY) */}
+      {showLogsDrawer && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex justify-end">
+          <div className="bg-slate-900 border-l border-slate-800 w-full max-w-md p-5 flex flex-col justify-between shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <List className="w-5 h-5 text-sky-400" />
+                <h3 className="font-bold text-sm text-white">Journal des Scans</h3>
               </div>
-
-              {/* Progress Bar */}
-              <div className="mb-4">
-                <div className="flex justify-between text-xs font-semibold text-slate-400 mb-1">
-                  <span>Progression de la mission</span>
-                  <span className="font-mono text-white">{progressPercent}%</span>
-                </div>
-                <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800 p-0.5">
-                  <div
-                    className="h-full bg-gradient-to-r from-sky-500 to-emerald-400 rounded-full transition-all duration-500 shadow-lg shadow-emerald-500/20"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Big Interactive Action Box (THE TARGET PROMPT) */}
-              {currentStep ? (
-                <div className="bg-slate-950/90 rounded-2xl p-4 sm:p-5 border-2 border-sky-500/50 shadow-2xl relative overflow-hidden">
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
-                    <div className="flex items-center space-x-2">
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-sky-500 text-slate-950 font-black text-xs">
-                        {mission.steps.indexOf(currentStep) + 1}
-                      </span>
-                      <span className="text-xs uppercase font-mono font-bold text-sky-400">
-                        Action Requise au Scanner :
-                      </span>
-                    </div>
-
-                    <div className="flex items-center space-x-2 text-[11px] text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
-                      <Zap className="w-3 h-3 text-amber-400" />
-                      <span>Douchette physique ou 1-clic direct</span>
-                    </div>
-                  </div>
-
-                  <p className="text-base sm:text-lg font-bold text-white mb-3 leading-snug">
-                    {currentStep.instruction}
-                  </p>
-
-                  {/* Target Details & Scannable Barcode Ticket */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-slate-900/90 p-3 rounded-2xl border border-slate-800">
-                    <div className="flex-1 space-y-1.5">
-                      <div>
-                        <span className="text-[10px] uppercase font-mono text-slate-400 block">Cible à viser :</span>
-                        <span className="text-sm font-semibold text-slate-100 flex items-center space-x-1.5">
-                          <Package className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>{currentStep.targetLabel}</span>
-                        </span>
-                      </div>
-
-                      <div>
-                        <span className="text-[10px] uppercase font-mono text-slate-400 block">Code attendu :</span>
-                        <span className="font-mono text-base font-black text-amber-400 tracking-wider">
-                          {currentStep.expectedBarcode}
-                        </span>
-                      </div>
-
-                      {currentStep.hint && (
-                        <div className="text-xs text-slate-400 flex items-center space-x-1.5 italic pt-1">
-                          <span className="font-semibold text-slate-300">💡 Conseil :</span>
-                          <span>{currentStep.hint}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Scannable Barcode on Screen */}
-                    <div className="flex flex-col items-center justify-center shrink-0">
-                      <BarcodeTicket code={currentStep.expectedBarcode} label={currentStep.targetLabel} />
-                    </div>
-                  </div>
-
-                  {/* HIGH-VISIBILITY DIRECT 1-CLICK ACTION BUTTON */}
-                  <div className="mt-3.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => barcodeListener.simulateScan(currentStep.expectedBarcode)}
-                      className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black text-sm flex items-center justify-center space-x-2 shadow-lg shadow-amber-500/30 transition-transform active:scale-[0.98] ring-2 ring-amber-400/50 cursor-pointer"
-                    >
-                      <Zap className="w-4 h-4 fill-current shrink-0" />
-                      <span>🎯 FLASHER LE CODE ATTENDU : {currentStep.expectedBarcode}</span>
-                    </button>
-
-                    <div className="hidden md:flex items-center space-x-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-400 font-mono shrink-0">
-                      <Keyboard className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Raccourci : [ESPACE]</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-emerald-950/40 rounded-2xl p-6 sm:p-8 border-2 border-emerald-500/50 text-center">
-                  <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-2.5 shadow-lg shadow-emerald-500/20">
-                    <Sparkles className="w-7 h-7" />
-                  </div>
-                  <h3 className="text-xl font-black text-emerald-400 mb-1">MISSION ACCOMPLIE AVEC SUCCÈS !</h3>
-                  <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto mb-4">
-                    Toutes les étapes ont été validées sans accroc. Le score de votre binôme a été synchronisé en temps réel sur le cloud !
-                  </p>
-                  <button
-                    onClick={onResetMission}
-                    className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs"
-                  >
-                    Rejouer cette mission
-                  </button>
-                </div>
-              )}
+              <button
+                onClick={() => setShowLogsDrawer(false)}
+                className="text-slate-400 hover:text-white font-mono text-sm px-2 py-1"
+              >
+                ✕ Fermer
+              </button>
             </div>
 
-            {/* Steps Checklist Overview */}
-            <div className="mt-4 pt-3 border-t border-slate-800/80">
-              <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                Étapes du flux logistique :
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                {mission.steps.map((st, i) => (
-                  <div
-                    key={st.id || i}
-                    className={`p-2 rounded-xl border text-xs flex items-center space-x-2 ${
-                      st.completed
-                        ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-300'
-                        : st === currentStep
-                        ? 'bg-sky-950/40 border-sky-400/60 text-white font-bold'
-                        : 'bg-slate-950/40 border-slate-800 text-slate-500'
-                    }`}
-                  >
-                    {st.completed ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    ) : (
-                      <div className="w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center text-[10px] shrink-0">
-                        {i + 1}
-                      </div>
-                    )}
-                    <span className="truncate">{st.targetLabel}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Live Logs & Stocks */}
-        <div className="flex flex-col gap-3.5">
-          {/* Logs Card */}
-          <div className="bg-slate-900 rounded-3xl p-4 border border-slate-800 shadow-xl flex flex-col h-[280px]">
-            <div className="flex items-center justify-between pb-2.5 border-b border-slate-800 shrink-0">
-              <span className="text-xs font-bold font-mono text-slate-200 uppercase">Journal Scannette en Direct</span>
-              {onClearLogs && (
-                <button
-                  onClick={onClearLogs}
-                  className="text-[10px] text-slate-500 hover:text-slate-300 font-mono"
-                >
-                  Effacer
-                </button>
-              )}
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-2 pt-2 pr-1">
+            <div className="flex-1 overflow-y-auto space-y-2 py-4">
               {logs.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-xs text-slate-500 italic text-center p-4">
-                  En attente du premier coup de douchette...
-                </div>
+                <p className="text-xs text-slate-500 text-center py-8">Aucun scan enregistré pour le moment.</p>
               ) : (
                 logs.map((log) => (
                   <div
                     key={log.id}
-                    className={`p-2 rounded-xl border text-xs font-mono flex items-start justify-between gap-2 transition-all ${
+                    className={`p-2.5 rounded-xl border text-xs font-mono ${
                       log.status === 'valid'
                         ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
                         : 'bg-rose-950/40 border-rose-500/40 text-rose-200'
                     }`}
                   >
-                    <div>
-                      <div className="flex items-center space-x-1.5 font-bold">
-                        {log.status === 'valid' ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        ) : (
-                          <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                        )}
-                        <span>{log.barcode}</span>
-                      </div>
-                      <p className="text-[11px] opacity-80 mt-0.5 font-sans leading-tight">{log.message}</p>
+                    <div className="flex items-center justify-between font-bold">
+                      <span>{log.barcode}</span>
+                      <span className="text-[10px] opacity-60">{log.timestamp}</span>
                     </div>
-                    <span className="text-[10px] opacity-60 shrink-0">{log.timestamp}</span>
+                    <p className="text-[11px] font-sans opacity-80 mt-0.5">{log.message}</p>
                   </div>
                 ))
               )}
             </div>
-          </div>
 
-          {/* ARCADE DUEL & CHALLENGE RADAR (Replacing ERP stock with live gaming excitement) */}
-          <div className="bg-gradient-to-br from-slate-900 via-indigo-950/30 to-slate-900 rounded-3xl p-4 border border-indigo-500/30 shadow-xl flex flex-col justify-between h-[280px]">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800 shrink-0">
-              <div className="flex items-center space-x-2">
-                <Swords className="w-4 h-4 text-amber-400 animate-pulse" />
-                <span className="text-xs font-bold font-mono text-white uppercase">Radar Duel & Record</span>
-              </div>
-              <span className="text-[10px] text-emerald-400 font-mono font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                Direct TV
-              </span>
-            </div>
-
-            {/* Duel opponent status */}
-            <div className="space-y-3 my-auto">
-              {otherStations.length > 0 ? (
-                otherStations.slice(0, 1).map((os) => (
-                  <div key={os.station_id} className="bg-slate-950/80 p-3 rounded-2xl border border-amber-500/30 space-y-2">
-                    <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-amber-300 font-bold truncate">Adversaire : {os.team_name}</span>
-                      <span className="text-amber-400 font-bold">{os.progress_percent}%</span>
-                    </div>
-                    <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
-                      <div
-                        className="bg-gradient-to-r from-amber-500 to-orange-400 h-full rounded-full transition-all duration-300"
-                        style={{ width: `${os.progress_percent}%` }}
-                      ></div>
-                    </div>
-                    <div className="text-[10px] font-mono text-slate-400 flex justify-between">
-                      <span>Score rival : <strong className="text-white">{os.score} pts</strong></span>
-                      <span>Combo x{os.combo || 1}</span>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800 text-center space-y-1">
-                  <div className="text-xs font-bold text-slate-300 font-mono">Mode Défi Solo / Chrono</div>
-                  <p className="text-[11px] text-slate-400">
-                    Connectez une 2ème scannette pour lancer le duel en face-à-face sur la TV 55" !
-                  </p>
-                </div>
-              )}
-
-              {/* Combo boost reminder */}
-              <div className="bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800 flex items-center justify-between text-xs font-mono">
-                <div className="flex items-center space-x-1.5 text-orange-400">
-                  <Flame className="w-4 h-4 fill-current" />
-                  <span className="font-bold">Série en cours :</span>
-                </div>
-                <span className="text-white font-black">{combo > 0 ? `x${combo} (+${combo * 50} pts)` : 'x1 (Scannez sans erreur !)'}</span>
-              </div>
-            </div>
-
-            {/* Quick action: Reset match */}
-            <div className="pt-2 border-t border-slate-800/80">
-              <button
-                onClick={onStartNewMatch || onResetMission}
-                className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Nouveau Duo (Mélanger les Missions)</span>
-              </button>
-            </div>
+            <button
+              onClick={() => setShowLogsDrawer(false)}
+              className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold"
+            >
+              Fermer le journal
+            </button>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Duo Name Edit Modal */}
+      {/* MODAL DUO */}
       {isDuoModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 rounded-3xl border border-slate-700 p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center space-x-2.5 text-white">
-              <Users className="w-5 h-5 text-indigo-400" />
-              <h3 className="text-base font-bold">Identité du Binôme (Duo Joueur)</h3>
-            </div>
-            <p className="text-xs text-slate-300">
-              Personnalisez les noms affichés sur le poste et sur l'écran TV en régie :
-            </p>
-
-            <form onSubmit={handleSaveDuo} className="space-y-3">
+          <form onSubmit={handleSaveDuo} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-slate-100">
+            <h3 className="font-black text-lg text-white mb-4">Modifier le Binôme</h3>
+            <div className="space-y-3 mb-5">
               <div>
-                <label className="text-xs text-slate-400 block mb-1">Nom de l'Opérateur CEA (hôte) :</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Collaborateur CEA</label>
                 <input
                   type="text"
                   value={ceaInput}
                   onChange={(e) => setCeaInput(e.target.value)}
-                  placeholder="Ex: Pierre (Logistique)"
-                  className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-sm text-white font-semibold focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white"
                 />
               </div>
-
               <div>
-                <label className="text-xs text-slate-400 block mb-1">Nom du Client Invité :</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Client / Invité</label>
                 <input
                   type="text"
                   value={clientInput}
                   onChange={(e) => setClientInput(e.target.value)}
-                  placeholder="Ex: Dr. Martin (LETI)"
-                  className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-sm text-white font-semibold focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-amber-300"
                 />
               </div>
-
-              <div className="flex items-center justify-end space-x-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsDuoModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30"
-                >
-                  Valider le Duo
-                </button>
-              </div>
-            </form>
-          </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsDuoModalOpen(false)}
+                className="px-4 py-2 bg-slate-800 rounded-xl text-xs"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl text-xs"
+              >
+                Enregistrer
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

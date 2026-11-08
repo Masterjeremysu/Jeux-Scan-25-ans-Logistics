@@ -136,6 +136,11 @@ class SoundService {
     }
   }
 
+  // Match Start Jingle (Energetic ascending fanfare for race start)
+  public playSuccessJingle() {
+    this.playMissionComplete();
+  }
+
   // Emergency Siren / Industrial Hazard Alarm (Urgent dual-tone siren for sudden events)
   public playEmergencyAlarm() {
     if (!this.soundEnabled) return;

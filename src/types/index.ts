@@ -1,4 +1,4 @@
-export type ViewMode = 'kiosk' | 'erp' | 'print' | 'podium' | 'arena' | 'admin' | 'play';
+export type ViewMode = 'home' | 'kiosk' | 'erp' | 'print' | 'podium' | 'arena' | 'admin' | 'play';
 
 export interface DuoStation {
   station_id: string;
@@ -29,6 +29,7 @@ export interface AppConfig {
   diplomaDescription: string;
   diplomaSignatory: string;
   availableStations: { id: string; name: string }[];
+  customLogoUrl?: string;
   autoHazardsEnabled?: boolean;
   hazardIntervalSeconds?: number;
   clientsCatalog?: string[];

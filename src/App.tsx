@@ -11,6 +11,7 @@ import { ArenaTvView } from './components/ArenaTvView';
 import { AdminConfigView } from './components/AdminConfigView';
 import { DiplomeModal } from './components/DiplomeModal';
 import { ZebraPlayView } from './components/ZebraPlayView';
+import { HomeLauncherView } from './components/HomeLauncherView';
 import { barcodeListener } from './services/barcodeListener';
 import { soundService } from './services/soundService';
 import { 
@@ -58,12 +59,14 @@ const parseInitialRoute = (): { view: ViewMode; stationId?: string; stationName?
   if (target === 'podium') return { view: 'podium' };
   if (target === 'erp') return { view: 'erp' };
   if (target === 'print') return { view: 'print' };
+  if (target === 'home') return { view: 'home' };
 
+  if (target === 'kiosk') return { view: 'kiosk' };
   if (target === 'poste-1') return { view: 'kiosk', stationId: 'poste-1', stationName: 'Poste 1 (Scannette A)' };
   if (target === 'poste-2') return { view: 'kiosk', stationId: 'poste-2', stationName: 'Poste 2 (Scannette B)' };
   if (target === 'poste-3') return { view: 'kiosk', stationId: 'poste-3', stationName: 'Poste 3 (Zebra Scan)' };
 
-  return { view: 'kiosk' };
+  return { view: 'home' };
 };
 
 export const App: React.FC = () => {
@@ -340,7 +343,8 @@ export const App: React.FC = () => {
 
   const handleSelectView = (view: ViewMode) => {
     setCurrentView(view);
-    if (view === 'arena') window.location.hash = 'tv';
+    if (view === 'home') window.location.hash = '';
+    else if (view === 'arena') window.location.hash = 'tv';
     else if (view === 'admin') window.location.hash = 'admin';
     else if (view === 'podium') window.location.hash = 'podium';
     else if (view === 'erp') window.location.hash = 'erp';
@@ -713,6 +717,91 @@ export const App: React.FC = () => {
     });
   };
 
+  // Launch Live 2-Duo Duel from the Home Launcher
+  const handleStartDuel = async (
+    duo1: { cea: string; client: string },
+    duo2: { cea: string; client: string }
+  ) => {
+    // 1. Update Supabase live stations state
+    await updateStationLive({
+      station_id: 'poste-1',
+      station_name: 'Poste 1 (Scannette A)',
+      operator_cea: duo1.cea,
+      client_guest: duo1.client,
+      team_name: `Duo ${duo1.client}`,
+      score: 0,
+      combo: 0,
+      progress_percent: 0,
+      current_step_index: 0,
+      total_steps: 5,
+      status: 'in_progress'
+    });
+
+    await updateStationLive({
+      station_id: 'poste-2',
+      station_name: 'Poste 2 (Scannette B)',
+      operator_cea: duo2.cea,
+      client_guest: duo2.client,
+      team_name: `Duo ${duo2.client}`,
+      score: 0,
+      combo: 0,
+      progress_percent: 0,
+      current_step_index: 0,
+      total_steps: 5,
+      status: 'in_progress'
+    });
+
+    // 2. Local state initialization for this active machine
+    const isP2 = stationId === 'poste-2';
+    const activeDuo = isP2 ? duo2 : duo1;
+    setOperatorCea(activeDuo.cea);
+    setClientGuest(activeDuo.client);
+    setShiftSecondsRemaining(appConfig.shiftDurationSeconds || 180);
+    setCombo(0);
+    setCurrentMissionIndex(0);
+    setLogs([]);
+
+    // Reset all mission steps
+    setMissions((prev) =>
+      prev.map((m) => ({
+        ...m,
+        steps: m.steps.map((st) => ({ ...st, completed: false }))
+      }))
+    );
+
+    setCurrentView('kiosk');
+    soundService.playSuccessJingle();
+  };
+
+  // Launch Solo / Practice run from Home Launcher
+  const handleStartSolo = (
+    targetStationId: string,
+    targetStationName: string,
+    duo: { cea: string; client: string }
+  ) => {
+    handleSelectStation(targetStationId, targetStationName);
+    setOperatorCea(duo.cea);
+    setClientGuest(duo.client);
+    setShiftSecondsRemaining(appConfig.shiftDurationSeconds || 180);
+    setCombo(0);
+    setCurrentMissionIndex(0);
+    setLogs([]);
+
+    setMissions((prev) =>
+      prev.map((m) => ({
+        ...m,
+        steps: m.steps.map((st) => ({ ...st, completed: false }))
+      }))
+    );
+
+    setCurrentView('kiosk');
+    soundService.playSuccessJingle();
+  };
+
+  const handleUpdateLogo = (logoUrl: string) => {
+    setAppConfig((prev) => ({ ...prev, customLogoUrl: logoUrl }));
+  };
+
   // DEDICATED HANDHELD ZEBRA PURE GAME MODE (NO HEADER, NO ADMIN/ERP TABS, LOCKED TO GAMEPLAY)
   if (currentView === 'play') {
     // Station 2 receives alternate/reversed missions so they target DIFFERENT shelves and products
@@ -759,10 +848,25 @@ export const App: React.FC = () => {
         shiftSecondsRemaining={shiftSecondsRemaining}
         onOpenDiplome={() => setIsDiplomeOpen(true)}
         appConfig={appConfig}
+        onUpdateLogo={handleUpdateLogo}
       />
 
       {/* Main View Router */}
       <main className="flex-1 overflow-y-auto">
+        {currentView === 'home' && (
+          <HomeLauncherView
+            appConfig={appConfig}
+            liveStations={liveStations}
+            onStartDuel={handleStartDuel}
+            onStartSolo={handleStartSolo}
+            onOpenTv={() => handleSelectView('arena')}
+            onOpenPodium={() => handleSelectView('podium')}
+            onOpenAdmin={() => handleSelectView('admin')}
+            onOpenPrint={() => handleSelectView('print')}
+            onUpdateLogo={handleUpdateLogo}
+          />
+        )}
+
         {currentView === 'kiosk' && (
           <PosteOperateurView
             missions={missions}
