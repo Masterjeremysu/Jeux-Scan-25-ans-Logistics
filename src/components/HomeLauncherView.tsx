@@ -13,7 +13,8 @@ import {
   ArrowRight,
   ShieldCheck,
   CheckCircle2,
-  ExternalLink
+  ExternalLink,
+  X
 } from 'lucide-react';
 import { AppConfig, DuoStation } from '../types';
 import { GameLogo } from './GameLogo';
@@ -407,32 +408,39 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
 
       {/* QR Codes Modal for Handheld Zebra Launch */}
       {showQrModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl text-slate-100">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <QrCode className="w-6 h-6 text-sky-400" />
-                <h3 className="font-black text-lg sm:text-xl text-white">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn select-none">
+          <div className="relative bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-slate-700/80 rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl text-slate-100">
+            {/* Close Cross */}
+            <button
+              onClick={() => setShowQrModal(false)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              title="Fermer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-start space-x-4 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center justify-center shrink-0 shadow-lg shadow-sky-500/10">
+                <QrCode className="w-6 h-6" />
+              </div>
+              <div className="pt-0.5">
+                <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-sky-400 block mb-1">
+                  APPAIRAGE TERMINAUX MOBILES SANS FIL
+                </span>
+                <h3 className="text-xl font-black text-white tracking-tight">
                   Flasher les Scannettes Zebra
                 </h3>
               </div>
-              <button
-                onClick={() => setShowQrModal(false)}
-                className="text-slate-400 hover:text-white text-xl font-mono"
-              >
-                ✕
-              </button>
             </div>
 
-            <p className="text-xs sm:text-sm text-slate-300 my-4 text-center">
+            <p className="text-xs sm:text-sm text-slate-300 my-3 leading-relaxed">
               Scannez ces QR codes avec l'appareil photo ou le navigateur de vos terminaux Zebra.
-              <br />
-              Ils s'ouvriront directement en <strong>mode joueur épuré plein écran</strong> synchronisé en temps réel !
+              Ils s'ouvriront directement en <strong>mode joueur épuré plein écran</strong> synchronisé en temps réel avec la régie et la TV !
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 my-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 my-6">
               {/* QR Zebra 1 */}
-              <div className="bg-slate-950 p-5 rounded-2xl border-2 border-sky-500/50 text-center flex flex-col items-center">
+              <div className="bg-slate-950/80 p-5 rounded-2xl border-2 border-sky-500/50 text-center flex flex-col items-center">
                 <span className="text-xs font-black font-mono text-sky-400 uppercase mb-2">
                   Zebra 1 • Duo Bleu
                 </span>
@@ -447,7 +455,7 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
                   href={zebra1Url}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs text-sky-400 hover:underline flex items-center gap-1 font-mono"
+                  className="text-xs text-sky-400 hover:underline flex items-center gap-1 font-mono font-bold"
                 >
                   <span>Ouvrir l'onglet Duo 1</span>
                   <ExternalLink className="w-3 h-3" />
@@ -455,7 +463,7 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
               </div>
 
               {/* QR Zebra 2 */}
-              <div className="bg-slate-950 p-5 rounded-2xl border-2 border-amber-500/50 text-center flex flex-col items-center">
+              <div className="bg-slate-950/80 p-5 rounded-2xl border-2 border-amber-500/50 text-center flex flex-col items-center">
                 <span className="text-xs font-black font-mono text-amber-400 uppercase mb-2">
                   Zebra 2 • Duo Orange
                 </span>
@@ -470,7 +478,7 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
                   href={zebra2Url}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs text-amber-400 hover:underline flex items-center gap-1 font-mono"
+                  className="text-xs text-amber-400 hover:underline flex items-center gap-1 font-mono font-bold"
                 >
                   <span>Ouvrir l'onglet Duo 2</span>
                   <ExternalLink className="w-3 h-3" />
@@ -478,11 +486,11 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
               </div>
             </div>
 
-            <div className="flex justify-end pt-2 border-t border-slate-800">
+            <div className="flex justify-end pt-3 border-t border-slate-800">
               <button
                 type="button"
                 onClick={() => setShowQrModal(false)}
-                className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl"
+                className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
               >
                 Fermer
               </button>

@@ -33,6 +33,7 @@ import {
   Truck
 } from 'lucide-react';
 import { GameLogo } from './GameLogo';
+import { ConfirmModal } from './ConfirmModal';
 
 interface ArenaTvViewProps {
   appConfig: AppConfig;
@@ -72,20 +73,21 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, onBackToHom
     setIsMatchRunning((prev) => !prev);
   };
 
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+
   const handleResetMatchTime = () => {
     setIsMatchRunning(false);
     setMatchSeconds(180);
   };
 
-  const handleResetArena = async () => {
-    if (window.confirm('Voulez-vous réinitialiser l\'arène (remettre les 2 duos et les scores à zéro) ?')) {
-      await resetAllLiveStations();
-      const fresh = await getStationsLive();
-      setStations(fresh);
-      setIsMatchRunning(false);
-      setMatchSeconds(180);
-      setLastEventMsg('Arène remise à zéro • En attente des nouveaux duos');
-    }
+  const executeResetArena = async () => {
+    await resetAllLiveStations();
+    const fresh = await getStationsLive();
+    setStations(fresh);
+    setIsMatchRunning(false);
+    setMatchSeconds(180);
+    setLastEventMsg('Arène remise à zéro • En attente des nouveaux duos');
+    setIsResetConfirmOpen(false);
   };
 
   const toggleFullscreen = () => {
@@ -270,7 +272,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, onBackToHom
           </div>
 
           <button
-            onClick={handleResetArena}
+            onClick={() => setIsResetConfirmOpen(true)}
             className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/40 text-xs font-mono font-bold transition-colors cursor-pointer"
             title="Remettre les duos et scores à 0"
           >
@@ -641,6 +643,17 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, onBackToHom
           </div>
         )}
       </footer>
+
+      {/* Modern In-App Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isResetConfirmOpen}
+        title="Réinitialiser l'Arène TV 55'' ?"
+        message="Voulez-vous remettre l'arène en direct à zéro (vider les 2 stations et remettre le chronomètre à 03:00 pour le prochain duel) ?"
+        confirmLabel="Oui, réinitialiser l'arène"
+        variant="warning"
+        onCancel={() => setIsResetConfirmOpen(false)}
+        onConfirm={executeResetArena}
+      />
     </div>
   );
 };

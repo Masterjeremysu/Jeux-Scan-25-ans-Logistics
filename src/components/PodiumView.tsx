@@ -29,6 +29,7 @@ import {
   RemoteScore, 
   isSupabaseConfigured 
 } from '../services/supabaseClient';
+import { ConfirmModal } from './ConfirmModal';
 
 interface PodiumViewProps {
   currentOperator: OperatorProfile;
@@ -109,32 +110,53 @@ export const PodiumView: React.FC<PodiumViewProps> = ({
   const top3 = leaderboard[2] || null;
   const restLeaderboard = leaderboard.slice(3);
 
-  const handleDeleteScore = async (id?: string, name?: string) => {
+  // Modern confirm modal state
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    variant?: 'danger' | 'warning' | 'info' | 'success';
+    singleAction?: boolean;
+    action?: () => Promise<void> | void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: ''
+  });
+
+  const handleDeleteScore = (id?: string, name?: string) => {
     if (!id) return;
     const displayName = name || 'ce score';
-    if (window.confirm(`Supprimer définitivement le score de "${displayName}" du classement ?`)) {
-      const ok = await deleteScoreById(id);
-      if (ok) {
-        setLeaderboard((prev) => prev.filter((s) => s.id !== id));
-      } else {
-        alert('Erreur lors de la suppression.');
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Supprimer ce score ?',
+      message: `Voulez-vous supprimer définitivement le score de "${displayName}" du classement officiel des 25 ans ?`,
+      confirmLabel: 'Supprimer définitivement',
+      variant: 'danger',
+      action: async () => {
+        const ok = await deleteScoreById(id);
+        if (ok) {
+          setLeaderboard((prev) => prev.filter((s) => s.id !== id));
+        }
       }
-    }
+    });
   };
 
-  const handleResetAll = async () => {
-    if (
-      window.confirm(
-        '⚠️ ATTENTION : Voulez-vous vraiment EFFACER TOUS LES SCORES du classement ? Cette action est irréversible.'
-      )
-    ) {
-      const ok = await resetAllScores();
-      if (ok) {
-        setLeaderboard([]);
-      } else {
-        alert('Erreur lors de la remise à zéro.');
+  const handleResetAll = () => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Remettre le classement à zéro ?',
+      message: 'Attention : Cette action effacera définitivement l\'intégralité des scores enregistrés pour l\'événement des 25 ans. Cette action est irréversible.',
+      confirmLabel: 'Oui, effacer tous les scores',
+      variant: 'danger',
+      action: async () => {
+        const ok = await resetAllScores();
+        if (ok) {
+          setLeaderboard([]);
+        }
       }
-    }
+    });
   };
 
   const handleRegister = (e: React.FormEvent) => {
@@ -686,6 +708,23 @@ export const PodiumView: React.FC<PodiumViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* Modern In-App Confirmation Modal */}
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        confirmLabel={confirmConfig.confirmLabel}
+        variant={confirmConfig.variant}
+        singleAction={confirmConfig.singleAction}
+        onCancel={() => setConfirmConfig((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={async () => {
+          if (confirmConfig.action) {
+            await confirmConfig.action();
+          }
+          setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
+        }}
+      />
     </div>
   );
 };

@@ -16,7 +16,8 @@ import {
   List,
   RotateCcw,
   Check,
-  AlertTriangle
+  AlertTriangle,
+  X
 } from 'lucide-react';
 import { barcodeListener } from '../services/barcodeListener';
 
@@ -508,44 +509,72 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
 
       {/* MODAL DUO */}
       {isDuoModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <form onSubmit={handleSaveDuo} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-slate-100">
-            <h3 className="font-black text-lg text-white mb-4">Modifier le Binôme</h3>
-            <div className="space-y-3 mb-5">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn select-none">
+          <form onSubmit={handleSaveDuo} className="relative bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-slate-700/80 rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl text-slate-100">
+            {/* Close cross */}
+            <button
+              type="button"
+              onClick={() => setIsDuoModalOpen(false)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              title="Fermer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Header with Icon */}
+            <div className="flex items-start space-x-4 mb-5">
+              <div className="w-12 h-12 rounded-2xl bg-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center justify-center shrink-0 shadow-lg shadow-sky-500/10">
+                <Users className="w-6 h-6" />
+              </div>
+              <div className="pt-0.5">
+                <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-sky-400 block mb-1">
+                  CONFIGURATION STATION • {stationName}
+                </span>
+                <h3 className="text-lg font-black text-white tracking-tight">Modifier le Binôme</h3>
+              </div>
+            </div>
+
+            <div className="space-y-4 mb-6">
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Collaborateur GT</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5 font-mono">
+                  Collaborateur GT (Copilote) :
+                </label>
                 <input
                   type="text"
                   value={ceaInput}
                   onChange={(e) => setCeaInput(e.target.value)}
                   placeholder="Ex: Jeremy (GT)"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white"
+                  className="w-full bg-slate-950 border border-slate-700/80 focus:border-sky-500 focus:outline-none rounded-xl px-4 py-2.5 text-sm text-white font-semibold transition-colors"
                 />
               </div>
+
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Invité</label>
+                <label className="block text-xs font-bold text-amber-300 mb-1.5 font-mono">
+                  Invité d'Honneur :
+                </label>
                 <input
                   type="text"
                   value={clientInput}
                   onChange={(e) => setClientInput(e.target.value)}
-                  placeholder="Nom de l'invité"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-amber-300"
+                  placeholder="Prénom ou nom de l'invité"
+                  className="w-full bg-slate-950 border border-slate-700/80 focus:border-amber-500 focus:outline-none rounded-xl px-4 py-2.5 text-sm text-amber-300 font-semibold transition-colors"
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2">
+
+            <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-800">
               <button
                 type="button"
                 onClick={() => setIsDuoModalOpen(false)}
-                className="px-4 py-2 bg-slate-800 rounded-xl text-xs"
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs transition-colors cursor-pointer"
               >
                 Annuler
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl text-xs"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-extrabold text-xs shadow-lg shadow-sky-600/30 transition-all cursor-pointer"
               >
-                Enregistrer
+                Valider le Binôme
               </button>
             </div>
           </form>

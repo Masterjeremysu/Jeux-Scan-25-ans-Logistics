@@ -53,6 +53,7 @@ import {
 } from '../services/supabaseClient';
 import { INITIAL_INVENTORY } from '../data/initialData';
 import { MISSIONS } from '../data/missions';
+import { ConfirmModal } from './ConfirmModal';
 
 interface AdminConfigViewProps {
   appConfig: AppConfig;
@@ -102,6 +103,21 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
   const [duo2Client, setDuo2Client] = useState('Invité 2');
   const [showMatchQRs, setShowMatchQRs] = useState(false);
   const [matchSeed, setMatchSeed] = useState<number>(Date.now());
+
+  // In-app stylish confirmation modal
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    variant?: 'danger' | 'warning' | 'info' | 'success';
+    singleAction?: boolean;
+    action?: () => Promise<void> | void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: ''
+  });
   const [adminScores, setAdminScores] = useState<RemoteScore[]>([]);
 
   const loadAdminScores = async () => {
@@ -187,60 +203,96 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
   // Import Template CEA
   const handleLoadCeaTemplate = () => {
-    if (confirm('Voulez-vous charger les 3 missions et articles modèles du CEA ?')) {
-      setLocalMissions(MISSIONS);
-      setLocalInventory(INITIAL_INVENTORY);
-      setSaveStatus('Modèle CEA chargé dans l\'éditeur. Cliquez sur Sauvegarder pour propager aux postes.');
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Charger les modèles du CEA ?',
+      message: 'Voulez-vous charger les 3 missions standard et articles réels du site CEA ?',
+      confirmLabel: 'Charger le modèle',
+      variant: 'info',
+      action: () => {
+        setLocalMissions(MISSIONS);
+        setLocalInventory(INITIAL_INVENTORY);
+        setSaveStatus('Modèle CEA chargé dans l\'éditeur. Cliquez sur Sauvegarder pour propager aux postes.');
+      }
+    });
   };
 
   // Clear all missions
   const handleClearAllMissions = () => {
-    if (confirm('Attention : Voulez-vous supprimer toutes les missions pour en créer de nouvelles ?')) {
-      setLocalMissions([]);
-      setSelectedMissionIndex(0);
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Supprimer toutes les missions ?',
+      message: 'Attention : Voulez-vous supprimer l\'ensemble des missions pour repartir d\'une feuille blanche ?',
+      confirmLabel: 'Oui, tout supprimer',
+      variant: 'danger',
+      action: () => {
+        setLocalMissions([]);
+        setSelectedMissionIndex(0);
+      }
+    });
   };
 
   // Clear all inventory
   const handleClearAllInventory = () => {
-    if (confirm('Attention : Voulez-vous vider tout le catalogue de stock ?')) {
-      setLocalInventory([]);
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Vider le catalogue de stock ?',
+      message: 'Attention : Voulez-vous supprimer l\'ensemble des articles en stock ?',
+      confirmLabel: 'Oui, vider le stock',
+      variant: 'danger',
+      action: () => {
+        setLocalInventory([]);
+      }
+    });
   };
 
   // Reset scores on podium and TV arena stations
-  const handleClearScores = async () => {
-    if (confirm('Attention : Voulez-vous vraiment effacer tous les scores du classement ET réinitialiser les 2 postes TV à zéro ?')) {
-      const ok = await resetAllScores();
-      await resetAllLiveStations();
-      if (ok) {
-        setAdminScores([]);
-        alert('Le classement et l\'arène TV ont été remis à zéro avec succès !');
-      } else {
-        alert('Erreur lors de la remise à zéro.');
+  const handleClearScores = () => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Purger le classement et l\'Arène TV ?',
+      message: 'Attention : Voulez-vous vraiment effacer tous les scores du classement ET réinitialiser les 2 postes TV à zéro pour le prochain match ?',
+      confirmLabel: 'Purger le classement & TV',
+      variant: 'danger',
+      action: async () => {
+        const ok = await resetAllScores();
+        await resetAllLiveStations();
+        if (ok) {
+          setAdminScores([]);
+        }
       }
-    }
+    });
   };
 
   // Delete individual score by admin
-  const handleDeleteAdminScore = async (id: string, name: string) => {
-    if (confirm(`Supprimer définitivement le score de "${name}" du classement ?`)) {
-      const ok = await deleteScoreById(id);
-      if (ok) {
-        setAdminScores((prev) => prev.filter((s) => s.id !== id));
-      } else {
-        alert('Erreur lors de la suppression.');
+  const handleDeleteAdminScore = (id: string, name: string) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Supprimer ce score ?',
+      message: `Voulez-vous supprimer définitivement le score de "${name}" du classement ?`,
+      confirmLabel: 'Supprimer définitivement',
+      variant: 'danger',
+      action: async () => {
+        const ok = await deleteScoreById(id);
+        if (ok) {
+          setAdminScores((prev) => prev.filter((s) => s.id !== id));
+        }
       }
-    }
+    });
   };
 
   // Reset live scans
-  const handleClearLiveScans = async () => {
-    if (confirm('Voulez-vous effacer l\'historique des scans en direct ?')) {
-      await resetLiveActivity();
-      alert('Historique des scans en direct vidé !');
-    }
+  const handleClearLiveScans = () => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Effacer l\'historique des scans ?',
+      message: 'Voulez-vous réinitialiser le journal des scans en direct affiché sur l\'arène ?',
+      confirmLabel: 'Effacer l\'historique',
+      variant: 'warning',
+      action: async () => {
+        await resetLiveActivity();
+      }
+    });
   };
 
   // Export JSON configuration file
@@ -275,7 +327,14 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         setSelectedMissionIndex(0);
         setSaveStatus('✓ Fichier JSON importé avec succès ! Cliquez sur "Enregistrer" pour appliquer.');
       } catch {
-        alert('Erreur : Fichier JSON invalide ou corrompu.');
+        setConfirmConfig({
+          isOpen: true,
+          title: 'Format Invalide',
+          message: 'Le fichier sélectionné n\'est pas un fichier JSON valide ou est corrompu.',
+          confirmLabel: 'Compris',
+          singleAction: true,
+          variant: 'danger'
+        });
       }
     };
     reader.readAsText(file);
@@ -432,7 +491,14 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
   // Save new distraction template
   const handleSaveDistractionTemplate = async () => {
     if (!newDistraction.title || !newDistraction.expected_barcode) {
-      alert('Veuillez renseigner un titre et un code-barres attendu.');
+      setConfirmConfig({
+        isOpen: true,
+        title: 'Champs Obligatoires Manquants',
+        message: 'Veuillez renseigner un titre et un code-barres attendu pour créer ce modèle d\'aléa.',
+        confirmLabel: 'Compris',
+        singleAction: true,
+        variant: 'warning'
+      });
       return;
     }
 
@@ -1540,7 +1606,14 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                     const randomDistraction = distractions[Math.floor(Math.random() * distractions.length)];
                     handleTriggerLiveHazard(randomDistraction);
                   } else {
-                    alert('Aucun modèle d\'aléa configuré.');
+                    setConfirmConfig({
+                      isOpen: true,
+                      title: 'Aucun Modèle Configuré',
+                      message: 'Veuillez créer ou activer au moins un modèle d\'aléa ci-dessous avant de déclencher un flash.',
+                      confirmLabel: 'Compris',
+                      singleAction: true,
+                      variant: 'warning'
+                    });
                   }
                 }}
                 className="p-4 rounded-2xl bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white font-black text-xs flex items-center justify-between shadow-lg shadow-rose-600/30 transition-all cursor-pointer group"
@@ -1942,6 +2015,23 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modern In-App Confirmation Modal */}
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        confirmLabel={confirmConfig.confirmLabel}
+        variant={confirmConfig.variant}
+        singleAction={confirmConfig.singleAction}
+        onCancel={() => setConfirmConfig((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={async () => {
+          if (confirmConfig.action) {
+            await confirmConfig.action();
+          }
+          setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
+        }}
+      />
     </div>
   );
 };
