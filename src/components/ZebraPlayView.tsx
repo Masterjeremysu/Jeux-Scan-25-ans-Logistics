@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import JsBarcode from 'jsbarcode';
-import { Mission, DuoStation, LiveHazard } from '../types';
+import { Mission, DuoStation, LiveHazard, InventoryItem } from '../types';
 import { 
   CheckCircle2, 
   MapPin, 
@@ -13,7 +13,9 @@ import {
   Zap, 
   Swords,
   ChevronRight,
-  Truck
+  Truck,
+  AlertTriangle,
+  Check
 } from 'lucide-react';
 import { barcodeListener } from '../services/barcodeListener';
 
@@ -32,6 +34,8 @@ interface ZebraPlayViewProps {
   activeHazard: LiveHazard | null;
   hazardSecondsRemaining: number;
   otherStations: DuoStation[];
+  inventory?: InventoryItem[];
+  onDeclareAnomaly?: (realQty: number) => void;
 }
 
 export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
@@ -48,11 +52,24 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
   flashState,
   activeHazard,
   hazardSecondsRemaining,
-  otherStations
+  otherStations,
+  inventory = [],
+  onDeclareAnomaly
 }) => {
   const isPoste1 = stationId === 'poste-1';
   const mission = missions[currentMissionIndex] || missions[0];
   const currentStep = mission ? mission.steps.find((s) => !s.completed) || null : null;
+  const [isAnomalyModalOpen, setIsAnomalyModalOpen] = useState(false);
+  const [anomalyQty, setAnomalyQty] = useState(0);
+
+  // Dynamic resolution from live inventory
+  const matchedItem = currentStep
+    ? inventory.find((i) => i.sku.toUpperCase() === currentStep.expectedBarcode.toUpperCase())
+    : null;
+
+  const displayTargetLabel = matchedItem ? matchedItem.name : currentStep?.targetLabel;
+  const requiredQty = currentStep?.quantity && currentStep.quantity > 1 ? currentStep.quantity : 1;
+  const currentScannedQty = currentStep?.scannedCount || 0;
   const completedStepsCount = mission ? mission.steps.filter((s) => s.completed).length : 0;
   const totalStepsCount = mission ? mission.steps.length : 1;
   const progressPercent = Math.round((completedStepsCount / totalStepsCount) * 100);
@@ -210,12 +227,24 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
             {/* Big Physical Target Display */}
             <div className="bg-gradient-to-br from-slate-950 to-slate-900 p-4 sm:p-5 rounded-2xl border-2 border-dashed border-sky-500/50 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
               <div className="space-y-1">
-                <span className="text-xs uppercase font-mono text-slate-400 block font-bold">
-                  {currentStep.barcodeType === 'location' ? '📍 Emplacement Étagère à viser :' : currentStep.barcodeType === 'dock' ? '🚚 Quai d\'Expédition :' : '📦 Pièce / Colis à scanner :'}
-                </span>
-                <div className="text-base sm:text-lg font-black text-white flex items-center justify-center sm:justify-start space-x-2">
-                  <span>{currentStep.targetLabel}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs uppercase font-mono text-slate-400 block font-bold">
+                    {currentStep.barcodeType === 'location' ? '📍 Emplacement Étagère :' : currentStep.barcodeType === 'dock' ? '🚚 Quai d\'Expédition :' : '📦 Pièce / Colis à scanner :'}
+                  </span>
+                  {requiredQty > 1 && (
+                    <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-xs font-black border border-amber-500/40">
+                      Qté : {currentScannedQty}/{requiredQty} pcs
+                    </span>
+                  )}
                 </div>
+                <div className="text-base sm:text-lg font-black text-white flex items-center justify-center sm:justify-start space-x-2">
+                  <span>{displayTargetLabel}</span>
+                </div>
+                {matchedItem?.lrCode && (
+                  <span className="text-xs font-mono text-amber-400 font-bold block">
+                    Réf L/R : {matchedItem.lrCode}
+                  </span>
+                )}
                 {currentStep.hint && (
                   <p className="text-xs text-slate-400 italic pt-1">
                     💡 {currentStep.hint}
@@ -232,22 +261,38 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
               </div>
             </div>
 
-            {/* Scanner Ready Indicator & Dev Fallback Click */}
+            {/* Scanner Ready Indicator & Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-2">
               <div className="flex items-center space-x-2 text-xs font-mono text-slate-400">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping inline-block" />
                 <span className="text-emerald-400 font-bold">Scannez l'étiquette avec votre douchette</span>
               </div>
 
-              {/* Dev Simulation Button */}
-              <button
-                type="button"
-                onClick={() => barcodeListener.simulateScan(currentStep.expectedBarcode)}
-                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-bold border border-slate-700 transition-colors"
-                title="Simule le scan si la douchette physique n'est pas connectée"
-              >
-                Simuler le Scan (Mode Test)
-              </button>
+              <div className="flex items-center space-x-2 w-full sm:w-auto">
+                {currentStep.barcodeType === 'article' && onDeclareAnomaly && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAnomalyQty(Math.max(0, currentScannedQty));
+                      setIsAnomalyModalOpen(true);
+                    }}
+                    className="flex-1 sm:flex-none px-3 py-2 rounded-xl bg-amber-950/70 hover:bg-amber-900 border border-amber-500/50 text-amber-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Écart Stock ?</span>
+                  </button>
+                )}
+
+                {/* Dev Simulation Button */}
+                <button
+                  type="button"
+                  onClick={() => barcodeListener.simulateScan(currentStep.expectedBarcode)}
+                  className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-bold border border-slate-700 transition-colors"
+                  title="Simule le scan si la douchette physique n'est pas connectée"
+                >
+                  Flasher {requiredQty > 1 ? `(${currentScannedQty + 1}/${requiredQty})` : ''}
+                </button>
+              </div>
             </div>
           </div>
         ) : (
@@ -275,6 +320,77 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
           <span>Visez les étiquettes de vos étagères et quais avec le laser de la scannette.</span>
         )}
       </footer>
+
+      {/* ANOMALIE DE STOCK MODAL (ZEBRA COMPACT) */}
+      {isAnomalyModalOpen && currentStep && (
+        <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border-2 border-amber-500/70 rounded-3xl p-5 max-w-sm w-full shadow-2xl space-y-4">
+            <div className="flex items-center space-x-2.5 text-amber-400">
+              <AlertTriangle className="w-5 h-5 text-amber-400 animate-pulse shrink-0" />
+              <div>
+                <span className="text-[10px] font-mono font-bold uppercase text-amber-400 block">
+                  Écart de Stock Réel
+                </span>
+                <h3 className="text-base font-black text-white">{displayTargetLabel}</h3>
+              </div>
+            </div>
+
+            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs space-y-1">
+              <div className="text-slate-300">
+                <span className="text-slate-500 font-mono">Attendu commande : </span>
+                <strong className="text-amber-400">{requiredQty} pcs</strong>
+              </div>
+              <div className="text-white font-bold pt-1">
+                Combien de pièces sont réellement présentes en rayon ?
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              {[0, 1, 2].filter(n => n < requiredQty).map((qty) => (
+                <button
+                  key={qty}
+                  type="button"
+                  onClick={() => setAnomalyQty(qty)}
+                  className={`py-2.5 rounded-xl font-mono font-black text-xs border transition-all ${
+                    anomalyQty === qty 
+                      ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/30'
+                      : 'bg-slate-800 text-slate-300 border-slate-700'
+                  }`}
+                >
+                  {qty === 0 ? '0 (Rupture)' : `${qty} pc`}
+                </button>
+              ))}
+            </div>
+
+            <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-[10px] text-amber-200">
+              🛡️ <strong>Bonus Vigilance : +400 pts</strong> (Ajuste le stock WMS sans bloquer la livraison)
+            </div>
+
+            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsAnomalyModalOpen(false)}
+                className="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onDeclareAnomaly) {
+                    onDeclareAnomaly(anomalyQty);
+                  }
+                  setIsAnomalyModalOpen(false);
+                }}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs shadow-md shadow-amber-500/30 flex items-center space-x-1"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Valider (+400 pts)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

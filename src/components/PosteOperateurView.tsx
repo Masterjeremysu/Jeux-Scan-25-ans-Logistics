@@ -44,6 +44,7 @@ interface PosteOperateurViewProps {
   onTriggerSurpriseOrder?: () => void;
   onStartNewMatch?: () => void;
   onBackToHome?: () => void;
+  onDeclareAnomaly?: (realQty: number) => void;
 }
 
 export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
@@ -66,17 +67,31 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
   hazardSecondsRemaining,
   onTriggerSurpriseOrder,
   onStartNewMatch,
-  onBackToHome
+  onBackToHome,
+  onDeclareAnomaly
 }) => {
   const [isDuoModalOpen, setIsDuoModalOpen] = useState(false);
   const [ceaInput, setCeaInput] = useState(operatorCea);
   const [clientInput, setClientInput] = useState(clientGuest);
   const [showLogsDrawer, setShowLogsDrawer] = useState(false);
+  const [isAnomalyModalOpen, setIsAnomalyModalOpen] = useState(false);
+  const [anomalyQty, setAnomalyQty] = useState(0);
 
   const mission = missions[currentMissionIndex] || missions[0];
   const currentStepIndex = mission.steps.findIndex((s) => !s.completed);
   const currentStep = currentStepIndex !== -1 ? mission.steps[currentStepIndex] : null;
   const isMissionFinished = mission.steps.every((s) => s.completed);
+
+  // Résolution dynamique depuis l'inventaire en direct
+  const matchedItem = currentStep
+    ? inventory.find((i) => i.sku.toUpperCase() === currentStep.expectedBarcode.toUpperCase())
+    : null;
+
+  const displayTargetLabel = matchedItem ? matchedItem.name : currentStep?.targetLabel;
+  const displayLrCode = matchedItem?.lrCode || currentStep?.lrCode;
+  const displayCrLabel = matchedItem?.name || currentStep?.crLabel || currentStep?.targetLabel;
+  const requiredQty = currentStep?.quantity && currentStep.quantity > 1 ? currentStep.quantity : 1;
+  const currentScannedQty = currentStep?.scannedCount || 0;
 
   const progressPercent = Math.round(
     (mission.steps.filter((s) => s.completed).length / mission.steps.length) * 100
@@ -305,35 +320,51 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
             <div className="my-6 flex flex-col md:flex-row items-center justify-around gap-6 bg-slate-950/80 p-5 sm:p-7 rounded-3xl border border-slate-800/80 shadow-inner">
               {/* Target info */}
               <div className="text-center md:text-left space-y-2 max-w-sm">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-[11px] font-mono font-bold text-sky-300">
-                  <span>Étiquette Stock Réelle GT</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-[11px] font-mono font-bold text-sky-300">
+                    <span>{matchedItem ? 'Article Stock ERP (Dynamique)' : 'Étiquette Stock Réelle GT'}</span>
+                  </div>
+                  {requiredQty > 1 && (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-[11px] font-bold border border-amber-500/40">
+                      <span>Qté : {requiredQty} pcs</span>
+                      <span className="bg-amber-400 text-slate-950 px-1.5 py-0.2 rounded-full font-black text-[10px]">
+                        {currentScannedQty}/{requiredQty}
+                      </span>
+                    </div>
+                  )}
                 </div>
+
                 <div className="text-3xl sm:text-4xl font-black text-white font-mono tracking-wider">
                   {currentStep.expectedBarcode}
                 </div>
-                {currentStep.lrCode && (
+                {displayLrCode && (
                   <div className="text-sm font-mono font-black text-amber-400 bg-slate-900/90 px-3 py-1 rounded-xl border border-slate-800 inline-block">
-                    <span className="text-slate-400 font-medium">L/R : </span>{currentStep.lrCode}
+                    <span className="text-slate-400 font-medium">L/R : </span>{displayLrCode}
                   </div>
                 )}
                 <div className="text-xs text-slate-300 font-bold uppercase tracking-wide">
-                  {currentStep.crLabel || currentStep.targetLabel}
+                  {displayCrLabel}
                 </div>
+                {matchedItem?.location && (
+                  <div className="text-[11px] text-sky-400 font-mono">
+                    📍 Casier : <strong>{matchedItem.location}</strong>
+                  </div>
+                )}
               </div>
 
               {/* Scannable Barcode Real GT Stock Label */}
               <div className="shrink-0 drop-shadow-xl transform hover:scale-105 transition-transform duration-200">
                 <GtStockLabel
                   barcode={currentStep.expectedBarcode}
-                  lrCode={currentStep.lrCode}
-                  crLabel={currentStep.crLabel || currentStep.targetLabel}
+                  lrCode={displayLrCode}
+                  crLabel={displayCrLabel}
                   type={currentStep.barcodeType}
                   size="standard"
                 />
               </div>
             </div>
 
-            {/* BIG CLICKABLE ACTION BUTTON (FOR BACKUP OR TOUCHSCREEN) */}
+            {/* BIG CLICKABLE ACTION BUTTON & ANOMALY OPTION */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
               <button
                 type="button"
@@ -341,12 +372,23 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
                 className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-base sm:text-lg rounded-2xl shadow-xl shadow-amber-500/25 flex items-center justify-center gap-3 transition-all hover:scale-[1.02] cursor-pointer"
               >
                 <Zap className="w-5 h-5 text-slate-950 fill-current" />
-                <span>FLASHER LE CODE ATTENDU : {currentStep.expectedBarcode}</span>
+                <span>FLASHER LE CODE : {currentStep.expectedBarcode} {requiredQty > 1 ? `(${currentScannedQty + 1}/${requiredQty})` : ''}</span>
               </button>
 
-              <span className="text-[11px] text-slate-500 font-mono hidden sm:inline">
-                Raccourci clavier : [ESPACE]
-              </span>
+              {currentStep.barcodeType === 'article' && onDeclareAnomaly && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAnomalyQty(Math.max(0, currentScannedQty));
+                    setIsAnomalyModalOpen(true);
+                  }}
+                  className="px-4 py-3.5 rounded-2xl bg-amber-950/70 hover:bg-amber-900/90 border border-amber-500/50 text-amber-300 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-lg hover:scale-105"
+                  title="Signaler un écart entre la quantité demandée et le stock réel trouvé en rayon"
+                >
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Écart de Stock Réel ?</span>
+                </button>
+              )}
             </div>
           </div>
         ) : (
@@ -555,6 +597,97 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* ANOMALIE DE STOCK MODAL */}
+      {isAnomalyModalOpen && currentStep && (
+        <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border-2 border-amber-500/70 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center space-x-3 text-amber-400">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6 text-amber-400 animate-pulse" />
+              </div>
+              <div>
+                <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-amber-400 block">
+                  Procédure Qualité & Logistique GT
+                </span>
+                <h3 className="text-lg font-black text-white">Signalement Écart de Stock</h3>
+              </div>
+            </div>
+
+            <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-2 text-xs">
+              <div className="text-slate-300">
+                <span className="text-slate-500 font-mono">Article : </span>
+                <strong className="text-white">{displayTargetLabel}</strong> ({currentStep.expectedBarcode})
+              </div>
+              <div className="text-slate-300">
+                <span className="text-slate-500 font-mono">Quantité demandée : </span>
+                <strong className="text-amber-400 font-bold">{requiredQty} pcs</strong>
+              </div>
+              {matchedItem?.location && (
+                <div className="text-slate-300">
+                  <span className="text-slate-500 font-mono">Emplacement prévu : </span>
+                  <strong className="text-sky-300">{matchedItem.location}</strong>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-white font-mono">
+                Combien de pièces avez-vous réellement trouvées en rayon ?
+              </label>
+              <div className="flex items-center space-x-2">
+                {[0, 1, 2, 3].filter(n => n < requiredQty).map((qty) => (
+                  <button
+                    key={qty}
+                    type="button"
+                    onClick={() => setAnomalyQty(qty)}
+                    className={`flex-1 py-3 rounded-xl font-mono font-black text-sm border transition-all cursor-pointer ${
+                      anomalyQty === qty 
+                        ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-lg shadow-amber-500/30 scale-105'
+                        : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                    }`}
+                  >
+                    {qty === 0 ? '0 (Rupture)' : `${qty} pc`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-[11px] text-amber-200/90 space-y-1">
+              <p className="font-bold flex items-center gap-1.5">
+                <span>🛡️ Bonus Vigilance Logistique :</span>
+                <span className="text-amber-400 font-black">+400 PTS</span>
+              </p>
+              <p className="text-[10px] text-slate-400">
+                Déclarer un écart ajuste immédiatement le stock WMS et évite de bloquer la livraison client.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsAnomalyModalOpen(false)}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onDeclareAnomaly) {
+                    onDeclareAnomaly(anomalyQty);
+                  }
+                  setIsAnomalyModalOpen(false);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/30 transition-all cursor-pointer flex items-center space-x-1.5"
+              >
+                <Check className="w-4 h-4" />
+                <span>Valider Sortie Partielle (+400 pts)</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

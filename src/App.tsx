@@ -525,14 +525,32 @@ export const App: React.FC = () => {
       const newCombo = comboRef.current + 1;
       setCombo(newCombo);
 
+      // Multi-quantity progression
+      const requiredQty = activeStep.quantity && activeStep.quantity > 1 ? activeStep.quantity : 1;
+      const currentScanned = (activeStep.scannedCount || 0) + 1;
+      const isStepCompleted = currentScanned >= requiredQty;
+
       // Update step status
       const updatedSteps = [...activeMission.steps];
-      updatedSteps[activeStepIndex] = { ...activeStep, completed: true };
+      updatedSteps[activeStepIndex] = { 
+        ...activeStep, 
+        scannedCount: currentScanned,
+        completed: isStepCompleted 
+      };
 
       const updatedMission = { ...activeMission, steps: updatedSteps };
       const updatedMissions = [...currentMissions];
       updatedMissions[activeIndex] = updatedMission;
       setMissions(updatedMissions);
+
+      // Notification if multi-quantity is partially completed
+      if (!isStepCompleted) {
+        showToast({
+          title: `Quantité validée : ${currentScanned} / ${requiredQty} pcs`,
+          message: `Scannez la pièce restante pour compléter l'étape`,
+          type: 'info'
+        });
+      }
 
       // Check if full mission completed
       const isMissionDone = updatedSteps.every((s) => s.completed);
@@ -602,18 +620,24 @@ export const App: React.FC = () => {
       }
 
       // Live ERP Stock Update & Scenarios Actions
-      if (cleanedCode === 'ART-KF40-INOX') {
-        // Préparation / Picking : Décrémentation du stock
+      const matchedInvItem = inventory.find(
+        (item) => item.sku.toUpperCase() === cleanedCode.toUpperCase()
+      );
+
+      if (matchedInvItem && activeStep.barcodeType === 'article') {
+        // Préparation / Picking : Décrémentation automatique du stock
         setInventory((prevInv) => {
           const nextInv = prevInv.map((item) =>
-            item.sku === 'ART-KF40-INOX' ? { ...item, quantity: Math.max(0, item.quantity - 1) } : item
+            item.sku.toUpperCase() === cleanedCode.toUpperCase()
+              ? { ...item, quantity: Math.max(0, item.quantity - 1) }
+              : item
           );
           broadcastLocalRealtime('INVENTORY_UPDATED', nextInv);
           return nextInv;
         });
         showToast({
-          title: 'WMS : Sortie de Stock (-1)',
-          message: 'Bride KF40 Inox prélevée pour commande',
+          title: `WMS : Sortie de Stock (-1 ${matchedInvItem.unit || 'pc'})`,
+          message: `${matchedInvItem.name} prélevé pour la commande`,
           type: 'info'
         });
       } else if (cleanedCode === 'ZONE_POMPE_GRILLE_41') {
@@ -690,7 +714,66 @@ export const App: React.FC = () => {
         ...prev
       ]);
     }
-  }, []);
+  }, [inventory]);
+
+  // Déclaration d'Écart de Stock Réel / Rupture Partielle par le Duo
+  const handleDeclareStockAnomaly = (realQty: number) => {
+    const activeIndex = currentMissionIndexRef.current;
+    const currentMissions = missionsRef.current;
+    const activeMission = currentMissions[activeIndex];
+    const activeStepIndex = activeMission.steps.findIndex((s) => !s.completed);
+    if (activeStepIndex === -1) return;
+
+    const activeStep = activeMission.steps[activeStepIndex];
+    const matchedItem = inventory.find(
+      (i) => i.sku.toUpperCase() === activeStep.expectedBarcode.toUpperCase()
+    );
+
+    // 1. Marquer l'étape validée avec la quantité réelle constatée
+    const updatedSteps = [...activeMission.steps];
+    updatedSteps[activeStepIndex] = {
+      ...activeStep,
+      scannedCount: realQty,
+      completed: true,
+      hint: `⚠️ Écart déclaré : ${realQty} pc(s) trouvée(s) (attendu : ${activeStep.quantity || 1})`
+    };
+
+    const updatedMission = { ...activeMission, steps: updatedSteps };
+    const updatedMissions = [...currentMissions];
+    updatedMissions[activeIndex] = updatedMission;
+    setMissions(updatedMissions);
+
+    // 2. Ajuster l'ERP au stock physique réel
+    if (matchedItem) {
+      const nextInv = inventory.map((item) =>
+        item.id === matchedItem.id ? { ...item, quantity: Math.max(0, realQty) } : item
+      );
+      handleUpdateInventory(nextInv);
+    }
+
+    // 3. Attribuer le Bonus Vigilance Logistique (+400 pts)
+    const bonusPoints = 400;
+    setOperator((prev) => ({
+      ...prev,
+      score: prev.score + bonusPoints
+    }));
+
+    soundService.playSuccessChime();
+    showToast({
+      title: 'Écart de Stock Enregistré (+400 pts Bonus)',
+      message: `Stock ERP ajusté à ${realQty} pc(s). Alerte transmise au gestionnaire.`,
+      type: 'warning'
+    });
+
+    broadcastScan({
+      station_name: stationNameRef.current,
+      operator_name: `${clientGuestRef.current} (avec ${operatorCeaRef.current})`,
+      barcode: activeStep.expectedBarcode,
+      action_type: 'ANOMALY_DECLARED',
+      message: `⚠️ ÉCART DE STOCK DÉCLARÉ : ${activeStep.targetLabel} (${realQty} en stock réel au lieu de ${activeStep.quantity || 1}) - Bonus Vigilance +400 pts`,
+      status: 'valid'
+    }).catch(() => {});
+  };
 
   // Subscribe to global hardware barcode scanner
   useEffect(() => {
@@ -938,6 +1021,8 @@ export const App: React.FC = () => {
           activeHazard={activeHazard}
           hazardSecondsRemaining={hazardSecondsRemaining}
           otherStations={liveStations}
+          inventory={inventory}
+          onDeclareAnomaly={handleDeclareStockAnomaly}
         />
         {/* Celebration Diploma Modal */}
         <DiplomeModal
@@ -1019,6 +1104,7 @@ export const App: React.FC = () => {
             hazardSecondsRemaining={hazardSecondsRemaining}
             onTriggerSurpriseOrder={handleTriggerSurpriseOrder}
             onStartNewMatch={handleStartNewShift}
+            onDeclareAnomaly={handleDeclareStockAnomaly}
           />
         )}
 
