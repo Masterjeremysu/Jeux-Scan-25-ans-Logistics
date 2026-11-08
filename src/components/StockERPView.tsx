@@ -12,6 +12,7 @@ import {
   PackageCheck,
   RotateCcw
 } from 'lucide-react';
+import { showToast } from './ToastNotification';
 
 interface StockERPViewProps {
   inventory: InventoryItem[];
@@ -110,6 +111,11 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
         await onUpdateInventory(localItems);
       }
       setSaveStatus('✓ Stock ERP enregistré dans Supabase et synchronisé en direct !');
+      showToast({
+        title: 'Stock ERP Enregistré',
+        message: `${localItems.length} références synchronisées en direct sur tous les postes`,
+        type: 'success'
+      });
       setIsEditMode(false);
     } catch (err) {
       setSaveStatus('⚠️ Erreur lors de l\'enregistrement cloud.');

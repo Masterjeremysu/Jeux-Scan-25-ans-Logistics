@@ -12,6 +12,7 @@ import { AdminConfigView } from './components/AdminConfigView';
 import { DiplomeModal } from './components/DiplomeModal';
 import { ZebraPlayView } from './components/ZebraPlayView';
 import { HomeLauncherView } from './components/HomeLauncherView';
+import { ToastContainer, showToast } from './components/ToastNotification';
 import { barcodeListener } from './services/barcodeListener';
 import { soundService } from './services/soundService';
 import { broadcastLocalRealtime, subscribeToLocalRealtime } from './services/realtimeSyncService';
@@ -245,6 +246,12 @@ export const App: React.FC = () => {
         setActiveHazard(hazard);
         setHazardSecondsRemaining(hazard.time_limit_seconds || 45);
         soundService.playEmergencyAlarm();
+        showToast({
+          title: '🚨 ALÉA DÉCLENCHÉ EN DIRECT !',
+          message: `${hazard.title} (+${hazard.points_bonus} pts)`,
+          type: 'hazard',
+          duration: 5000
+        });
         broadcastScan({
           station_name: stationNameRef.current,
           operator_name: `${clientGuestRef.current} (avec ${operatorCeaRef.current})`,
@@ -397,6 +404,12 @@ export const App: React.FC = () => {
       operator_cea: cea,
       client_guest: client,
       team_name: `Duo ${client}`
+    });
+
+    showToast({
+      title: 'Binôme Enregistré',
+      message: `${client} & ${cea}`,
+      type: 'success'
     });
   };
 
@@ -1026,6 +1039,9 @@ export const App: React.FC = () => {
         stationName={stationName}
         appConfig={appConfig}
       />
+
+      {/* Global Toast Notifications (Bottom Right) */}
+      <ToastContainer />
     </div>
   );
 };

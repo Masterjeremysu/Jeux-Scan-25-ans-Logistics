@@ -54,6 +54,7 @@ import {
 import { INITIAL_INVENTORY } from '../data/initialData';
 import { MISSIONS } from '../data/missions';
 import { ConfirmModal } from './ConfirmModal';
+import { showToast } from './ToastNotification';
 
 interface AdminConfigViewProps {
   appConfig: AppConfig;
@@ -236,6 +237,11 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
     if (success) {
       setSaveStatus('✓ Configuration enregistrée dans Supabase et synchronisée sur tous les postes !');
+      showToast({
+        title: 'Configuration Enregistrée',
+        message: 'Synchronisée dans Supabase et répercutée en direct',
+        type: 'success'
+      });
     } else {
       setSaveStatus('✓ Enregistré localement (hors-ligne)');
     }
@@ -255,6 +261,11 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
     if (success) {
       setSaveStatus('✓ Stock & Articles enregistrés dans Supabase et synchronisés en direct !');
+      showToast({
+        title: 'Stock Enregistré',
+        message: `${localInventory.length} articles sauvegardés et synchronisés`,
+        type: 'success'
+      });
     } else {
       setSaveStatus('✓ Stock enregistré localement (hors-ligne)');
     }
@@ -515,6 +526,11 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
     if (hazardId) {
       setHazardFeedback(`⚡ Aléa envoyé avec succès à la station (${targetStationForHazard === 'all' ? 'Tous les postes' : targetStationForHazard}) !`);
+      showToast({
+        title: 'Aléa Déclenché en Direct',
+        message: `${d.title} → Cible : ${targetStationForHazard === 'all' ? 'Tous les postes' : targetStationForHazard}`,
+        type: 'hazard'
+      });
     } else {
       setHazardFeedback('Erreur lors de l\'envoi de l\'aléa.');
     }
@@ -542,6 +558,11 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
     if (hazardId) {
       setHazardFeedback(`📦 Commande client surprise envoyée en direct à (${targetStationForHazard === 'all' ? 'Tous les postes' : targetStationForHazard}) !`);
+      showToast({
+        title: 'Commande Surprise Déclenchée',
+        message: `${randomClient} → Cible : ${targetStationForHazard === 'all' ? 'Tous les postes' : targetStationForHazard}`,
+        type: 'hazard'
+      });
     } else {
       setHazardFeedback('Erreur lors de l\'envoi de la commande imprévue.');
     }
