@@ -122,12 +122,14 @@ export async function broadcastScan(activity: Omit<LiveActivityEvent, 'id' | 'cr
   }
 }
 
+const generateChannelId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
 // Realtime subscription for scores table
 export function subscribeToScores(onNewScore: (score: RemoteScore) => void) {
   if (!supabase) return () => {};
 
   const channel = supabase
-    .channel('scores-realtime')
+    .channel(generateChannelId('scores'))
     .on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'scores' },
@@ -147,7 +149,7 @@ export function subscribeToLiveActivity(onActivity: (activity: LiveActivityEvent
   if (!supabase) return () => {};
 
   const channel = supabase
-    .channel('activity-realtime')
+    .channel(generateChannelId('activity'))
     .on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'live_activity' },
@@ -263,7 +265,7 @@ export function subscribeToAppConfig(onConfigChanged: (config: StoredAppConfig) 
   if (!supabase) return () => {};
 
   const channel = supabase
-    .channel('config-realtime')
+    .channel(generateChannelId('config'))
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'app_config' },
@@ -335,7 +337,7 @@ export function subscribeToStationsLive(onStationUpdate: (station: DuoStation) =
   if (!supabase) return () => {};
 
   const channel = supabase
-    .channel('stations-realtime')
+    .channel(generateChannelId('stations'))
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'stations_live' },
@@ -455,7 +457,7 @@ export function subscribeToLiveHazards(onHazardEvent: (hazard: LiveHazard, event
   if (!supabase) return () => {};
 
   const channel = supabase
-    .channel('hazards-realtime')
+    .channel(generateChannelId('hazards'))
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'live_hazards' },

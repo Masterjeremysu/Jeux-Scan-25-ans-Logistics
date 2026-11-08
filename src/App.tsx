@@ -30,8 +30,30 @@ import {
 let logCounter = 0;
 const generateUniqueLogId = () => `log-${Date.now()}-${++logCounter}-${Math.random().toString(36).slice(2, 7)}`;
 
+const parseInitialRoute = (): { view: ViewMode; stationId?: string; stationName?: string } => {
+  const hash = window.location.hash.replace('#', '').toLowerCase();
+  const search = new URLSearchParams(window.location.search);
+  const qView = (search.get('view') || '').toLowerCase();
+  const qStation = (search.get('station') || '').toLowerCase();
+
+  const target = hash || qView || qStation;
+
+  if (target === 'tv' || target === 'arena') return { view: 'arena' };
+  if (target === 'admin') return { view: 'admin' };
+  if (target === 'podium') return { view: 'podium' };
+  if (target === 'erp') return { view: 'erp' };
+  if (target === 'print') return { view: 'print' };
+
+  if (target === 'poste-1') return { view: 'kiosk', stationId: 'poste-1', stationName: 'Poste 1 (Scannette A)' };
+  if (target === 'poste-2') return { view: 'kiosk', stationId: 'poste-2', stationName: 'Poste 2 (Scannette B)' };
+  if (target === 'poste-3') return { view: 'kiosk', stationId: 'poste-3', stationName: 'Poste 3 (Zebra Scan)' };
+
+  return { view: 'kiosk' };
+};
+
 export const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<ViewMode>('kiosk');
+  const initialRoute = parseInitialRoute();
+  const [currentView, setCurrentView] = useState<ViewMode>(initialRoute.view);
   const [inventory, setInventory] = useState<InventoryItem[]>(INITIAL_INVENTORY);
   const [missions, setMissions] = useState<Mission[]>(MISSIONS);
   const [appConfig, setAppConfig] = useState<AppConfig>({
@@ -59,8 +81,8 @@ export const App: React.FC = () => {
   const [isDiplomeOpen, setIsDiplomeOpen] = useState<boolean>(false);
 
   // Duo & Multi-station States
-  const [stationId, setStationId] = useState<string>(() => localStorage.getItem('cea_station_id') || 'poste-1');
-  const [stationName, setStationName] = useState<string>(() => localStorage.getItem('cea_station_name') || 'Poste 1 (Scannette A)');
+  const [stationId, setStationId] = useState<string>(() => initialRoute.stationId || localStorage.getItem('cea_station_id') || 'poste-1');
+  const [stationName, setStationName] = useState<string>(() => initialRoute.stationName || localStorage.getItem('cea_station_name') || 'Poste 1 (Scannette A)');
   const [operatorCea, setOperatorCea] = useState<string>(() => localStorage.getItem('cea_op_name') || 'Agent CEA');
   const [clientGuest, setClientGuest] = useState<string>(() => localStorage.getItem('cea_client_name') || 'Client Invité');
   const [combo, setCombo] = useState<number>(0);
@@ -268,12 +290,40 @@ export const App: React.FC = () => {
     setTimeout(() => setFlashState(null), 400);
   };
 
+  // Hash Routing Listener (for multi-screen / multi-window setup)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const route = parseInitialRoute();
+      setCurrentView(route.view);
+      if (route.stationId && route.stationName) {
+        setStationId(route.stationId);
+        setStationName(route.stationName);
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const handleSelectView = (view: ViewMode) => {
+    setCurrentView(view);
+    if (view === 'arena') window.location.hash = 'tv';
+    else if (view === 'admin') window.location.hash = 'admin';
+    else if (view === 'podium') window.location.hash = 'podium';
+    else if (view === 'erp') window.location.hash = 'erp';
+    else if (view === 'print') window.location.hash = 'print';
+    else if (view === 'kiosk') window.location.hash = stationId;
+  };
+
   // Station Select Handler
   const handleSelectStation = (id: string, name: string) => {
     setStationId(id);
     setStationName(name);
     localStorage.setItem('cea_station_id', id);
     localStorage.setItem('cea_station_name', name);
+    if (currentView === 'kiosk') {
+      window.location.hash = id;
+    }
   };
 
   // Duo Update Handler
@@ -629,7 +679,7 @@ export const App: React.FC = () => {
       {/* Top Header */}
       <Header
         currentView={currentView}
-        onSelectView={setCurrentView}
+        onSelectView={handleSelectView}
         operator={operator}
         soundEnabled={soundEnabled}
         onToggleSound={toggleSound}

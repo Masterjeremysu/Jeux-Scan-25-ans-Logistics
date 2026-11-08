@@ -13,7 +13,8 @@ import {
   User,
   ShieldCheck,
   Settings,
-  Tv
+  Tv,
+  ExternalLink
 } from 'lucide-react';
 import { soundService } from '../services/soundService';
 
@@ -39,6 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
   appConfig
 }) => {
   const [isFullscreen, setIsFullscreen] = React.useState(false);
+  const [isMultiScreenOpen, setIsMultiScreenOpen] = React.useState(false);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -229,6 +231,66 @@ export const Header: React.FC<HeaderProps> = ({
         >
           {isFullscreen ? <Minimize2 className="w-4 h-4 text-sky-400" /> : <Maximize2 className="w-4 h-4 text-slate-300" />}
         </button>
+
+        {/* Multi-screen window launcher */}
+        <div className="relative">
+          <button
+            onClick={() => setIsMultiScreenOpen(!isMultiScreenOpen)}
+            className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-sky-950/80 hover:bg-sky-900/80 text-sky-300 border border-sky-500/30 text-xs font-mono font-bold cursor-pointer transition-colors"
+            title="Ouvrir des fenêtres dédiées (TV 55 pouces, Postes 1 & 2, Régie)"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            <span className="hidden xl:inline">Multi-Écrans</span>
+          </button>
+
+          {isMultiScreenOpen && (
+            <div className="absolute right-0 mt-2 w-64 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 z-50 flex flex-col gap-1.5 text-xs font-mono">
+              <div className="px-2.5 py-1 text-[10px] text-slate-400 font-bold uppercase border-b border-slate-800">
+                Ouvrir dans un nouvel onglet :
+              </div>
+              <a
+                href="#tv"
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setIsMultiScreenOpen(false)}
+                className="flex items-center justify-between p-2 rounded-xl bg-slate-950 hover:bg-indigo-950 text-indigo-300 transition-colors"
+              >
+                <span>📺 Grande TV 55" (Arène Live)</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+              <a
+                href="#poste-1"
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setIsMultiScreenOpen(false)}
+                className="flex items-center justify-between p-2 rounded-xl bg-slate-950 hover:bg-sky-950 text-sky-300 transition-colors"
+              >
+                <span>🎯 Écran Poste 1 (Scannette A)</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+              <a
+                href="#poste-2"
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setIsMultiScreenOpen(false)}
+                className="flex items-center justify-between p-2 rounded-xl bg-slate-950 hover:bg-amber-950 text-amber-300 transition-colors"
+              >
+                <span>🎯 Écran Poste 2 (Scannette B)</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+              <a
+                href="#admin"
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setIsMultiScreenOpen(false)}
+                className="flex items-center justify-between p-2 rounded-xl bg-slate-950 hover:bg-rose-950 text-rose-300 transition-colors"
+              >
+                <span>🎛️ Régie Contrôle & Aléas</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
