@@ -50,10 +50,10 @@
    PRINT STYLES: DIPLÔME D'HONNEUR & PLANCHES D'ÉTIQUETTES A4
    ============================================================ */
 @media print {
-  /* Set standard high-fidelity print environment */
+  /* Default page settings */
   @page {
     size: auto;
-    margin: 8mm;
+    margin: 6mm;
   }
 
   html, body {
@@ -69,101 +69,85 @@
     print-color-adjust: exact !important;
   }
 
-  /* Universal print hide */
+  /* Universal hide for screen elements */
   .no-print,
   header,
   nav,
-  button,
-  .backdrop-blur-md {
+  button {
     display: none !important;
   }
 
   /* ----------------------------------------------------
-     MODE DIPLÔME D'HONNEUR (A4 Landscape / Pleine Page)
-     Masque absolument TOUTE l'interface du jeu en arrière-plan
+     MODE DIPLÔME D'HONNEUR
+     Masque toute l'application derrière et affiche le diplôme
      ---------------------------------------------------- */
+  body.diplome-print-mode main,
+  body.diplome-print-mode header,
+  body.diplome-print-mode nav,
+  body.diplome-print-mode #root > div > main,
+  body.diplome-print-mode #root > div > header {
+    display: none !important;
+  }
+
   body.diplome-print-mode {
     background: #ffffff !important;
-    overflow: hidden !important;
   }
 
-  body.diplome-print-mode * {
-    visibility: hidden !important;
-  }
-
-  body.diplome-print-mode #diplome-printable-card,
-  body.diplome-print-mode #diplome-printable-card * {
-    visibility: visible !important;
+  body.diplome-print-mode .diplome-modal-wrapper {
+    position: static !important;
+    display: block !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
   }
 
   body.diplome-print-mode #diplome-printable-card {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    margin: 0 !important;
-    padding: 10mm !important;
-    box-sizing: border-box !important;
-    background: #ffffff !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: space-between !important;
-    z-index: 9999999 !important;
-    border: none !important;
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    background: #fffdf9 !important;
     box-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* ----------------------------------------------------
      MODE PLANCHE D'ÉTIQUETTES (A4 Portrait / Haute Résolution)
-     Masque tous les contrôles et n'affiche que la planche
      ---------------------------------------------------- */
-  body.printing-labels #printable-sheet,
-  body.printing-labels #printable-sheet * {
-    visibility: visible !important;
-  }
-
   body.printing-labels #printable-sheet {
-    position: relative !important;
+    display: block !important;
+    visibility: visible !important;
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
-    box-sizing: border-box !important;
     background: #ffffff !important;
     box-shadow: none !important;
-  }
-
-  body.printing-labels .no-print {
-    display: none !important;
   }
 
   /* ----------------------------------------------------
      MODE ÉTIQUETTE UNITAIRE (Sticker / Format individuel)
      ---------------------------------------------------- */
-  body.printing-single-label * {
-    visibility: hidden !important;
-  }
-
-  body.printing-single-label #single-label-print-card,
-  body.printing-single-label #single-label-print-card * {
-    visibility: visible !important;
+  body.printing-single-label main,
+  body.printing-single-label header,
+  body.printing-single-label nav,
+  body.printing-single-label #printable-sheet {
+    display: none !important;
   }
 
   body.printing-single-label #single-label-print-card {
-    position: fixed !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    width: 100mm !important;
+    display: flex !important;
+    visibility: visible !important;
+    margin: 20mm auto !important;
+    width: 105mm !important;
     max-width: 95vw !important;
     padding: 8mm !important;
-    box-sizing: border-box !important;
     background: #ffffff !important;
     border: 2px dashed #000000 !important;
     border-radius: 8px !important;
-    z-index: 9999999 !important;
     box-shadow: none !important;
   }
 }

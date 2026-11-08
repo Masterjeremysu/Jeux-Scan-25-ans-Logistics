@@ -87,9 +87,23 @@ export const DiplomeModal: React.FC<DiplomeModalProps> = ({
   const stationLabel = stationName || 'Poste 1 (Scannette A)';
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div className="diplome-modal-wrapper fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto print:relative print:inset-auto print:bg-white print:p-0 print:m-0 print:block print:z-auto print:backdrop-blur-none">
+      {/* Dynamic Print Page Orientation */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            @media print {
+              @page {
+                size: ${orientation === 'landscape' ? 'landscape' : 'portrait'};
+                margin: 6mm;
+              }
+            }
+          `
+        }}
+      />
+
       {/* Modal Container */}
-      <div className="relative bg-slate-900 border border-slate-700/80 rounded-3xl max-w-4xl w-full p-4 sm:p-8 shadow-2xl overflow-hidden print:p-0 print:m-0 print:border-none print:shadow-none print:max-w-none print:w-full">
+      <div className="relative bg-slate-900 border border-slate-700/80 rounded-3xl max-w-4xl w-full p-4 sm:p-8 shadow-2xl overflow-hidden print:bg-white print:border-none print:p-0 print:m-0 print:shadow-none print:max-w-none print:w-full print:block">
         {/* Top bar (screen only) */}
         <div className="no-print flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
           <div className="flex items-center space-x-3">
@@ -149,10 +163,10 @@ export const DiplomeModal: React.FC<DiplomeModalProps> = ({
             ======================================================== */}
         <div
           id="diplome-printable-card"
-          className={`bg-[#fffdf9] text-slate-950 rounded-2xl relative shadow-xl mx-auto transition-all ${
+          className={`bg-[#fffdf9] text-slate-950 rounded-2xl relative shadow-xl mx-auto transition-all print:shadow-none ${
             orientation === 'landscape'
-              ? 'p-6 sm:p-10 border-[6px] border-amber-600/70 max-w-4xl'
-              : 'p-8 border-[6px] border-amber-600/70 max-w-2xl'
+              ? 'p-6 sm:p-10 border-[6px] border-amber-600/70 max-w-4xl print:p-8 print:w-full'
+              : 'p-8 border-[6px] border-amber-600/70 max-w-2xl print:p-8 print:w-full'
           }`}
           style={{
             backgroundImage:
