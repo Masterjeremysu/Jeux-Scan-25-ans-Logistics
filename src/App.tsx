@@ -171,6 +171,15 @@ export const App: React.FC = () => {
       const stList = await getStationsLive();
       if (stList.length > 0) {
         setLiveStations(stList);
+        const myStation = stList.find((s) => s.station_id === stationIdRef.current);
+        if (myStation) {
+          if (myStation.operator_cea) setOperatorCea(myStation.operator_cea);
+          if (myStation.client_guest) setClientGuest(myStation.client_guest);
+          setOperator((prev) => ({
+            ...prev,
+            name: myStation.team_name || `Duo ${myStation.client_guest}`
+          }));
+        }
       }
 
       const distList = await fetchDistractions();
