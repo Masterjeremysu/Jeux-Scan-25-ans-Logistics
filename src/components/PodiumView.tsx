@@ -39,17 +39,7 @@ export const PodiumView: React.FC<PodiumViewProps> = ({
       setIsLoading(true);
       const scores = await getRemoteLeaderboard();
       if (isMounted) {
-        if (scores.length > 0) {
-          setLeaderboard(scores);
-        } else {
-          // Fallback offline mock data if empty or offline
-          setLeaderboard([
-            { name: 'Dr. Jean-Marc L.', company: 'CEA LETI Bât. 17', score: 3250, time_spent: '01:42', completed_missions: 3, accuracy: 100 },
-            { name: 'Sophie V.', company: 'Minatec Silicium', score: 2900, time_spent: '02:05', completed_missions: 3, accuracy: 95 },
-            { name: 'Marc B.', company: 'Edwards Cryogénie', score: 2650, time_spent: '02:18', completed_missions: 2, accuracy: 90 },
-            { name: 'Thomas R.', company: 'Fournisseur Inox', score: 2100, time_spent: '02:40', completed_missions: 2, accuracy: 85 }
-          ]);
-        }
+        setLeaderboard(scores);
         setIsLoading(false);
       }
     }
@@ -264,7 +254,16 @@ export const PodiumView: React.FC<PodiumViewProps> = ({
           </div>
 
           {/* Historical Rows */}
-          {leaderboard.map((row, idx) => (
+          {leaderboard.length === 0 ? (
+            <div className="p-8 text-center text-slate-400">
+              <Trophy className="w-10 h-10 text-slate-600 mx-auto mb-2 opacity-50" />
+              <p className="text-sm font-bold text-slate-300">Aucun score enregistré pour l'instant</p>
+              <p className="text-xs text-slate-500 mt-1 font-mono">
+                Le tableau d'honneur est vierge et prêt pour l'événement. Réalisez votre première mission pour prendre la tête !
+              </p>
+            </div>
+          ) : (
+            leaderboard.map((row, idx) => (
             <div key={row.id || idx} className="p-4 flex items-center justify-between hover:bg-slate-800/30 transition-colors">
               <div className="flex items-center space-x-3">
                 <div className={`w-8 h-8 rounded-full font-black flex items-center justify-center text-sm ${
@@ -296,7 +295,7 @@ export const PodiumView: React.FC<PodiumViewProps> = ({
                 </div>
               </div>
             </div>
-          ))}
+          )))}
         </div>
       </div>
 

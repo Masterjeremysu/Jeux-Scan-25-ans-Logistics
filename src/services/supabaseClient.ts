@@ -37,13 +37,19 @@ export interface StoredAppConfig {
   eventSubtitle: string;
   badgeLabel: string;
   shiftDurationSeconds: number;
+  comboBonusPoints: number;
+  publicUrl: string;
+  diplomaTitle: string;
+  diplomaDescription: string;
+  diplomaSignatory: string;
+  availableStations: { id: string; name: string }[];
   missions: Mission[];
   inventory: InventoryItem[];
 }
 
-const LOCAL_STORAGE_KEY = 'cea_wms_custom_config_v1';
+const LOCAL_STORAGE_KEY = 'cea_wms_custom_config_v2';
 
-// Fetch leaderboard ordered by score descending
+// Fetch leaderboard ordered by score descending (Real database rows only, no mock)
 export async function getRemoteLeaderboard(): Promise<RemoteScore[]> {
   if (!supabase) return [];
   try {
@@ -52,7 +58,7 @@ export async function getRemoteLeaderboard(): Promise<RemoteScore[]> {
       .select('*')
       .order('score', { ascending: false })
       .order('created_at', { ascending: true })
-      .limit(30);
+      .limit(50);
 
     if (error) {
       console.warn('[Supabase] Erreur récupération scores:', error.message);
@@ -69,14 +75,25 @@ export async function getRemoteLeaderboard(): Promise<RemoteScore[]> {
 export async function resetAllScores(): Promise<boolean> {
   if (!supabase) return false;
   try {
-    const { error } = await supabase.from('scores').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    const { error } = await supabase.from('scores').delete().neq('score', -999999);
     return !error;
   } catch {
     return false;
   }
 }
 
-// Save score to Supabase with local fallback
+// Reset live activity logs in Supabase
+export async function resetLiveActivity(): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from('live_activity').delete().neq('status', '___none___');
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+// Save score to Supabase
 export async function submitScore(score: Omit<RemoteScore, 'id' | 'created_at'>): Promise<boolean> {
   if (!supabase) return false;
   try {
@@ -97,8 +114,8 @@ export async function broadcastScan(activity: Omit<LiveActivityEvent, 'id' | 'cr
   if (!supabase) return;
   try {
     await supabase.from('live_activity').insert([activity]);
-  } catch (err) {
-    // Silent fail for non-blocking live broadcast
+  } catch {
+    // Non-blocking
   }
 }
 
@@ -158,13 +175,23 @@ export async function loadAppConfig(): Promise<StoredAppConfig | null> {
         .eq('id', 'default')
         .maybeSingle();
 
-      if (!error && data && Array.isArray(data.missions) && data.missions.length > 0) {
+      if (!error && data) {
         const remoteConfig: StoredAppConfig = {
           eventTitle: data.event_title || 'CEA GRENOBLE',
           eventSubtitle: data.event_subtitle || 'WMS Industrial Terminal • Shift Challenge',
           badgeLabel: data.badge_label || 'ÉDITION 25 ANS',
           shiftDurationSeconds: data.shift_duration_seconds || 300,
-          missions: data.missions,
+          comboBonusPoints: data.combo_bonus_points || 50,
+          publicUrl: data.public_url || 'https://jeux-scan-25-ans-logistics.vercel.app',
+          diplomaTitle: data.diploma_title || 'DIPLÔME D\'HONNEUR',
+          diplomaDescription: data.diploma_description || 'Attribué pour l\'excellence des opérations de picking et traçabilité logistique.',
+          diplomaSignatory: data.diploma_signatory || 'La Direction Logistique & Supply Chain',
+          availableStations: Array.isArray(data.available_stations) ? data.available_stations : [
+            { id: 'poste-1', name: 'Poste 1 (Scannette A)' },
+            { id: 'poste-2', name: 'Poste 2 (Scannette B)' },
+            { id: 'poste-3', name: 'Poste 3 (Zebra Scan)' }
+          ],
+          missions: Array.isArray(data.missions) ? data.missions : [],
           inventory: Array.isArray(data.inventory) ? data.inventory : []
         };
         try {
@@ -197,6 +224,12 @@ export async function saveAppConfig(config: StoredAppConfig): Promise<boolean> {
         event_subtitle: config.eventSubtitle,
         badge_label: config.badgeLabel,
         shift_duration_seconds: config.shiftDurationSeconds,
+        combo_bonus_points: config.comboBonusPoints,
+        public_url: config.publicUrl,
+        diploma_title: config.diplomaTitle,
+        diploma_description: config.diplomaDescription,
+        diploma_signatory: config.diplomaSignatory,
+        available_stations: config.availableStations,
         missions: config.missions,
         inventory: config.inventory,
         updated_at: new Date().toISOString()
@@ -220,13 +253,22 @@ export function subscribeToAppConfig(onConfigChanged: (config: StoredAppConfig) 
       { event: '*', schema: 'public', table: 'app_config' },
       (payload) => {
         const row = payload.new as any;
-        if (row && Array.isArray(row.missions) && row.missions.length > 0) {
+        if (row) {
           onConfigChanged({
             eventTitle: row.event_title || 'CEA GRENOBLE',
             eventSubtitle: row.event_subtitle || 'WMS Industrial Terminal • Shift Challenge',
             badgeLabel: row.badge_label || 'ÉDITION 25 ANS',
             shiftDurationSeconds: row.shift_duration_seconds || 300,
-            missions: row.missions,
+            comboBonusPoints: row.combo_bonus_points || 50,
+            publicUrl: row.public_url || 'https://jeux-scan-25-ans-logistics.vercel.app',
+            diplomaTitle: row.diploma_title || 'DIPLÔME D\'HONNEUR',
+            diplomaDescription: row.diploma_description || 'Attribué pour l\'excellence des opérations de picking et traçabilité logistique.',
+            diplomaSignatory: row.diploma_signatory || 'La Direction Logistique & Supply Chain',
+            availableStations: Array.isArray(row.available_stations) ? row.available_stations : [
+              { id: 'poste-1', name: 'Poste 1 (Scannette A)' },
+              { id: 'poste-2', name: 'Poste 2 (Scannette B)' }
+            ],
+            missions: Array.isArray(row.missions) ? row.missions : [],
             inventory: Array.isArray(row.inventory) ? row.inventory : []
           });
         }

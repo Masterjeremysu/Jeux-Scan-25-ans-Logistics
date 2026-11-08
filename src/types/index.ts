@@ -23,13 +23,19 @@ export interface AppConfig {
   eventSubtitle: string;
   badgeLabel: string;
   shiftDurationSeconds: number;
+  comboBonusPoints: number;
+  publicUrl: string;
+  diplomaTitle: string;
+  diplomaDescription: string;
+  diplomaSignatory: string;
+  availableStations: { id: string; name: string }[];
 }
 
 export interface InventoryItem {
   id: string;
   sku: string; // e.g. "ART-KF40-INOX"
   name: string;
-  category: 'Vide & Cryo' | 'Microélectronique' | 'Consommables' | 'Mécanique';
+  category: string;
   location: string; // e.g. "LOC-B01-T03"
   quantity: number;
   unit: string;

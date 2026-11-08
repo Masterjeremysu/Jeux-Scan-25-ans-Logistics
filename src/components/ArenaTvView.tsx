@@ -40,41 +40,24 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig }) => {
       if (isMounted && liveStations.length > 0) {
         setStations(liveStations);
       } else if (isMounted) {
-        // Fallback default duos if offline
-        setStations([
-          {
-            station_id: 'poste-1',
-            station_name: 'Poste 1 (Scannette A)',
-            operator_cea: 'Pierre (Logistique)',
-            client_guest: 'M. Laurent',
-            team_name: 'Duo Cryo LETI',
-            current_mission_title: 'Préparation Urgente LETI Bât. 17',
-            progress_percent: 60,
-            current_step_index: 3,
-            total_steps: 5,
-            score: 750,
-            combo: 3,
-            status: 'in_progress',
-            last_scan_code: 'ART-KF40-INOX',
-            last_scan_status: 'valid'
-          },
-          {
-            station_id: 'poste-2',
-            station_name: 'Poste 2 (Scannette B)',
-            operator_cea: 'Claire (Magasin)',
-            client_guest: 'Sophie V.',
-            team_name: 'Duo Minatec Silicium',
-            current_mission_title: 'Wafers 300mm Salle Blanche',
-            progress_percent: 40,
-            current_step_index: 2,
-            total_steps: 5,
-            score: 500,
-            combo: 2,
-            status: 'in_progress',
-            last_scan_code: 'LOC-SB-C01',
-            last_scan_status: 'valid'
-          }
-        ]);
+        const defaultList = (appConfig.availableStations || [
+          { id: 'poste-1', name: 'Poste 1 (Scannette A)' },
+          { id: 'poste-2', name: 'Poste 2 (Scannette B)' }
+        ]).map((st) => ({
+          station_id: st.id,
+          station_name: st.name,
+          operator_cea: 'Opérateur',
+          client_guest: 'Invité',
+          team_name: 'Binôme en attente',
+          current_mission_title: 'En attente du premier scan...',
+          progress_percent: 0,
+          current_step_index: 0,
+          total_steps: 5,
+          score: 0,
+          combo: 0,
+          status: 'idle' as const
+        }));
+        setStations(defaultList);
       }
 
       const scores = await getRemoteLeaderboard();
@@ -279,35 +262,41 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig }) => {
           </div>
 
           <div className="space-y-2">
-            {topScores.map((row, i) => (
-              <div
-                key={row.id || i}
-                className="flex items-center justify-between bg-slate-950/60 p-3 rounded-2xl border border-slate-800/80 hover:bg-slate-800/40 transition-colors"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className={`w-8 h-8 rounded-full font-black text-xs flex items-center justify-center shrink-0 ${
-                    i === 0 
-                      ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20' 
-                      : i === 1 
-                      ? 'bg-slate-300 text-slate-950' 
-                      : i === 2 
-                      ? 'bg-amber-700 text-white' 
-                      : 'bg-slate-800 text-slate-400'
-                  }`}>
-                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
-                  </div>
-                  <div>
-                    <span className="font-bold text-white text-sm block">{row.name}</span>
-                    <span className="text-xs text-slate-400 font-mono">{row.company}</span>
-                  </div>
-                </div>
-
-                <div className="text-right font-mono">
-                  <span className="text-base font-black text-emerald-400 block">{row.score} pts</span>
-                  <span className="text-[10px] text-slate-500">{row.time_spent || '01:50'}</span>
-                </div>
+            {topScores.length === 0 ? (
+              <div className="py-8 text-center text-slate-500 font-mono text-xs">
+                En attente des premières missions validées sur les postes pour afficher le podium...
               </div>
-            ))}
+            ) : (
+              topScores.map((row, i) => (
+                <div
+                  key={row.id || i}
+                  className="flex items-center justify-between bg-slate-950/60 p-3 rounded-2xl border border-slate-800/80 hover:bg-slate-800/40 transition-colors"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-8 h-8 rounded-full font-black text-xs flex items-center justify-center shrink-0 ${
+                      i === 0 
+                        ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20' 
+                        : i === 1 
+                        ? 'bg-slate-300 text-slate-950' 
+                        : i === 2 
+                        ? 'bg-amber-700 text-white' 
+                        : 'bg-slate-800 text-slate-400'
+                    }`}>
+                      {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                    </div>
+                    <div>
+                      <span className="font-bold text-white text-sm block">{row.name}</span>
+                      <span className="text-xs text-slate-400 font-mono">{row.company}</span>
+                    </div>
+                  </div>
+
+                  <div className="text-right font-mono">
+                    <span className="text-base font-black text-emerald-400 block">{row.score} pts</span>
+                    <span className="text-[10px] text-slate-500">{row.time_spent || '01:50'}</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -326,14 +315,14 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig }) => {
           {/* Dynamic QR Code representation */}
           <div className="my-3 bg-white p-3 rounded-2xl shadow-lg border-2 border-slate-200">
             <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent('https://jeux-scan-25-ans-logistics.vercel.app')}`}
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(appConfig.publicUrl || 'https://jeux-scan-25-ans-logistics.vercel.app')}`}
               alt="QR Code Classement Mobile"
               className="w-32 h-32"
             />
           </div>
 
-          <span className="text-[11px] font-mono text-sky-400 font-bold">
-            jeux-scan-25-ans-logistics.vercel.app
+          <span className="text-[11px] font-mono text-sky-400 font-bold truncate max-w-[200px]">
+            {(appConfig.publicUrl || 'https://jeux-scan-25-ans-logistics.vercel.app').replace(/^https?:\/\//, '')}
           </span>
         </div>
       </div>

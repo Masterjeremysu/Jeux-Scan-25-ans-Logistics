@@ -33,7 +33,17 @@ export const App: React.FC = () => {
     eventTitle: 'CEA GRENOBLE',
     eventSubtitle: 'WMS Industrial Terminal • Shift Challenge',
     badgeLabel: 'ÉDITION 25 ANS',
-    shiftDurationSeconds: 300
+    shiftDurationSeconds: 300,
+    comboBonusPoints: 50,
+    publicUrl: 'https://jeux-scan-25-ans-logistics.vercel.app',
+    diplomaTitle: 'DIPLÔME D\'HONNEUR',
+    diplomaDescription: 'A accompli avec distinction et succès les opérations de préparation, traçabilité et conditionnement logistique.',
+    diplomaSignatory: 'La Direction Logistique & Supply Chain',
+    availableStations: [
+      { id: 'poste-1', name: 'Poste 1 (Scannette A)' },
+      { id: 'poste-2', name: 'Poste 2 (Scannette B)' },
+      { id: 'poste-3', name: 'Poste 3 (Zebra Scan)' }
+    ]
   });
   const [currentMissionIndex, setCurrentMissionIndex] = useState<number>(0);
   const [logs, setLogs] = useState<ScanLog[]>([]);
@@ -81,12 +91,19 @@ export const App: React.FC = () => {
     async function initConfig() {
       const stored = await loadAppConfig();
       if (stored) {
-        setAppConfig({
+        setAppConfig((prev) => ({
+          ...prev,
           eventTitle: stored.eventTitle,
           eventSubtitle: stored.eventSubtitle,
           badgeLabel: stored.badgeLabel,
-          shiftDurationSeconds: stored.shiftDurationSeconds
-        });
+          shiftDurationSeconds: stored.shiftDurationSeconds,
+          comboBonusPoints: stored.comboBonusPoints ?? prev.comboBonusPoints,
+          publicUrl: stored.publicUrl ?? prev.publicUrl,
+          diplomaTitle: stored.diplomaTitle ?? prev.diplomaTitle,
+          diplomaDescription: stored.diplomaDescription ?? prev.diplomaDescription,
+          diplomaSignatory: stored.diplomaSignatory ?? prev.diplomaSignatory,
+          availableStations: stored.availableStations ?? prev.availableStations
+        }));
         setShiftSecondsRemaining(stored.shiftDurationSeconds);
         if (stored.missions && stored.missions.length > 0) {
           setMissions(stored.missions);
@@ -105,12 +122,19 @@ export const App: React.FC = () => {
 
     // Subscribe to live config updates from admin changes across stations
     const unsubConfig = subscribeToAppConfig((newCfg) => {
-      setAppConfig({
+      setAppConfig((prev) => ({
+        ...prev,
         eventTitle: newCfg.eventTitle,
         eventSubtitle: newCfg.eventSubtitle,
         badgeLabel: newCfg.badgeLabel,
-        shiftDurationSeconds: newCfg.shiftDurationSeconds
-      });
+        shiftDurationSeconds: newCfg.shiftDurationSeconds,
+        comboBonusPoints: newCfg.comboBonusPoints ?? prev.comboBonusPoints,
+        publicUrl: newCfg.publicUrl ?? prev.publicUrl,
+        diplomaTitle: newCfg.diplomaTitle ?? prev.diplomaTitle,
+        diplomaDescription: newCfg.diplomaDescription ?? prev.diplomaDescription,
+        diplomaSignatory: newCfg.diplomaSignatory ?? prev.diplomaSignatory,
+        availableStations: newCfg.availableStations ?? prev.availableStations
+      }));
       if (newCfg.missions && newCfg.missions.length > 0) {
         setMissions(newCfg.missions);
       }
@@ -236,7 +260,7 @@ export const App: React.FC = () => {
 
       // Check if full mission completed
       const isMissionDone = updatedSteps.every((s) => s.completed);
-      const comboBonus = newCombo * 50;
+      const comboBonus = newCombo * (appConfig.comboBonusPoints || 50);
       const addedPoints = (isMissionDone ? activeMission.basePoints : 150) + comboBonus;
 
       setOperator((prev) => {
@@ -523,6 +547,7 @@ export const App: React.FC = () => {
         isOpen={isDiplomeOpen}
         onClose={() => setIsDiplomeOpen(false)}
         operator={operator}
+        appConfig={appConfig}
       />
     </div>
   );

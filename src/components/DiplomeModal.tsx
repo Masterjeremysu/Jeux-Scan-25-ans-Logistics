@@ -1,18 +1,18 @@
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { OperatorProfile } from '../types';
+import { OperatorProfile, AppConfig } from '../types';
 import { Award, ShieldCheck, Printer, X, Sparkles, Star } from 'lucide-react';
 
 interface DiplomeModalProps {
   isOpen: boolean;
   onClose: () => void;
   operator: OperatorProfile;
+  appConfig?: AppConfig;
 }
 
-export const DiplomeModal: React.FC<DiplomeModalProps> = ({ isOpen, onClose, operator }) => {
+export const DiplomeModal: React.FC<DiplomeModalProps> = ({ isOpen, onClose, operator, appConfig }) => {
   useEffect(() => {
     if (isOpen) {
-      // Fire confetti burst
       try {
         confetti({
           particleCount: 120,
@@ -37,6 +37,12 @@ export const DiplomeModal: React.FC<DiplomeModalProps> = ({ isOpen, onClose, ope
     year: 'numeric'
   });
 
+  const eventTitle = appConfig?.eventTitle || 'CEA GRENOBLE';
+  const badgeLabel = appConfig?.badgeLabel || 'ÉDITION 25 ANS';
+  const diplomaTitle = appConfig?.diplomaTitle || 'DIPLÔME D\'HONNEUR';
+  const diplomaDesc = appConfig?.diplomaDescription || 'A accompli avec succès les opérations de préparation, contrôle de code-barres au laser, conditionnement de précision et traçabilité.';
+  const diplomaSign = appConfig?.diplomaSignatory || 'La Direction Logistique & Supply Chain';
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
       {/* Modal Container */}
@@ -44,7 +50,7 @@ export const DiplomeModal: React.FC<DiplomeModalProps> = ({ isOpen, onClose, ope
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="no-print absolute top-4 right-4 p-2 rounded-full bg-slate-800 text-slate-400 hover:text-white transition-colors"
+          className="no-print absolute top-4 right-4 p-2 rounded-full bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -57,21 +63,21 @@ export const DiplomeModal: React.FC<DiplomeModalProps> = ({ isOpen, onClose, ope
           <div className="absolute bottom-2 left-2 text-amber-600 text-lg select-none">❖</div>
           <div className="absolute bottom-2 right-2 text-amber-600 text-lg select-none">❖</div>
 
-          {/* Badge CEA */}
+          {/* Badge */}
           <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-gradient-to-tr from-sky-600 to-blue-700 text-white flex items-center justify-center shadow-lg shadow-sky-600/30">
             <Award className="w-10 h-10 text-amber-300" />
           </div>
 
           <span className="text-[11px] font-black uppercase font-mono tracking-widest text-amber-700 block mb-1">
-            Événement Officiel • Anniversaire des 25 Ans
+            {eventTitle} • {badgeLabel}
           </span>
 
           <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase mb-2 font-serif">
-            DIPLÔME D'HONNEUR
+            {diplomaTitle}
           </h2>
 
-          <p className="text-xs font-semibold text-slate-600 uppercase tracking-widest mb-6">
-            Brevet de Logisticien d'Élite du CEA Grenoble
+          <p className="text-xs font-semibold text-slate-600 uppercase tracking-widest mb-6 font-mono">
+            Brevet de Logisticien d'Élite • Opération Réseau
           </p>
 
           <p className="text-sm text-slate-700 italic mb-2">
@@ -87,7 +93,7 @@ export const DiplomeModal: React.FC<DiplomeModalProps> = ({ isOpen, onClose, ope
           </div>
 
           <p className="text-xs text-slate-700 max-w-md mx-auto leading-relaxed mb-6">
-            A accompli avec succès les opérations de préparation, contrôle de code-barres au laser, conditionnement de précision et traçabilité de matériel sensible de pointe.
+            {diplomaDesc}
           </p>
 
           {/* Stats Badges */}
@@ -109,12 +115,12 @@ export const DiplomeModal: React.FC<DiplomeModalProps> = ({ isOpen, onClose, ope
           {/* Signatures */}
           <div className="flex justify-between items-end pt-4 border-t border-amber-300 text-xs text-slate-600">
             <div>
-              <span className="block font-mono text-[10px]">Délivré à Grenoble, le</span>
+              <span className="block font-mono text-[10px]">Délivré le</span>
               <span className="font-bold text-slate-800">{currentDate}</span>
             </div>
             <div className="text-right">
-              <span className="block font-mono text-[10px]">La Direction Logistique</span>
-              <span className="font-serif italic font-bold text-slate-900 text-sm">Le Responsable Magasin</span>
+              <span className="block font-mono text-[10px]">Attribution Officielle</span>
+              <span className="font-serif italic font-bold text-slate-900 text-sm">{diplomaSign}</span>
             </div>
           </div>
         </div>
@@ -122,21 +128,15 @@ export const DiplomeModal: React.FC<DiplomeModalProps> = ({ isOpen, onClose, ope
         {/* Action Controls */}
         <div className="no-print mt-6 flex items-center justify-between">
           <p className="text-xs text-slate-400">
-            Ce diplôme peut être imprimé en souvenir pour votre invité !
+            Ce diplôme peut être imprimé ou sauvegardé en PDF souvenir pour votre invité !
           </p>
-          <div className="flex space-x-3">
+          <div className="flex space-x-2">
             <button
               onClick={handlePrint}
-              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center space-x-2 shadow-lg shadow-amber-500/20 transition-all"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs flex items-center space-x-2 shadow-lg shadow-amber-500/20 cursor-pointer"
             >
               <Printer className="w-4 h-4" />
               <span>Imprimer le Diplôme</span>
-            </button>
-            <button
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-colors"
-            >
-              Continuer le Quart
             </button>
           </div>
         </div>
