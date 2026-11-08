@@ -138,4 +138,32 @@
   body.printing-labels .no-print {
     display: none !important;
   }
+
+  /* ----------------------------------------------------
+     MODE ÉTIQUETTE UNITAIRE (Sticker / Format individuel)
+     ---------------------------------------------------- */
+  body.printing-single-label * {
+    visibility: hidden !important;
+  }
+
+  body.printing-single-label #single-label-print-card,
+  body.printing-single-label #single-label-print-card * {
+    visibility: visible !important;
+  }
+
+  body.printing-single-label #single-label-print-card {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 100mm !important;
+    max-width: 95vw !important;
+    padding: 8mm !important;
+    box-sizing: border-box !important;
+    background: #ffffff !important;
+    border: 2px dashed #000000 !important;
+    border-radius: 8px !important;
+    z-index: 9999999 !important;
+    box-shadow: none !important;
+  }
 }
