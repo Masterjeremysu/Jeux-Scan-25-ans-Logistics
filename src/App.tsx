@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ViewMode, InventoryItem, Mission, ScanLog, OperatorProfile, AppConfig, DuoStation } from './types';
+import { ViewMode, InventoryItem, Mission, ScanLog, OperatorProfile, AppConfig, DuoStation, Distraction, LiveHazard } from './types';
 import { INITIAL_INVENTORY } from './data/initialData';
 import { MISSIONS } from './data/missions';
 import { Header } from './components/Header';
@@ -19,7 +19,12 @@ import {
   subscribeToAppConfig,
   getStationsLive,
   updateStationLive,
-  subscribeToStationsLive
+  subscribeToStationsLive,
+  fetchDistractions,
+  triggerLiveHazard,
+  resolveLiveHazard,
+  expireLiveHazard,
+  subscribeToLiveHazards
 } from './services/supabaseClient';
 
 let logCounter = 0;
@@ -60,6 +65,13 @@ export const App: React.FC = () => {
   const [clientGuest, setClientGuest] = useState<string>(() => localStorage.getItem('cea_client_name') || 'Client Invité');
   const [combo, setCombo] = useState<number>(0);
   const [liveStations, setLiveStations] = useState<DuoStation[]>([]);
+
+  // Hazards & Distractions States
+  const [distractions, setDistractions] = useState<Distraction[]>([]);
+  const [activeHazard, setActiveHazard] = useState<LiveHazard | null>(null);
+  const [hazardSecondsRemaining, setHazardSecondsRemaining] = useState<number>(0);
+  const activeHazardRef = useRef<LiveHazard | null>(null);
+  activeHazardRef.current = activeHazard;
 
   // Keep fresh references to avoid closure race conditions
   const missionsRef = useRef(missions);
@@ -117,6 +129,11 @@ export const App: React.FC = () => {
       if (stList.length > 0) {
         setLiveStations(stList);
       }
+
+      const distList = await fetchDistractions();
+      if (distList.length > 0) {
+        setDistractions(distList);
+      }
     }
     initConfig();
 
@@ -133,7 +150,10 @@ export const App: React.FC = () => {
         diplomaTitle: newCfg.diplomaTitle ?? prev.diplomaTitle,
         diplomaDescription: newCfg.diplomaDescription ?? prev.diplomaDescription,
         diplomaSignatory: newCfg.diplomaSignatory ?? prev.diplomaSignatory,
-        availableStations: newCfg.availableStations ?? prev.availableStations
+        availableStations: newCfg.availableStations ?? prev.availableStations,
+        autoHazardsEnabled: newCfg.autoHazardsEnabled ?? prev.autoHazardsEnabled,
+        hazardIntervalSeconds: newCfg.hazardIntervalSeconds ?? prev.hazardIntervalSeconds,
+        clientsCatalog: newCfg.clientsCatalog ?? prev.clientsCatalog
       }));
       if (newCfg.missions && newCfg.missions.length > 0) {
         setMissions(newCfg.missions);
@@ -156,11 +176,83 @@ export const App: React.FC = () => {
       });
     });
 
+    // Subscribe to live hazards & unannounced emergencies
+    const unsubHazards = subscribeToLiveHazards((hazard) => {
+      const isForMe = hazard.target_station_id === 'all' || hazard.target_station_id === stationIdRef.current;
+      if (!isForMe) return;
+
+      if (hazard.status === 'active') {
+        setActiveHazard(hazard);
+        setHazardSecondsRemaining(hazard.time_limit_seconds || 45);
+        soundService.playEmergencyAlarm();
+        broadcastScan({
+          station_name: stationNameRef.current,
+          operator_name: `${clientGuestRef.current} (avec ${operatorCeaRef.current})`,
+          barcode: hazard.expected_barcode,
+          action_type: 'HAZARD_TRIGGERED',
+          message: `🚨 ALÉA EN COURS : ${hazard.title}`,
+          status: 'warning'
+        }).catch(() => {});
+      } else if (hazard.status === 'resolved' || hazard.status === 'expired') {
+        setActiveHazard((curr) => (curr?.id === hazard.id ? null : curr));
+      }
+    });
+
     return () => {
       unsubConfig();
       unsubStations();
+      unsubHazards();
     };
   }, []);
+
+  // Hazard countdown timer
+  useEffect(() => {
+    if (!activeHazard) return;
+
+    const timer = setInterval(() => {
+      setHazardSecondsRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          if (activeHazardRef.current) {
+            expireLiveHazard(activeHazardRef.current.id).catch(() => {});
+            soundService.playErrorBuzz();
+            setCombo(0);
+            broadcastScan({
+              station_name: stationNameRef.current,
+              operator_name: `${clientGuestRef.current} (avec ${operatorCeaRef.current})`,
+              barcode: activeHazardRef.current.expected_barcode,
+              action_type: 'HAZARD_EXPIRED',
+              message: `⏰ Aléa expiré ! (${activeHazardRef.current.title})`,
+              status: 'invalid'
+            }).catch(() => {});
+          }
+          setActiveHazard(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [activeHazard]);
+
+  // Handler to trigger sudden unplanned client order
+  const handleTriggerSurpriseOrder = async () => {
+    const clients = appConfig.clientsCatalog || ['CEA LETI - Bât. 17 (Nano)', 'Minatec Salle Blanche ISO 5'];
+    const randomClient = clients[Math.floor(Math.random() * clients.length)];
+    const items = inventory.length > 0 ? inventory : INITIAL_INVENTORY;
+    const randomItem = items[Math.floor(Math.random() * items.length)];
+
+    await triggerLiveHazard({
+      target_station_id: stationIdRef.current,
+      title: `🚨 COMMANDE CLIENT URGENTE : ${randomClient}`,
+      message: `ENLÈVEMENT IMMÉDIAT : Scanner l'article ${randomItem.name} (${randomItem.sku}) !`,
+      expected_barcode: randomItem.sku,
+      time_limit_seconds: 60,
+      points_bonus: 750,
+      status: 'active'
+    });
+  };
 
   // Shift Timer Countdown
   useEffect(() => {
@@ -218,6 +310,74 @@ export const App: React.FC = () => {
       minute: '2-digit',
       second: '2-digit'
     });
+
+    // 0. PRIORITY CHECK: Is there an ongoing active Hazard / Distraction?
+    if (activeHazardRef.current) {
+      const currentHazard = activeHazardRef.current;
+      if (cleanedCode.toUpperCase() === currentHazard.expected_barcode.toUpperCase()) {
+        // HAZARD RESOLVED!
+        triggerFlash('green');
+        soundService.playHazardSuccess();
+        const bonusPoints = currentHazard.points_bonus || 600;
+        const newCombo = comboRef.current + 2;
+        setCombo(newCombo);
+
+        setOperator((prev) => ({
+          ...prev,
+          score: prev.score + bonusPoints
+        }));
+
+        resolveLiveHazard(currentHazard.id).catch(() => {});
+        setActiveHazard(null);
+
+        broadcastScan({
+          station_name: stationNameRef.current,
+          operator_name: `${clientGuestRef.current} (avec ${operatorCeaRef.current})`,
+          barcode: cleanedCode,
+          action_type: 'HAZARD_RESOLVED',
+          message: `⚡ ALÉA RÉSOLU : ${currentHazard.title} (+${bonusPoints} pts)`,
+          status: 'valid'
+        }).catch(() => {});
+
+        setLogs((prev) => [
+          {
+            id: generateUniqueLogId(),
+            timestamp,
+            barcode: cleanedCode,
+            status: 'valid',
+            message: `⚡ ALÉA RÉSOLU : ${currentHazard.title} (+${bonusPoints} pts !)`
+          },
+          ...prev
+        ]);
+        return;
+      } else {
+        // MISMATCH during hazard
+        triggerFlash('red');
+        soundService.playErrorBuzz();
+        setCombo(0);
+
+        broadcastScan({
+          station_name: stationNameRef.current,
+          operator_name: `${clientGuestRef.current} (avec ${operatorCeaRef.current})`,
+          barcode: cleanedCode,
+          action_type: 'HAZARD_MISMATCH',
+          message: `✗ Erreur scan aléa (${cleanedCode})`,
+          status: 'invalid'
+        }).catch(() => {});
+
+        setLogs((prev) => [
+          {
+            id: generateUniqueLogId(),
+            timestamp,
+            barcode: cleanedCode,
+            status: 'invalid',
+            message: `✗ ALÉA PRIORITAIRE ! Code physique attendu : ${currentHazard.expected_barcode}`
+          },
+          ...prev
+        ]);
+        return;
+      }
+    }
 
     const activeIndex = currentMissionIndexRef.current;
     const currentMissions = missionsRef.current;
@@ -499,6 +659,9 @@ export const App: React.FC = () => {
             onUpdateDuo={handleUpdateDuo}
             combo={combo}
             liveStations={liveStations}
+            activeHazard={activeHazard}
+            hazardSecondsRemaining={hazardSecondsRemaining}
+            onTriggerSurpriseOrder={handleTriggerSurpriseOrder}
           />
         )}
 
@@ -517,6 +680,7 @@ export const App: React.FC = () => {
           <PlancheEtiquettesView
             inventory={inventory}
             missions={missions}
+            distractions={distractions}
           />
         )}
 

@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Mission, InventoryItem, AppConfig } from '../types';
+import React, { useState, useRef, useEffect } from 'react';
+import { Mission, InventoryItem, AppConfig, Distraction, LiveHazard } from '../types';
 import { 
   Settings, 
   Save, 
@@ -23,9 +23,25 @@ import {
   Flame,
   Globe,
   Radio,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Zap,
+  Bell,
+  Play,
+  Sparkles,
+  Send,
+  Building,
+  ShieldAlert,
+  CheckCircle2
 } from 'lucide-react';
-import { saveAppConfig, resetAllScores, resetLiveActivity } from '../services/supabaseClient';
+import { 
+  saveAppConfig, 
+  resetAllScores, 
+  resetLiveActivity,
+  fetchDistractions,
+  saveDistraction,
+  deleteDistraction,
+  triggerLiveHazard
+} from '../services/supabaseClient';
 import { INITIAL_INVENTORY } from '../data/initialData';
 import { MISSIONS } from '../data/missions';
 
@@ -46,13 +62,38 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
   inventory,
   onUpdateInventory
 }) => {
-  const [activeTab, setActiveTab] = useState<'branding' | 'rules' | 'stations' | 'missions' | 'inventory' | 'database'>('branding');
+  const [activeTab, setActiveTab] = useState<'branding' | 'rules' | 'stations' | 'missions' | 'inventory' | 'hazards' | 'database'>('branding');
   const [localConfig, setLocalConfig] = useState<AppConfig>(appConfig);
   const [localMissions, setLocalMissions] = useState<Mission[]>(missions);
   const [localInventory, setLocalInventory] = useState<InventoryItem[]>(inventory);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [selectedMissionIndex, setSelectedMissionIndex] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Hazards & Distractions States
+  const [distractions, setDistractions] = useState<Distraction[]>([]);
+  const [targetStationForHazard, setTargetStationForHazard] = useState<string>('all');
+  const [hazardFeedback, setHazardFeedback] = useState<string | null>(null);
+  const [newClientName, setNewClientName] = useState<string>('');
+  const [newDistraction, setNewDistraction] = useState<Partial<Distraction>>({
+    title: '',
+    description: '',
+    severity: 'critical',
+    expected_barcode: 'ART-KF40-INOX',
+    barcode_label: 'Bride KF40 Inox',
+    time_limit_seconds: 45,
+    points_bonus: 600,
+    is_active: true
+  });
+
+  // Load distractions on mount
+  useEffect(() => {
+    fetchDistractions().then((data) => {
+      if (data && data.length > 0) {
+        setDistractions(data);
+      }
+    });
+  }, []);
 
   // Save to Cloud and local state
   const handleSaveAll = async () => {
@@ -253,6 +294,115 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     });
   };
 
+  // Trigger Live Hazard across stations via Supabase
+  const handleTriggerLiveHazard = async (d: Distraction) => {
+    setHazardFeedback(`Envoi de l'aléa "${d.title}"...`);
+    const hazardId = await triggerLiveHazard({
+      target_station_id: targetStationForHazard,
+      title: d.title,
+      message: d.description,
+      expected_barcode: d.expected_barcode,
+      time_limit_seconds: d.time_limit_seconds,
+      points_bonus: d.points_bonus,
+      status: 'active'
+    });
+
+    if (hazardId) {
+      setHazardFeedback(`⚡ Aléa envoyé avec succès à la station (${targetStationForHazard === 'all' ? 'Tous les postes' : targetStationForHazard}) !`);
+    } else {
+      setHazardFeedback('Erreur lors de l\'envoi de l\'aléa.');
+    }
+    setTimeout(() => setHazardFeedback(null), 3500);
+  };
+
+  // Trigger Surprise Client Rush Order
+  const handleTriggerSurpriseOrder = async () => {
+    const clients = localConfig.clientsCatalog || ['CEA LETI - Bât. 17 (Nano)', 'Minatec Salle Blanche ISO 5'];
+    const randomClient = clients[Math.floor(Math.random() * clients.length)];
+    const items = localInventory.length > 0 ? localInventory : INITIAL_INVENTORY;
+    const randomItem = items[Math.floor(Math.random() * items.length)];
+
+    setHazardFeedback(`Génération d'une commande imprévue pour "${randomClient}"...`);
+
+    const hazardId = await triggerLiveHazard({
+      target_station_id: targetStationForHazard,
+      title: `🚨 COMMANDE CLIENT IMPRÉVUE : ${randomClient}`,
+      message: `URGENCE EXPÉDITION : Le demandeur exige le prélèvement immédiat de ${randomItem.name} (${randomItem.sku}) !`,
+      expected_barcode: randomItem.sku,
+      time_limit_seconds: 60,
+      points_bonus: 750,
+      status: 'active'
+    });
+
+    if (hazardId) {
+      setHazardFeedback(`📦 Commande client surprise envoyée en direct à (${targetStationForHazard === 'all' ? 'Tous les postes' : targetStationForHazard}) !`);
+    } else {
+      setHazardFeedback('Erreur lors de l\'envoi de la commande imprévue.');
+    }
+    setTimeout(() => setHazardFeedback(null), 3500);
+  };
+
+  // Save new distraction template
+  const handleSaveDistractionTemplate = async () => {
+    if (!newDistraction.title || !newDistraction.expected_barcode) {
+      alert('Veuillez renseigner un titre et un code-barres attendu.');
+      return;
+    }
+
+    const payload: Partial<Distraction> = {
+      ...newDistraction,
+      id: newDistraction.id || undefined,
+      is_active: true
+    };
+
+    const ok = await saveDistraction(payload);
+    if (ok) {
+      const refreshed = await fetchDistractions();
+      setDistractions(refreshed);
+      setNewDistraction({
+        title: '',
+        description: '',
+        severity: 'critical',
+        expected_barcode: 'ART-KF40-INOX',
+        barcode_label: 'Bride KF40 Inox',
+        time_limit_seconds: 45,
+        points_bonus: 600,
+        is_active: true
+      });
+      setSaveStatus('✓ Modèle d\'aléa enregistré avec succès dans Supabase !');
+      setTimeout(() => setSaveStatus(null), 3000);
+    }
+  };
+
+  // Delete distraction template
+  const handleDeleteDistractionTemplate = async (id: string) => {
+    if (confirm('Voulez-vous supprimer ce modèle d\'aléa ?')) {
+      await deleteDistraction(id);
+      setDistractions((prev) => prev.filter((d) => d.id !== id));
+    }
+  };
+
+  // Add client to catalog
+  const handleAddClientToCatalog = () => {
+    if (!newClientName.trim()) return;
+    const currentList = localConfig.clientsCatalog || [];
+    setLocalConfig({
+      ...localConfig,
+      clientsCatalog: [...currentList, newClientName.trim()]
+    });
+    setNewClientName('');
+  };
+
+  // Remove client from catalog
+  const handleRemoveClientFromCatalog = (idx: number) => {
+    const currentList = [...(localConfig.clientsCatalog || [])];
+    currentList.splice(idx, 1);
+    setLocalConfig({
+      ...localConfig,
+      clientsCatalog: currentList
+    });
+  };
+
   return (
     <div className="min-h-[calc(100vh-65px)] p-3 sm:p-5 flex flex-col gap-4 max-w-7xl mx-auto w-full select-none">
       {/* Top Banner */}
@@ -343,13 +493,23 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         </button>
 
         <button
+          onClick={() => setActiveTab('hazards')}
+          className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            activeTab === 'hazards' ? 'bg-amber-500 text-slate-950 font-black' : 'text-amber-400 hover:text-white'
+          }`}
+        >
+          <Zap className="w-3.5 h-3.5" />
+          <span>6. Aléas & Distractions ({distractions.length})</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('database')}
           className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
             activeTab === 'database' ? 'bg-rose-900/60 text-rose-300' : 'text-slate-400 hover:text-rose-300'
           }`}
         >
           <AlertTriangle className="w-3.5 h-3.5" />
-          <span>6. Données & Sauvegardes</span>
+          <span>7. Données & Sauvegardes</span>
         </button>
       </div>
 
@@ -1060,7 +1220,311 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         </div>
       )}
 
-      {/* TAB 6: DATABASE, BACKUP & SCENARIO FILES */}
+      {/* TAB 6: HAZARDS & DISTRACTIONS */}
+      {activeTab === 'hazards' && (
+        <div className="space-y-6">
+          {/* Notification feedback */}
+          {hazardFeedback && (
+            <div className="bg-amber-950/90 border border-amber-500/50 text-amber-200 px-4 py-3 rounded-2xl text-xs font-semibold flex items-center space-x-2 shadow-lg animate-pulse">
+              <Zap className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>{hazardFeedback}</span>
+            </div>
+          )}
+
+          {/* Section 1: Live Control & Dispatch Panel (Régie Stand en Direct) */}
+          <div className="bg-gradient-to-br from-slate-900 via-amber-950/20 to-slate-900 rounded-3xl p-6 border-2 border-amber-500/30 shadow-2xl space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+                  <Radio className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-white flex items-center space-x-2">
+                    <span>RÉGIE D'ANIMATION EN DIRECT • DÉCLENCHEUR D'ALÉAS</span>
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    Déclenchez des urgences réelles et imprévues pour tester les réflexes des opérateurs et invités.
+                  </p>
+                </div>
+              </div>
+
+              {/* Station target selector */}
+              <div className="flex items-center space-x-2 bg-slate-950 px-3.5 py-2 rounded-xl border border-amber-500/30 text-xs font-mono">
+                <span className="text-slate-400 font-medium">Cible :</span>
+                <select
+                  value={targetStationForHazard}
+                  onChange={(e) => setTargetStationForHazard(e.target.value)}
+                  className="bg-transparent text-amber-400 font-bold focus:outline-none cursor-pointer"
+                >
+                  <option value="all" className="bg-slate-900">⚡ Tous les postes (Broadcast)</option>
+                  {(localConfig.availableStations || []).map((s) => (
+                    <option key={s.id} value={s.id} className="bg-slate-900">
+                      🎯 {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Surprise Quick Action Buttons */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <button
+                onClick={handleTriggerSurpriseOrder}
+                className="p-4 rounded-2xl bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-500 hover:to-orange-400 text-slate-950 font-black text-xs flex items-center justify-between shadow-lg shadow-amber-600/30 transition-all cursor-pointer group"
+              >
+                <div className="flex items-center space-x-3">
+                  <Boxes className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  <div className="text-left">
+                    <div className="font-extrabold uppercase tracking-wide">Lancer une Commande Client Surprise</div>
+                    <div className="text-[10px] font-normal opacity-90">Génère un enlèvement urgent imprévu nécessitant un scan physique immédiat</div>
+                  </div>
+                </div>
+                <Send className="w-4 h-4 ml-2 shrink-0" />
+              </button>
+
+              <button
+                onClick={() => {
+                  if (distractions.length > 0) {
+                    const randomDistraction = distractions[Math.floor(Math.random() * distractions.length)];
+                    handleTriggerLiveHazard(randomDistraction);
+                  } else {
+                    alert('Aucun modèle d\'aléa configuré.');
+                  }
+                }}
+                className="p-4 rounded-2xl bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white font-black text-xs flex items-center justify-between shadow-lg shadow-rose-600/30 transition-all cursor-pointer group"
+              >
+                <div className="flex items-center space-x-3">
+                  <ShieldAlert className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  <div className="text-left">
+                    <div className="font-extrabold uppercase tracking-wide">Déclencher un Aléa Flash Aléatoire</div>
+                    <div className="text-[10px] font-normal opacity-90">Active une alerte sonore avec sirène et compte à rebours sur le stand</div>
+                  </div>
+                </div>
+                <Zap className="w-4 h-4 ml-2 shrink-0" />
+              </button>
+            </div>
+
+            {/* List of preset hazards ready to trigger */}
+            <div>
+              <div className="text-xs font-mono font-bold text-slate-400 uppercase mb-2.5">
+                Modèles d'Aléas Prêts au Déclenchement Immédiat :
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {distractions.map((d) => (
+                  <div
+                    key={d.id}
+                    className="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800 hover:border-amber-500/50 flex flex-col justify-between gap-2.5 transition-all shadow-sm"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                          d.severity === 'critical' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        }`}>
+                          {d.severity === 'critical' ? '🚨 Critique' : '⚠️ Alerte'}
+                        </span>
+                        <span className="text-[10px] font-mono text-emerald-400 font-bold">+{d.points_bonus} pts</span>
+                      </div>
+                      <h4 className="text-xs font-bold text-white leading-tight">{d.title}</h4>
+                      <p className="text-[11px] text-slate-300 mt-1 line-clamp-2">{d.description}</p>
+                      <div className="mt-2 text-[10px] font-mono text-slate-400">
+                        Scan attendu : <strong className="text-sky-300">{d.barcode_label}</strong> ({d.expected_barcode})
+                      </div>
+                      <div className="text-[10px] font-mono text-amber-300 mt-0.5">
+                        Délai : <strong>{d.time_limit_seconds} secondes</strong>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleTriggerLiveHazard(d)}
+                      className="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span>Déclencher en Direct</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Automation Settings & Interval */}
+          <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-4">
+            <h3 className="text-sm font-bold font-mono text-slate-300 uppercase flex items-center space-x-2">
+              <Clock className="w-4 h-4 text-indigo-400" />
+              <span>Paramètres du Déclencheur Automatique d'Aléas :</span>
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center space-x-3 bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                <input
+                  type="checkbox"
+                  id="autoHazardsToggle"
+                  checked={localConfig.autoHazardsEnabled ?? true}
+                  onChange={(e) => setLocalConfig({ ...localConfig, autoHazardsEnabled: e.target.checked })}
+                  className="w-5 h-5 rounded text-amber-500 bg-slate-900 border-slate-700 cursor-pointer"
+                />
+                <label htmlFor="autoHazardsToggle" className="text-xs text-slate-300 cursor-pointer">
+                  <strong className="text-white block">Activer les Aléas Automatiques en Continu</strong>
+                  Permet au jeu d'injecter des interruptions réalistes à intervalles réguliers sans intervention manuelle.
+                </label>
+              </div>
+
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col justify-center">
+                <label className="text-xs text-slate-400 block mb-1">
+                  Fréquence Moyenne des Aléas : <strong className="text-amber-400 font-mono">{localConfig.hazardIntervalSeconds ?? 90} secondes</strong>
+                </label>
+                <input
+                  type="range"
+                  min="30"
+                  max="300"
+                  step="15"
+                  value={localConfig.hazardIntervalSeconds ?? 90}
+                  onChange={(e) => setLocalConfig({ ...localConfig, hazardIntervalSeconds: parseInt(e.target.value) || 90 })}
+                  className="w-full accent-amber-500 cursor-pointer"
+                />
+                <div className="flex justify-between text-[10px] text-slate-400 mt-1 font-mono">
+                  <span>30s (Intense)</span>
+                  <span>90s (Standard Stand)</span>
+                  <span>300s (Rare)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Clients Catalog (Laboratoires CEA) */}
+          <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-4">
+            <h3 className="text-sm font-bold font-mono text-slate-300 uppercase flex items-center space-x-2">
+              <Building className="w-4 h-4 text-sky-400" />
+              <span>Catalogue des Clients & Laboratoires CEA :</span>
+            </h3>
+            <p className="text-xs text-slate-300">
+              Ces entités sont utilisées pour générer les commandes clients imprévues et les tickets de transport.
+            </p>
+
+            <div className="flex flex-wrap gap-2">
+              {(localConfig.clientsCatalog || []).map((client, idx) => (
+                <div
+                  key={idx}
+                  className="bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 flex items-center space-x-2 text-xs text-slate-200"
+                >
+                  <Building className="w-3.5 h-3.5 text-sky-400" />
+                  <span>{client}</span>
+                  <button
+                    onClick={() => handleRemoveClientFromCatalog(idx)}
+                    className="text-slate-500 hover:text-rose-400 transition-colors ml-1 cursor-pointer"
+                    title="Supprimer ce client"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex space-x-2 pt-2 max-w-md">
+              <input
+                type="text"
+                placeholder="Ex: Minatec Salle Blanche ISO 5..."
+                value={newClientName}
+                onChange={(e) => setNewClientName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddClientToCatalog()}
+                className="flex-1 bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white"
+              />
+              <button
+                onClick={handleAddClientToCatalog}
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl flex items-center space-x-1.5 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Ajouter</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Section 4: Create / Edit Distraction Templates */}
+          <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-4">
+            <h3 className="text-sm font-bold font-mono text-slate-300 uppercase flex items-center space-x-2">
+              <Plus className="w-4 h-4 text-emerald-400" />
+              <span>Créer un Nouveau Modèle d'Aléa :</span>
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Titre de l'Aléa :</label>
+                <input
+                  type="text"
+                  placeholder="Ex: 🚨 FUITE AZOTE LIQUIDE : Salle Blanche"
+                  value={newDistraction.title || ''}
+                  onChange={(e) => setNewDistraction({ ...newDistraction, title: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Code-Barres Physique Attendu :</label>
+                <input
+                  type="text"
+                  placeholder="Ex: ART-KF40-INOX ou LOC-B01-T03"
+                  value={newDistraction.expected_barcode || ''}
+                  onChange={(e) => setNewDistraction({ ...newDistraction, expected_barcode: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Libellé de l'Étiquette :</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Bride KF40 Inox (Casier Allée B)"
+                  value={newDistraction.barcode_label || ''}
+                  onChange={(e) => setNewDistraction({ ...newDistraction, barcode_label: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="text-xs text-slate-400 block mb-1">Consigne / Description affichée à l'écran :</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Scanner immédiatement le scellé de sécurité pour valider la coupure vanne."
+                  value={newDistraction.description || ''}
+                  onChange={(e) => setNewDistraction({ ...newDistraction, description: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Délai (secondes) :</label>
+                  <input
+                    type="number"
+                    value={newDistraction.time_limit_seconds || 45}
+                    onChange={(e) => setNewDistraction({ ...newDistraction, time_limit_seconds: parseInt(e.target.value) || 45 })}
+                    className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Bonus Points :</label>
+                  <input
+                    type="number"
+                    value={newDistraction.points_bonus || 600}
+                    onChange={(e) => setNewDistraction({ ...newDistraction, points_bonus: parseInt(e.target.value) || 600 })}
+                    className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSaveDistractionTemplate}
+              className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center space-x-1.5 cursor-pointer shadow-md shadow-emerald-500/20"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>Enregistrer ce Modèle d'Aléa dans Supabase</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 7: DATABASE, BACKUP & SCENARIO FILES */}
       {activeTab === 'database' && (
         <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-6">
           <h3 className="text-sm font-bold font-mono text-slate-300 uppercase">

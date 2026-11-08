@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import JsBarcode from 'jsbarcode';
-import { Mission, ScanLog, InventoryItem, DuoStation } from '../types';
+import { Mission, ScanLog, InventoryItem, DuoStation, LiveHazard } from '../types';
 import { 
   CheckCircle2, 
   AlertTriangle, 
@@ -17,7 +17,9 @@ import {
   Flame,
   Users,
   Swords,
-  Edit3
+  Edit3,
+  Clock,
+  ShieldAlert
 } from 'lucide-react';
 import { BARCODE_CATALOG } from '../data/initialData';
 import { barcodeListener } from '../services/barcodeListener';
@@ -40,6 +42,9 @@ interface PosteOperateurViewProps {
   onUpdateDuo: (cea: string, client: string) => void;
   combo: number;
   liveStations: DuoStation[];
+  activeHazard?: LiveHazard | null;
+  hazardSecondsRemaining?: number;
+  onTriggerSurpriseOrder?: () => void;
 }
 
 // On-screen scannable SVG barcode for douchette or visual reference
@@ -97,7 +102,10 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
   clientGuest,
   onUpdateDuo,
   combo,
-  liveStations
+  liveStations,
+  activeHazard,
+  hazardSecondsRemaining,
+  onTriggerSurpriseOrder
 }) => {
   const [manualInput, setManualInput] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'article' | 'location' | 'package'>('all');
@@ -217,8 +225,68 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
             <span className="text-emerald-400 font-bold hidden sm:inline">Scannette Prête</span>
             <span className="text-emerald-400 font-bold sm:hidden">Prêt</span>
           </div>
+
+          {/* Quick trigger unannounced client demand */}
+          {onTriggerSurpriseOrder && (
+            <button
+              onClick={onTriggerSurpriseOrder}
+              className="hidden lg:flex items-center space-x-1 px-2.5 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-mono font-bold transition-all cursor-pointer"
+              title="Générer une commande urgente client imprévue à scanner d'urgence"
+            >
+              <Zap className="w-3.5 h-3.5" />
+              <span>+ Aléa Client</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {/* EMERGENCY HAZARD ALERT BANNER */}
+      {activeHazard && (
+        <div className="bg-gradient-to-r from-rose-950 via-red-900 to-amber-950 rounded-2xl p-4 border-2 border-red-500 shadow-2xl shadow-rose-950/70 flex flex-col md:flex-row items-center justify-between gap-4 animate-pulse">
+          <div className="flex items-center space-x-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-red-600/30 border border-red-400 flex items-center justify-center text-red-300 shrink-0">
+              <ShieldAlert className="w-7 h-7 text-red-400 animate-bounce" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-red-500 text-slate-950 shadow-sm">
+                  ALÉA OPÉRATIONNEL EN COURS
+                </span>
+                <span className="text-xs font-mono font-bold text-amber-300">
+                  +{activeHazard.points_bonus} PTS BONUS
+                </span>
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-white mt-1">
+                {activeHazard.title}
+              </h3>
+              <p className="text-xs text-rose-200 mt-0.5">
+                {activeHazard.message}
+              </p>
+              <div className="mt-2 text-xs font-mono text-white bg-red-950/90 px-3 py-1.5 rounded-xl border border-red-500/40 inline-flex flex-wrap items-center gap-2">
+                <span className="text-amber-400 font-bold">Action physique requise :</span>
+                <span>Scannez l'étiquette <strong>{activeHazard.expected_barcode}</strong> avec votre scannette !</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Countdown & Scannable Barcode fallback */}
+          <div className="flex flex-row items-center gap-3 shrink-0">
+            <div className="flex flex-col items-center bg-black/60 px-4 py-2.5 rounded-xl border border-red-500/40 font-mono text-center">
+              <div className="flex items-center space-x-1 text-red-400 text-xs font-bold">
+                <Clock className="w-3.5 h-3.5 animate-spin" />
+                <span>COMPTE À REBOURS</span>
+              </div>
+              <div className="text-2xl font-black text-amber-300">
+                {hazardSecondsRemaining ?? activeHazard.time_limit_seconds}s
+              </div>
+            </div>
+
+            <div className="hidden sm:block">
+              <BarcodeTicket code={activeHazard.expected_barcode} label="ALÉA PHYSIQUE" />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Live Duel Bar (if other stations are connected) */}
       {otherStations.length > 0 && (

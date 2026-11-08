@@ -29,6 +29,34 @@ export interface AppConfig {
   diplomaDescription: string;
   diplomaSignatory: string;
   availableStations: { id: string; name: string }[];
+  autoHazardsEnabled?: boolean;
+  hazardIntervalSeconds?: number;
+  clientsCatalog?: string[];
+}
+
+export interface Distraction {
+  id: string;
+  title: string;
+  description: string;
+  severity: 'critical' | 'warning' | 'info';
+  expected_barcode: string;
+  barcode_label: string;
+  time_limit_seconds: number;
+  points_bonus: number;
+  is_active: boolean;
+  created_at?: string;
+}
+
+export interface LiveHazard {
+  id: string;
+  target_station_id: string; // 'all' or station_id e.g. 'poste-1'
+  title: string;
+  message: string;
+  expected_barcode: string;
+  time_limit_seconds: number;
+  points_bonus: number;
+  status: 'active' | 'resolved' | 'expired';
+  created_at?: string;
 }
 
 export interface InventoryItem {

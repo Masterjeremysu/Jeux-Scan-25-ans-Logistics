@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Mission, InventoryItem, AppConfig, DuoStation } from '../types';
+import { Mission, InventoryItem, AppConfig, DuoStation, Distraction, LiveHazard } from '../types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -43,6 +43,9 @@ export interface StoredAppConfig {
   diplomaDescription: string;
   diplomaSignatory: string;
   availableStations: { id: string; name: string }[];
+  autoHazardsEnabled?: boolean;
+  hazardIntervalSeconds?: number;
+  clientsCatalog?: string[];
   missions: Mission[];
   inventory: InventoryItem[];
 }
@@ -191,6 +194,16 @@ export async function loadAppConfig(): Promise<StoredAppConfig | null> {
             { id: 'poste-2', name: 'Poste 2 (Scannette B)' },
             { id: 'poste-3', name: 'Poste 3 (Zebra Scan)' }
           ],
+          autoHazardsEnabled: data.auto_hazards_enabled ?? true,
+          hazardIntervalSeconds: data.hazard_interval_seconds ?? 90,
+          clientsCatalog: Array.isArray(data.clients_catalog) ? data.clients_catalog : [
+            'CEA LETI - Bât. 17 (Nano)',
+            'Minatec Salle Blanche ISO 5',
+            'IRIG / Cryo Fondamentale',
+            'Banc de Test Épitaxie MBE',
+            'Plateforme Wafers Silicium',
+            'Magasin Central Quai 3'
+          ],
           missions: Array.isArray(data.missions) ? data.missions : [],
           inventory: Array.isArray(data.inventory) ? data.inventory : []
         };
@@ -230,6 +243,9 @@ export async function saveAppConfig(config: StoredAppConfig): Promise<boolean> {
         diploma_description: config.diplomaDescription,
         diploma_signatory: config.diplomaSignatory,
         available_stations: config.availableStations,
+        auto_hazards_enabled: config.autoHazardsEnabled ?? true,
+        hazard_interval_seconds: config.hazardIntervalSeconds ?? 90,
+        clients_catalog: config.clientsCatalog ?? [],
         missions: config.missions,
         inventory: config.inventory,
         updated_at: new Date().toISOString()
@@ -268,6 +284,9 @@ export function subscribeToAppConfig(onConfigChanged: (config: StoredAppConfig) 
               { id: 'poste-1', name: 'Poste 1 (Scannette A)' },
               { id: 'poste-2', name: 'Poste 2 (Scannette B)' }
             ],
+            autoHazardsEnabled: row.auto_hazards_enabled ?? true,
+            hazardIntervalSeconds: row.hazard_interval_seconds ?? 90,
+            clientsCatalog: Array.isArray(row.clients_catalog) ? row.clients_catalog : [],
             missions: Array.isArray(row.missions) ? row.missions : [],
             inventory: Array.isArray(row.inventory) ? row.inventory : []
           });
@@ -323,6 +342,126 @@ export function subscribeToStationsLive(onStationUpdate: (station: DuoStation) =
       (payload) => {
         if (payload.new) {
           onStationUpdate(payload.new as DuoStation);
+        }
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+// ----------------------------------------------------
+// Distractions & Hazards System (Aléas en direct)
+// ----------------------------------------------------
+
+// Fetch all distraction templates
+export async function fetchDistractions(): Promise<Distraction[]> {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('distractions')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('[Supabase] Erreur fetchDistractions:', error.message);
+      return [];
+    }
+    return (data as Distraction[]) || [];
+  } catch {
+    return [];
+  }
+}
+
+// Save or Update a Distraction template
+export async function saveDistraction(distraction: Partial<Distraction>): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase
+      .from('distractions')
+      .upsert(distraction);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+// Delete a Distraction template
+export async function deleteDistraction(id: string): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase
+      .from('distractions')
+      .delete()
+      .eq('id', id);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+// Trigger a live hazard across stations or targeted to a single station
+export async function triggerLiveHazard(hazard: Omit<LiveHazard, 'id' | 'created_at'>): Promise<string | null> {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('live_hazards')
+      .insert([hazard])
+      .select('id')
+      .single();
+
+    if (error) {
+      console.warn('[Supabase] Erreur triggerLiveHazard:', error.message);
+      return null;
+    }
+    return data?.id || null;
+  } catch {
+    return null;
+  }
+}
+
+// Resolve a live hazard
+export async function resolveLiveHazard(hazardId: string): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase
+      .from('live_hazards')
+      .update({ status: 'resolved' })
+      .eq('id', hazardId);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+// Mark a live hazard as expired
+export async function expireLiveHazard(hazardId: string): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase
+      .from('live_hazards')
+      .update({ status: 'expired' })
+      .eq('id', hazardId);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+// Subscribe to Live Hazards in Realtime
+export function subscribeToLiveHazards(onHazardEvent: (hazard: LiveHazard, eventType: 'INSERT' | 'UPDATE') => void) {
+  if (!supabase) return () => {};
+
+  const channel = supabase
+    .channel('hazards-realtime')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'live_hazards' },
+      (payload) => {
+        if (payload.new) {
+          onHazardEvent(payload.new as LiveHazard, payload.eventType as 'INSERT' | 'UPDATE');
         }
       }
     )

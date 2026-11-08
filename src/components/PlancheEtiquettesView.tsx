@@ -1,25 +1,27 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import JsBarcode from 'jsbarcode';
-import { InventoryItem, Mission } from '../types';
+import { InventoryItem, Mission, Distraction } from '../types';
 import { BARCODE_CATALOG } from '../data/initialData';
 import { Printer, Download, Sparkles, Scissors, Info } from 'lucide-react';
 
 interface PlancheEtiquettesViewProps {
   inventory?: InventoryItem[];
   missions?: Mission[];
+  distractions?: Distraction[];
 }
 
 export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
   inventory,
-  missions
+  missions,
+  distractions
 }) => {
-  // Dynamically compute all barcodes needed from inventory and missions
+  // Dynamically compute all barcodes needed from inventory, missions and distractions
   const items = useMemo(() => {
     if (!inventory || !missions) return BARCODE_CATALOG;
 
     const map = new Map<string, { code: string; label: string; type: string }>();
 
-    // 1. Locations from inventory
+    // 1. Locations and articles from inventory
     inventory.forEach((item) => {
       if (item.location && !map.has(item.location)) {
         map.set(item.location, {
@@ -50,6 +52,19 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
       });
     });
 
+    // 3. Emergency & Distraction barcodes (e.g. Aléas Stand)
+    if (distractions && distractions.length > 0) {
+      distractions.forEach((d) => {
+        if (d.expected_barcode && !map.has(d.expected_barcode)) {
+          map.set(d.expected_barcode, {
+            code: d.expected_barcode,
+            label: `⚡ ALÉA : ${d.barcode_label || d.title}`,
+            type: 'seal'
+          });
+        }
+      });
+    }
+
     // Merge with any base catalog items
     BARCODE_CATALOG.forEach((bc) => {
       if (!map.has(bc.code)) {
@@ -58,7 +73,7 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
     });
 
     return Array.from(map.values());
-  }, [inventory, missions]);
+  }, [inventory, missions, distractions]);
 
   useEffect(() => {
     // Generate barcodes for all items in the computed catalog
