@@ -461,14 +461,28 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
           </div>
         ) : (
           /* Mission Completed Card */
-          <div className="w-full bg-emerald-950/40 rounded-3xl p-8 border-2 border-emerald-500 text-center space-y-4 shadow-2xl">
+          <div className="w-full bg-emerald-950/40 rounded-3xl p-6 sm:p-8 border-2 border-emerald-500 text-center space-y-4 shadow-2xl animate-fade-in">
             <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/30">
-              <Sparkles className="w-9 h-9" />
+              <Sparkles className="w-9 h-9 animate-pulse" />
             </div>
-            <h2 className="text-2xl font-black text-white">COMMANDE EXPÉDIÉE AVEC SUCCÈS !</h2>
-            <p className="text-sm text-slate-300 max-w-md mx-auto">
-              Félicitations au binôme ! Regardez la grande TV 55" pour voir votre place au classement en direct.
-            </p>
+            <h2 className="text-xl sm:text-2xl font-black text-white">COMMANDE EXPÉDIÉE AVEC SUCCÈS !</h2>
+            
+            {currentMissionIndex + 1 < missions.length ? (
+              <div className="space-y-2">
+                <p className="text-sm text-emerald-300 max-w-md mx-auto font-medium">
+                  Super boulot d'équipe ! Passage automatique à la commande suivante ({currentMissionIndex + 2}/{missions.length})...
+                </p>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-mono border border-emerald-500/40 animate-pulse">
+                  <Radio className="w-3.5 h-3.5" />
+                  <span>Chargement du prochain bon de préparation...</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-300 max-w-md mx-auto">
+                Félicitations au binôme ! Toutes les commandes de la session ont été traitées ! Regardez la grande TV 55" pour voir votre place au classement.
+              </p>
+            )}
+
             <div className="text-3xl font-black font-mono text-emerald-400">
               Score : {score} pts
             </div>

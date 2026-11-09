@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DuoStation, AppConfig } from '../types';
+import { MISSIONS } from '../data/missions';
 import { 
   getStationsLive, 
   subscribeToStationsLive, 
@@ -269,8 +270,41 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, onBackToHom
   const station1 = stations.find((s) => s.station_id === 'poste-1') || stations[0];
   const station2 = stations.find((s) => s.station_id === 'poste-2') || stations[1];
 
-  const stepsCatalog1 = ['Armoire B01', 'Bride KF40', 'Joint Kalrez', 'Carton', 'Livraison'];
-  const stepsCatalog2 = ['Armoire B04', 'Bride Inox', 'Joint Viton', 'Carton', 'Livraison'];
+  // Helper to dynamically extract realistic short step labels according to active mission
+  const getStationSteps = (station?: DuoStation): string[] => {
+    if (!station) return ['Étape 1', 'Étape 2', 'Étape 3', 'Livraison'];
+    
+    const missionTitle = station.current_mission_title?.toLowerCase() || '';
+    const foundMission = MISSIONS.find(m => 
+      missionTitle.includes(m.title.toLowerCase().substring(0, 15)) ||
+      m.title.toLowerCase().includes(missionTitle.substring(0, 15)) ||
+      m.code.toLowerCase() === missionTitle
+    );
+
+    if (foundMission && foundMission.steps.length > 0) {
+      return foundMission.steps.map(step => {
+        if (step.expectedBarcode === 'LOC-B01-T03') return 'Armoire B01';
+        if (step.expectedBarcode === 'ART-KF40-INOX') return 'Bride KF40';
+        if (step.expectedBarcode === 'REF191000007490') return 'Joint Kalrez';
+        if (step.expectedBarcode === 'LOC-ETAGERE-LIVRAISON') return 'Livraison Client';
+        if (step.expectedBarcode === 'LOC-ETAGERE-COLLECTE') return 'Étagère Collecte';
+        if (step.expectedBarcode === 'ZONE_POMPE_GRILLE_41') return 'Zone Pompe 41';
+        if (step.expectedBarcode === 'LOC-ETA1-NIV1') return 'Étagère 1';
+        if (step.expectedBarcode === 'DOC-TRANSPORT-INTL') return 'Doc Transport';
+        if (step.expectedBarcode === 'ART-CARTON-EXP') return 'Carton Double';
+        if (step.expectedBarcode === 'ZONE_RECEPTION_CENTRALE') return 'Réception Cent.';
+        return step.crLabel?.slice(0, 14) || step.targetLabel?.split('(')[0].trim() || 'Étape';
+      });
+    }
+
+    const count = station.total_steps && station.total_steps > 0 ? station.total_steps : 4;
+    return Array.from({ length: count }, (_, i) => `Étape ${i + 1}`);
+  };
+
+  const steps1 = getStationSteps(station1);
+  const steps2 = getStationSteps(station2);
+  const isStation1Finished = (station1?.progress_percent ?? 0) >= 100 || station1?.status === 'completed';
+  const isStation2Finished = (station2?.progress_percent ?? 0) >= 100 || station2?.status === 'completed';
 
   return (
     <div className="w-full min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-3 sm:p-5 lg:p-7 select-none relative overflow-hidden font-sans">
@@ -476,7 +510,16 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, onBackToHom
           {/* Dynamic Logistics Race Track */}
           <div className="space-y-2 pt-3 border-t border-slate-800/80">
             <div className="flex justify-between items-center text-xs font-mono">
-              <span className="text-slate-400 font-bold uppercase">Flux Commande :</span>
+              <span className="text-slate-400 font-bold uppercase flex items-center gap-1.5">
+                {isStation1Finished ? (
+                  <span className="text-emerald-400 font-black flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    Commande Validée (100%) !
+                  </span>
+                ) : (
+                  'Flux Commande :'
+                )}
+              </span>
               <span className="font-display font-black text-sm text-sky-400">
                 {station1?.progress_percent || 0}%
               </span>
@@ -491,24 +534,30 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, onBackToHom
               </div>
             </div>
 
-            <div className="grid grid-cols-5 gap-1 text-center text-[9px] font-mono">
-              {stepsCatalog1.map((step, idx) => {
+            <div 
+              className="grid gap-1 text-center text-[9px] font-mono"
+              style={{ gridTemplateColumns: `repeat(${steps1.length}, minmax(0, 1fr))` }}
+            >
+              {steps1.map((step, idx) => {
                 const currentIdx = station1?.current_step_index ?? 0;
-                const isPassed = idx < currentIdx;
-                const isCurrent = idx === currentIdx;
+                const isPassed = isStation1Finished || idx < currentIdx;
+                const isCurrent = !isStation1Finished && idx === currentIdx;
 
                 return (
                   <div
                     key={idx}
-                    className={`py-1 px-0.5 rounded-lg border transition-all truncate ${
-                      isPassed
+                    className={`py-1 px-1 rounded-lg border transition-all truncate flex items-center justify-center gap-1 ${
+                      isStation1Finished
+                        ? 'bg-emerald-950/80 border-emerald-500/80 text-emerald-300 font-bold'
+                        : isPassed
                         ? 'bg-sky-950/80 border-sky-500/60 text-sky-300 font-bold'
                         : isCurrent
                         ? 'bg-sky-500 text-slate-950 font-black shadow-md shadow-sky-500/30'
                         : 'bg-slate-950 border-slate-800/60 text-slate-600'
                     }`}
                   >
-                    {step}
+                    {(isStation1Finished || isPassed) && <Check className="w-2.5 h-2.5 shrink-0" />}
+                    <span className="truncate">{step}</span>
                   </div>
                 );
               })}
@@ -660,7 +709,16 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, onBackToHom
           {/* Dynamic Logistics Race Track */}
           <div className="space-y-2 pt-3 border-t border-slate-800/80">
             <div className="flex justify-between items-center text-xs font-mono">
-              <span className="text-slate-400 font-bold uppercase">Flux Commande :</span>
+              <span className="text-slate-400 font-bold uppercase flex items-center gap-1.5">
+                {isStation2Finished ? (
+                  <span className="text-emerald-400 font-black flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    Commande Validée (100%) !
+                  </span>
+                ) : (
+                  'Flux Commande :'
+                )}
+              </span>
               <span className="font-display font-black text-sm text-amber-400">
                 {station2?.progress_percent || 0}%
               </span>
@@ -675,24 +733,30 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, onBackToHom
               </div>
             </div>
 
-            <div className="grid grid-cols-5 gap-1 text-center text-[9px] font-mono">
-              {stepsCatalog2.map((step, idx) => {
+            <div 
+              className="grid gap-1 text-center text-[9px] font-mono"
+              style={{ gridTemplateColumns: `repeat(${steps2.length}, minmax(0, 1fr))` }}
+            >
+              {steps2.map((step, idx) => {
                 const currentIdx = station2?.current_step_index ?? 0;
-                const isPassed = idx < currentIdx;
-                const isCurrent = idx === currentIdx;
+                const isPassed = isStation2Finished || idx < currentIdx;
+                const isCurrent = !isStation2Finished && idx === currentIdx;
 
                 return (
                   <div
                     key={idx}
-                    className={`py-1 px-0.5 rounded-lg border transition-all truncate ${
-                      isPassed
+                    className={`py-1 px-1 rounded-lg border transition-all truncate flex items-center justify-center gap-1 ${
+                      isStation2Finished
+                        ? 'bg-emerald-950/80 border-emerald-500/80 text-emerald-300 font-bold'
+                        : isPassed
                         ? 'bg-amber-950/80 border-amber-500/60 text-amber-300 font-bold'
                         : isCurrent
                         ? 'bg-amber-400 text-slate-950 font-black shadow-md shadow-amber-400/30'
                         : 'bg-slate-950 border-slate-800/60 text-slate-600'
                     }`}
                   >
-                    {step}
+                    {(isStation2Finished || isPassed) && <Check className="w-2.5 h-2.5 shrink-0" />}
+                    <span className="truncate">{step}</span>
                   </div>
                 );
               })}

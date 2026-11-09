@@ -403,6 +403,20 @@ export const App: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Open Diploma at the end of the shift (3 minutes) if the team was active and scored
+  useEffect(() => {
+    if (shiftSecondsRemaining === 0 && operator.score > 0 && !isDiplomeOpen) {
+      soundService.playMissionComplete();
+      showToast({
+        title: '🏁 FIN DU QUART DE TRAVAIL (3 MIN) !',
+        message: `Félicitations au binôme pour les commandes expédiées !`,
+        type: 'success',
+        duration: 5000
+      });
+      setIsDiplomeOpen(true);
+    }
+  }, [shiftSecondsRemaining, operator.score, isDiplomeOpen]);
+
   // Flash reset helper
   const triggerFlash = (color: 'green' | 'red') => {
     setFlashState(color);
@@ -709,10 +723,48 @@ export const App: React.FC = () => {
       }).catch(() => {});
 
       if (isMissionDone) {
-        setTimeout(() => {
-          soundService.playMissionComplete();
-          setIsDiplomeOpen(true);
-        }, 400);
+        soundService.playMissionComplete();
+        const hasNextMission = activeIndex + 1 < currentMissions.length;
+
+        if (hasNextMission) {
+          showToast({
+            title: `🎉 COMMANDE EXPÉDIÉE ! (+${activeMission.basePoints} pts)`,
+            message: `Bravo au binôme ! Préparation de la mission suivante...`,
+            type: 'success',
+            duration: 4000
+          });
+
+          // Transition to next mission after celebration
+          setTimeout(() => {
+            const nextIdx = activeIndex + 1;
+            setCurrentMissionIndex(nextIdx);
+
+            const nextMission = currentMissions[nextIdx];
+            updateStationLive({
+              station_id: stationIdRef.current,
+              station_name: stationNameRef.current,
+              operator_cea: operatorCeaRef.current,
+              client_guest: clientGuestRef.current,
+              team_name: `Duo ${clientGuestRef.current}`,
+              current_mission_title: nextMission.title,
+              progress_percent: 0,
+              current_step_index: 0,
+              total_steps: nextMission.steps.length,
+              status: 'in_progress'
+            });
+          }, 2000);
+        } else {
+          // ALL MISSIONS COMPLETED!
+          showToast({
+            title: '🏆 TOUTES LES MISSIONS ACCOMPLIES !',
+            message: `Performance légendaire ! Attribution du diplôme...`,
+            type: 'success',
+            duration: 5000
+          });
+          setTimeout(() => {
+            setIsDiplomeOpen(true);
+          }, 1500);
+        }
       }
 
       // Live ERP Stock Update & Scenarios Actions
