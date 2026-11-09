@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import JsBarcode from 'jsbarcode';
 import { Mission, DuoStation, LiveHazard, InventoryItem } from '../types';
 import { 
   CheckCircle2, 
@@ -15,9 +14,14 @@ import {
   ChevronRight,
   Truck,
   AlertTriangle,
-  Check
+  Check,
+  Camera,
+  Radio,
+  ScanBarcode,
+  Barcode
 } from 'lucide-react';
 import { barcodeListener } from '../services/barcodeListener';
+import { CameraScannerModal } from './CameraScannerModal';
 
 interface ZebraPlayViewProps {
   stationId: string;
@@ -36,6 +40,7 @@ interface ZebraPlayViewProps {
   otherStations: DuoStation[];
   inventory?: InventoryItem[];
   onDeclareAnomaly?: (realQty: number) => void;
+  onBarcodeScanned?: (code: string) => void;
 }
 
 export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
@@ -54,13 +59,20 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
   hazardSecondsRemaining,
   otherStations,
   inventory = [],
-  onDeclareAnomaly
+  onDeclareAnomaly,
+  onBarcodeScanned
 }) => {
   const isPoste1 = stationId === 'poste-1';
   const mission = missions[currentMissionIndex] || missions[0];
   const currentStep = mission ? mission.steps.find((s) => !s.completed) || null : null;
   const [isAnomalyModalOpen, setIsAnomalyModalOpen] = useState(false);
   const [anomalyQty, setAnomalyQty] = useState(0);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+
+  // Visible WMS scan input for Zebra hardware Douchette & Keystroke injection
+  const scanInputRef = useRef<HTMLInputElement>(null);
+  const [scanInputValue, setScanInputValue] = useState('');
+  const debounceTimerRef = useRef<any>(null);
 
   // Dynamic resolution from live inventory
   const matchedItem = currentStep
@@ -82,15 +94,39 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Keyboard shortcut Spacebar for dev test
+  // Keep scan input permanently focused for Zebra DataWedge hardware trigger
+  useEffect(() => {
+    const focusScanInput = () => {
+      if (scanInputRef.current && !isAnomalyModalOpen && !isCameraOpen) {
+        scanInputRef.current.focus({ preventScroll: true });
+      }
+    };
+
+    focusScanInput();
+    const interval = setInterval(focusScanInput, 2000);
+
+    const handleTap = () => {
+      focusScanInput();
+    };
+    window.addEventListener('click', handleTap);
+    window.addEventListener('touchstart', handleTap);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('click', handleTap);
+      window.removeEventListener('touchstart', handleTap);
+    };
+  }, [isAnomalyModalOpen, isCameraOpen]);
+
+  // Keyboard shortcut Spacebar for quick test
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
+      if (e.code === 'Space' && (e.target as HTMLElement)?.tagName !== 'INPUT') {
         e.preventDefault();
         if (activeHazard) {
-          barcodeListener.simulateScan(activeHazard.expected_barcode);
+          triggerScan(activeHazard.expected_barcode);
         } else if (currentStep) {
-          barcodeListener.simulateScan(currentStep.expectedBarcode);
+          triggerScan(currentStep.expectedBarcode);
         }
       }
     };
@@ -98,22 +134,92 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentStep, activeHazard]);
 
+  const triggerScan = (code: string) => {
+    const cleaned = code.trim().toUpperCase();
+    if (!cleaned) return;
+
+    if (navigator.vibrate) {
+      try {
+        navigator.vibrate(100);
+      } catch {}
+    }
+
+    if (onBarcodeScanned) {
+      onBarcodeScanned(cleaned);
+    } else {
+      barcodeListener.simulateScan(cleaned);
+    }
+
+    setScanInputValue('');
+    if (scanInputRef.current) {
+      scanInputRef.current.value = '';
+      scanInputRef.current.focus({ preventScroll: true });
+    }
+  };
+
+  // Handle direct typing / laser stream from Zebra DataWedge
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setScanInputValue(val);
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Check if DataWedge sent Enter or newline
+    if (val.includes('\n') || val.includes('\r')) {
+      const clean = val.replace(/[\r\n\t]/g, '').trim().toUpperCase();
+      if (clean.length >= 3) {
+        triggerScan(clean);
+      }
+      return;
+    }
+
+    // Auto-submit after rapid Zebra scan completion (200ms)
+    debounceTimerRef.current = setTimeout(() => {
+      const clean = val.replace(/[\r\n\t]/g, '').trim().toUpperCase();
+      if (clean.length >= 3) {
+        triggerScan(clean);
+      }
+    }, 220);
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      const clean = scanInputValue.replace(/[\r\n\t]/g, '').trim().toUpperCase();
+      if (clean.length >= 2) {
+        triggerScan(clean);
+      }
+    }
+  };
+
   return (
-    <div className={`min-h-screen bg-slate-950 text-slate-100 flex flex-col p-3 sm:p-5 select-none transition-colors duration-200 ${
-      flashState === 'green' ? 'bg-emerald-950/40' : flashState === 'red' ? 'bg-rose-950/40' : ''
-    }`}>
-      {/* 1. TOP LOCKED ZEBRA HUD (No tabs, no admin, purely gaming status) */}
+    <div 
+      className={`min-h-screen bg-slate-950 text-slate-100 flex flex-col p-3 sm:p-5 select-none transition-colors duration-200 ${
+        flashState === 'green' ? 'bg-emerald-950/40' : flashState === 'red' ? 'bg-rose-950/40' : ''
+      }`}
+      onClick={() => scanInputRef.current?.focus({ preventScroll: true })}
+    >
+      {/* 1. TOP LOCKED ZEBRA HUD */}
       <header className="bg-slate-900 rounded-2xl p-3 border border-slate-800 shadow-xl flex items-center justify-between gap-2 shrink-0">
         {/* Station Badge & Duo Name */}
         <div className="flex items-center space-x-2 min-w-0">
           <span className={`text-[11px] font-black font-mono px-2.5 py-1 rounded-xl uppercase shrink-0 ${
             isPoste1 ? 'bg-sky-500 text-slate-950 shadow-md shadow-sky-500/20' : 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
           }`}>
-            {stationName.split(' ')[0]} {stationName.includes('1') ? 'Bleu' : 'Orange'}
+            {stationName.split(' ')[0]} {isPoste1 ? 'Bleu' : 'Orange'}
           </span>
           <div className="truncate">
             <span className="text-xs font-bold text-white block truncate">
               {operatorCea} 🤝 {clientGuest}
+            </span>
+            <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
+              <span>Connecté en direct</span>
             </span>
           </div>
         </div>
@@ -194,14 +300,14 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
       {/* 4. MAIN ACTION CARD : CURRENT PICKING ORDER */}
       <main className="my-auto py-3 flex flex-col items-center justify-center max-w-2xl mx-auto w-full">
         {currentStep ? (
-          <div className="w-full bg-slate-900 rounded-3xl p-5 sm:p-7 border-2 border-indigo-500/40 shadow-2xl space-y-5">
+          <div className="w-full bg-slate-900 rounded-3xl p-4 sm:p-7 border-2 border-indigo-500/40 shadow-2xl space-y-4">
             {/* Mission Header */}
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div>
                 <span className="text-[11px] font-mono font-bold text-sky-400 uppercase tracking-wider block">
                   {mission.code} • Mission {currentMissionIndex + 1}/{missions.length}
                 </span>
-                <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight">
+                <h1 className="text-base sm:text-2xl font-black text-white tracking-tight">
                   {mission.title}
                 </h1>
               </div>
@@ -214,12 +320,12 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
             </div>
 
             {/* Instruction Prompt */}
-            <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-2">
+            <div className="bg-slate-950/80 p-3.5 sm:p-4 rounded-2xl border border-slate-800 space-y-1.5">
               <span className="text-[11px] font-mono uppercase font-bold text-amber-400 flex items-center space-x-1">
                 <Zap className="w-3.5 h-3.5" />
                 <span>Consigne d'action immédiate :</span>
               </span>
-              <p className="text-base sm:text-xl font-extrabold text-white leading-snug">
+              <p className="text-sm sm:text-xl font-extrabold text-white leading-snug">
                 {currentStep.instruction}
               </p>
             </div>
@@ -254,29 +360,84 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
 
               {/* Expected Barcode High-Vis Badge */}
               <div className="bg-slate-950 px-4 py-3 rounded-2xl border-2 border-amber-500/50 shadow-lg text-center shrink-0">
-                <span className="text-[10px] text-slate-400 font-mono block">Code-barres étiquette</span>
+                <span className="text-[10px] text-slate-400 font-mono block">Code-barres attendu</span>
                 <span className="text-base sm:text-xl font-black font-mono text-amber-300 tracking-wider">
                   {currentStep.expectedBarcode}
                 </span>
               </div>
             </div>
 
-            {/* Scanner Ready Indicator & Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-2">
-              <div className="flex items-center space-x-2 text-xs font-mono text-slate-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping inline-block" />
-                <span className="text-emerald-400 font-bold">Scannez l'étiquette avec votre douchette</span>
+            {/* DEDICATED VISIBLE WMS SCAN BOX FOR ZEBRA LASER & KEYSTROKES */}
+            <div className="bg-slate-950 p-3 sm:p-4 rounded-2xl border-2 border-indigo-500/60 shadow-xl space-y-2">
+              <div className="flex items-center justify-between text-xs font-mono">
+                <span className="text-slate-300 font-bold flex items-center gap-1.5">
+                  <ScanBarcode className="w-4 h-4 text-emerald-400 animate-pulse" />
+                  <span>Zone de Scan Laser Zebra Active</span>
+                </span>
+                <span className="text-[10px] text-slate-500 hidden sm:inline">
+                  Appuyez sur la gâchette jaune de la scannette
+                </span>
               </div>
 
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <input
+                    ref={scanInputRef}
+                    type="text"
+                    value={scanInputValue}
+                    onChange={handleInputChange}
+                    onKeyDown={handleInputKeyDown}
+                    placeholder="Flashez au laser Zebra ou tapez ici..."
+                    className="w-full bg-slate-900 border-2 border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm sm:text-base text-white font-mono font-bold tracking-wider placeholder:text-slate-500 focus:outline-none transition-all shadow-inner"
+                    autoFocus
+                  />
+                  {scanInputValue && (
+                    <span className="absolute right-3 top-2.5 text-xs font-mono text-amber-400 animate-pulse">
+                      Lecture...
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (scanInputValue.trim()) {
+                      triggerScan(scanInputValue);
+                    }
+                  }}
+                  className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer shrink-0"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+
+            {/* Scanner Ready Indicator & Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-1">
               <div className="flex items-center space-x-2 w-full sm:w-auto">
+                {/* CAMERA SCANNER BUTTON */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsCameraOpen(true);
+                  }}
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition-all hover:scale-105 cursor-pointer"
+                  title="Scanner avec l'appareil photo du téléphone/terminal"
+                >
+                  <Camera className="w-4 h-4 text-sky-200" />
+                  <span>Scanner Caméra</span>
+                </button>
+
                 {currentStep.barcodeType === 'article' && onDeclareAnomaly && (
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setAnomalyQty(Math.max(0, currentScannedQty));
                       setIsAnomalyModalOpen(true);
                     }}
-                    className="flex-1 sm:flex-none px-3 py-2 rounded-xl bg-amber-950/70 hover:bg-amber-900 border border-amber-500/50 text-amber-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                    className="flex-1 sm:flex-none px-3 py-2.5 rounded-xl bg-amber-950/70 hover:bg-amber-900 border border-amber-500/50 text-amber-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                   >
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
                     <span>Écart Stock ?</span>
@@ -286,8 +447,11 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
                 {/* Dev Simulation Button */}
                 <button
                   type="button"
-                  onClick={() => barcodeListener.simulateScan(currentStep.expectedBarcode)}
-                  className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-bold border border-slate-700 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    triggerScan(currentStep.expectedBarcode);
+                  }}
+                  className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-bold border border-slate-700 transition-colors cursor-pointer"
                   title="Simule le scan si la douchette physique n'est pas connectée"
                 >
                   Flasher {requiredQty > 1 ? `(${currentScannedQty + 1}/${requiredQty})` : ''}
@@ -315,11 +479,22 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
       {/* 5. FOOTER FEEDBACK (Last scan log) */}
       <footer className="mt-auto pt-2 shrink-0 text-center font-mono text-xs text-slate-500">
         {lastScannedCode ? (
-          <span>Dernier code flashé : <strong className="text-white">{lastScannedCode}</strong></span>
+          <div className="inline-flex items-center gap-2 bg-slate-900 px-3 py-1 rounded-xl border border-slate-800">
+            <span className="text-slate-400">Dernier code flashé :</span>
+            <strong className="text-emerald-400 font-bold">{lastScannedCode}</strong>
+          </div>
         ) : (
-          <span>Visez les étiquettes de vos étagères et quais avec le laser de la scannette.</span>
+          <span>Visez les étiquettes avec le laser de la douchette ou le scanner caméra.</span>
         )}
       </footer>
+
+      {/* CAMERA SCANNER MODAL */}
+      <CameraScannerModal
+        isOpen={isCameraOpen}
+        onClose={() => setIsCameraOpen(false)}
+        onScan={(code) => triggerScan(code)}
+        expectedCodeHint={activeHazard ? activeHazard.expected_barcode : currentStep?.expectedBarcode}
+      />
 
       {/* ANOMALIE DE STOCK MODAL (ZEBRA COMPACT) */}
       {isAnomalyModalOpen && currentStep && (

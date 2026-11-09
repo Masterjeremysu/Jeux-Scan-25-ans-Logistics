@@ -56,10 +56,11 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
   // Solo station selection
   const [soloStation, setSoloStation] = useState('poste-1');
   const [showQrModal, setShowQrModal] = useState(false);
+  const [customServerUrl, setCustomServerUrl] = useState(() => appConfig.publicUrl || (typeof window !== 'undefined' ? window.location.origin : ''));
 
-  const publicUrl = appConfig.publicUrl || window.location.origin;
-  const zebra1Url = `${publicUrl}/#play?station=poste-1`;
-  const zebra2Url = `${publicUrl}/#play?station=poste-2`;
+  const activeBaseUrl = customServerUrl.trim() || appConfig.publicUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+  const zebra1Url = `${activeBaseUrl}/#play?station=poste-1`;
+  const zebra2Url = `${activeBaseUrl}/#play?station=poste-2`;
 
   const handleLaunchDuel = (e: React.FormEvent) => {
     e.preventDefault();
@@ -445,23 +446,52 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
               </div>
             </div>
 
-            <p className="text-xs sm:text-sm text-slate-300 my-3 leading-relaxed">
-              Scannez ces QR codes avec l'appareil photo ou le navigateur de vos terminaux Zebra.
-              Ils s'ouvriront directement en <strong>mode joueur épuré plein écran</strong> synchronisé en temps réel avec la régie et la TV !
+            <p className="text-xs sm:text-sm text-slate-300 my-2 leading-relaxed">
+              Scannez ces QR codes avec vos terminaux Zebra (navigateur Chrome ou appareil photo).
+              Ils s'ouvrent en <strong>mode joueur plein écran</strong> synchronisé en temps réel avec la régie et la TV !
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 my-6">
+            {/* URL Selector for local network or cloud deploy */}
+            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 my-3 text-xs">
+              <label className="block text-[11px] font-mono text-slate-400 mb-1 font-bold">
+                Adresse du serveur Web pour les Zebra :
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customServerUrl}
+                  onChange={(e) => setCustomServerUrl(e.target.value)}
+                  placeholder="Ex: https://jeux-scan-25-ans-logistics.vercel.app ou http://192.168.1.50:5173"
+                  className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-sky-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setCustomServerUrl('https://jeux-scan-25-ans-logistics.vercel.app')}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-300 font-mono text-[11px] font-bold rounded-xl border border-slate-700 transition-colors"
+                >
+                  Vercel Prod
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 my-4">
               {/* QR Zebra 1 */}
-              <div className="bg-slate-950/80 p-5 rounded-2xl border-2 border-sky-500/50 text-center flex flex-col items-center">
-                <span className="text-xs font-black font-mono text-sky-400 uppercase mb-2">
-                  Zebra 1 • Duo Bleu
-                </span>
-                <div className="bg-white p-3 rounded-xl shadow-lg mb-3">
+              <div className="bg-slate-950/80 p-4 sm:p-5 rounded-2xl border-2 border-sky-500/50 text-center flex flex-col items-center">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse" />
+                  <span className="text-xs font-black font-mono text-sky-400 uppercase">
+                    Zebra 1 • Duo 1 (Bleu)
+                  </span>
+                </div>
+                <div className="bg-white p-3 rounded-xl shadow-lg mb-2">
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(zebra1Url)}`}
                     alt="QR Code Zebra 1"
-                    className="w-36 h-36 object-contain"
+                    className="w-32 h-32 sm:w-36 sm:h-36 object-contain"
                   />
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono mb-2 truncate max-w-full">
+                  Poste 1 : Étagère A
                 </div>
                 <a
                   href={zebra1Url}
@@ -469,22 +499,28 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
                   rel="noreferrer"
                   className="text-xs text-sky-400 hover:underline flex items-center gap-1 font-mono font-bold"
                 >
-                  <span>Ouvrir l'onglet Duo 1</span>
+                  <span>Tester dans un onglet</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
 
               {/* QR Zebra 2 */}
-              <div className="bg-slate-950/80 p-5 rounded-2xl border-2 border-amber-500/50 text-center flex flex-col items-center">
-                <span className="text-xs font-black font-mono text-amber-400 uppercase mb-2">
-                  Zebra 2 • Duo Orange
-                </span>
-                <div className="bg-white p-3 rounded-xl shadow-lg mb-3">
+              <div className="bg-slate-950/80 p-4 sm:p-5 rounded-2xl border-2 border-amber-500/50 text-center flex flex-col items-center">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
+                  <span className="text-xs font-black font-mono text-amber-400 uppercase">
+                    Zebra 2 • Duo 2 (Orange)
+                  </span>
+                </div>
+                <div className="bg-white p-3 rounded-xl shadow-lg mb-2">
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(zebra2Url)}`}
                     alt="QR Code Zebra 2"
-                    className="w-36 h-36 object-contain"
+                    className="w-32 h-32 sm:w-36 sm:h-36 object-contain"
                   />
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono mb-2 truncate max-w-full">
+                  Poste 2 : Étagère B (Missions alternées)
                 </div>
                 <a
                   href={zebra2Url}
@@ -492,13 +528,22 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
                   rel="noreferrer"
                   className="text-xs text-amber-400 hover:underline flex items-center gap-1 font-mono font-bold"
                 >
-                  <span>Ouvrir l'onglet Duo 2</span>
+                  <span>Tester dans un onglet</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
             </div>
 
-            <div className="flex justify-end pt-3 border-t border-slate-800">
+            {/* Hint Zebra + Camera alternative */}
+            <div className="bg-indigo-950/40 border border-indigo-500/30 rounded-2xl p-3 text-[11px] text-indigo-200 flex items-start gap-2.5 my-3">
+              <span className="text-base shrink-0">💡</span>
+              <div className="space-y-1">
+                <div><strong>Scan Laser Zebra :</strong> Le terminal capture les codes automatiquement (champ récepteur invisible auto-focalisé).</div>
+                <div><strong>Alternative Caméra :</strong> Un bouton <em>"Scanner Caméra"</em> permet aussi à tout smartphone ou Zebra d'utiliser son appareil photo intégré pour lire les étiquettes !</div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-slate-800">
               <button
                 type="button"
                 onClick={() => setShowQrModal(false)}

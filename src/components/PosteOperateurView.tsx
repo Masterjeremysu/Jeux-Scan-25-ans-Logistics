@@ -17,9 +17,11 @@ import {
   RotateCcw,
   Check,
   AlertTriangle,
-  X
+  X,
+  Camera
 } from 'lucide-react';
 import { barcodeListener } from '../services/barcodeListener';
+import { CameraScannerModal } from './CameraScannerModal';
 
 interface PosteOperateurViewProps {
   missions: Mission[];
@@ -76,6 +78,7 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
   const [showLogsDrawer, setShowLogsDrawer] = useState(false);
   const [isAnomalyModalOpen, setIsAnomalyModalOpen] = useState(false);
   const [anomalyQty, setAnomalyQty] = useState(0);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
 
   const mission = missions[currentMissionIndex] || missions[0];
   const currentStepIndex = mission.steps.findIndex((s) => !s.completed);
@@ -369,10 +372,20 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
               <button
                 type="button"
                 onClick={() => barcodeListener.simulateScan(currentStep.expectedBarcode)}
-                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-base sm:text-lg rounded-2xl shadow-xl shadow-amber-500/25 flex items-center justify-center gap-3 transition-all hover:scale-[1.02] cursor-pointer"
+                className="w-full sm:w-auto px-6 py-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-base sm:text-lg rounded-2xl shadow-xl shadow-amber-500/25 flex items-center justify-center gap-2.5 transition-all hover:scale-[1.02] cursor-pointer"
               >
                 <Zap className="w-5 h-5 text-slate-950 fill-current" />
-                <span>FLASHER LE CODE : {currentStep.expectedBarcode} {requiredQty > 1 ? `(${currentScannedQty + 1}/${requiredQty})` : ''}</span>
+                <span>FLASHER : {currentStep.expectedBarcode} {requiredQty > 1 ? `(${currentScannedQty + 1}/${requiredQty})` : ''}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsCameraOpen(true)}
+                className="w-full sm:w-auto px-5 py-4 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white font-black text-sm sm:text-base rounded-2xl shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] cursor-pointer"
+                title="Activer la caméra pour scanner le code-barres"
+              >
+                <Camera className="w-5 h-5 text-sky-200" />
+                <span>Scanner Caméra</span>
               </button>
 
               {currentStep.barcodeType === 'article' && onDeclareAnomaly && (
@@ -690,6 +703,14 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* CAMERA SCANNER MODAL */}
+      <CameraScannerModal
+        isOpen={isCameraOpen}
+        onClose={() => setIsCameraOpen(false)}
+        onScan={(code) => barcodeListener.simulateScan(code)}
+        expectedCodeHint={activeHazard ? activeHazard.expected_barcode : currentStep?.expectedBarcode}
+      />
     </div>
   );
 };

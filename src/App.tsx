@@ -35,6 +35,44 @@ import {
 let logCounter = 0;
 const generateUniqueLogId = () => `log-${Date.now()}-${++logCounter}-${Math.random().toString(36).slice(2, 7)}`;
 
+const getStationMissions = (baseMissions: Mission[], stId: string): Mission[] => {
+  if (stId === 'poste-2') {
+    // Reverse order for Poste 2 so both duos target different physical shelves during duel
+    return baseMissions.slice().reverse();
+  }
+  return baseMissions;
+};
+
+// Flexible barcode comparator supporting aliases, L/R codes and scanner variations
+const isBarcodeMatching = (scanned: string, expected: string, lrCode?: string): boolean => {
+  const cleanS = scanned.trim().toUpperCase();
+  const cleanE = expected.trim().toUpperCase();
+  if (cleanS === cleanE) return true;
+
+  if (lrCode && cleanS === lrCode.trim().toUpperCase()) return true;
+
+  const strippedS = cleanS.replace(/[^A-Z0-9]/g, '');
+  const strippedE = cleanE.replace(/[^A-Z0-9]/g, '');
+  const strippedLr = lrCode ? lrCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
+
+  if (strippedS === strippedE) return true;
+  if (strippedLr && strippedS === strippedLr) return true;
+
+  // Specific warehouse aliases (shelves, docks, articles)
+  if (cleanE.includes('ETAGERE-LIVRAISON') && (cleanS.includes('LIVRAISON') || cleanS.includes('ETA_LIVR') || cleanS.includes('ETALIVR'))) return true;
+  if (cleanE.includes('ETAGERE-COLLECTE') && (cleanS.includes('COLLECTE') || cleanS.includes('ETA_COLLECT'))) return true;
+  if (cleanE.includes('KF40') && (cleanS.includes('KF40') || cleanS.includes('BRD_KF40'))) return true;
+  if (cleanE.includes('7490') && (cleanS.includes('7490') || cleanS.includes('JNT_A001') || cleanS.includes('KALREZ'))) return true;
+  if (cleanE.includes('POMPE') && (cleanS.includes('POMPE') || cleanS.includes('GRILLE_41'))) return true;
+  if (cleanE.includes('VITON') && cleanS.includes('VITON')) return true;
+  if (cleanE.includes('WAFER') && cleanS.includes('WAFER')) return true;
+  if (cleanE.includes('SACHET') && cleanS.includes('SACHET')) return true;
+  if (cleanE.includes('CARTON') && cleanS.includes('CARTON')) return true;
+  if (cleanE.includes('SCEL') && cleanS.includes('SCEL')) return true;
+
+  return false;
+};
+
 const parseInitialRoute = (): { view: ViewMode; stationId?: string; stationName?: string } => {
   const rawHash = window.location.hash.replace('#', '');
   const hash = rawHash.split('?')[0].toLowerCase();
@@ -74,9 +112,14 @@ const parseInitialRoute = (): { view: ViewMode; stationId?: string; stationName?
 
 export const App: React.FC = () => {
   const initialRoute = parseInitialRoute();
+  const initialStationId = initialRoute.stationId || (typeof window !== 'undefined' ? localStorage.getItem('cea_station_id') : null) || 'poste-1';
+  const initialStationName = initialRoute.stationName || (typeof window !== 'undefined' ? localStorage.getItem('cea_station_name') : null) || (initialStationId === 'poste-2' ? 'Poste 2 (Scannette B)' : 'Poste 1 (Scannette A)');
+
   const [currentView, setCurrentView] = useState<ViewMode>(initialRoute.view);
+  const [stationId, setStationId] = useState<string>(initialStationId);
+  const [stationName, setStationName] = useState<string>(initialStationName);
   const [inventory, setInventory] = useState<InventoryItem[]>(INITIAL_INVENTORY);
-  const [missions, setMissions] = useState<Mission[]>(MISSIONS);
+  const [missions, setMissions] = useState<Mission[]>(() => getStationMissions(MISSIONS, initialStationId));
   const [appConfig, setAppConfig] = useState<AppConfig>({
     eventTitle: 'CEA GRENOBLE',
     eventSubtitle: 'WMS Industrial Terminal • Shift Challenge',
@@ -102,8 +145,6 @@ export const App: React.FC = () => {
   const [isDiplomeOpen, setIsDiplomeOpen] = useState<boolean>(false);
 
   // Duo & Multi-station States
-  const [stationId, setStationId] = useState<string>(() => initialRoute.stationId || localStorage.getItem('cea_station_id') || 'poste-1');
-  const [stationName, setStationName] = useState<string>(() => initialRoute.stationName || localStorage.getItem('cea_station_name') || 'Poste 1 (Scannette A)');
   const [operatorCea, setOperatorCea] = useState<string>(() => localStorage.getItem('gt_collab_name') || 'Jeremy (GT)');
   const [clientGuest, setClientGuest] = useState<string>(() => localStorage.getItem('gt_guest_name') || 'Thomas (Invité)');
   const [combo, setCombo] = useState<number>(0);
@@ -231,11 +272,21 @@ export const App: React.FC = () => {
       if (updatedStation.station_id === stationIdRef.current) {
         if (updatedStation.operator_cea) setOperatorCea(updatedStation.operator_cea);
         if (updatedStation.client_guest) setClientGuest(updatedStation.client_guest);
-        if (updatedStation.status === 'idle') {
-          // Admin launched a new match!
+        
+        // Host started new match (either marked 'idle' or newly started 'in_progress' with score 0)
+        const isNewMatchSignal = updatedStation.status === 'idle' || 
+          (updatedStation.status === 'in_progress' && (updatedStation.score === 0 || updatedStation.current_step_index === 0));
+
+        if (isNewMatchSignal) {
           setCurrentMissionIndex(0);
           setCombo(0);
           setShiftSecondsRemaining(appConfig.shiftDurationSeconds || 180);
+          setMissions((prev) =>
+            prev.map((m) => ({
+              ...m,
+              steps: m.steps.map((st) => ({ ...st, completed: false, scannedCount: 0 }))
+            }))
+          );
           setOperator((prev) => ({
             ...prev,
             score: 0,
@@ -388,6 +439,7 @@ export const App: React.FC = () => {
   const handleSelectStation = (id: string, name: string) => {
     setStationId(id);
     setStationName(name);
+    setMissions(getStationMissions(MISSIONS, id));
     localStorage.setItem('cea_station_id', id);
     localStorage.setItem('cea_station_name', name);
     if (currentView === 'kiosk') {
@@ -525,7 +577,42 @@ export const App: React.FC = () => {
 
     const activeStep = activeMission.steps[activeStepIndex];
 
-    if (cleanedCode.toUpperCase() === activeStep.expectedBarcode.toUpperCase()) {
+    // Check direct match on active step, or flexible match on any remaining step of this mission
+    let targetStepIndex = activeStepIndex;
+    let isMatch = isBarcodeMatching(cleanedCode, activeStep.expectedBarcode, activeStep.lrCode);
+
+    if (!isMatch) {
+      // Find if another uncompleted step of this mission matches the scanned code
+      const altStepIndex = activeMission.steps.findIndex(
+        (s, idx) => !s.completed && idx !== activeStepIndex && isBarcodeMatching(cleanedCode, s.expectedBarcode, s.lrCode)
+      );
+
+      if (altStepIndex !== -1) {
+        const altStep = activeMission.steps[altStepIndex];
+        const isDeliveryStep = altStep.barcodeType === 'dock' || altStep.expectedBarcode.includes('LIVRAISON');
+        const hasUncompletedArticles = activeMission.steps.some(
+          (s, idx) => !s.completed && idx !== altStepIndex && s.barcodeType === 'article'
+        );
+
+        if (isDeliveryStep && hasUncompletedArticles) {
+          triggerFlash('red');
+          soundService.playErrorBuzz();
+          showToast({
+            title: '📦 Étagère de Livraison Détectée',
+            message: 'Prélevez d\'abord les articles de la commande avant de finaliser la livraison !',
+            type: 'warning'
+          });
+          return;
+        }
+
+        targetStepIndex = altStepIndex;
+        isMatch = true;
+      }
+    }
+
+    const currentTargetStep = activeMission.steps[targetStepIndex];
+
+    if (isMatch) {
       // MATCH! Valid scan
       triggerFlash('green');
       soundService.playSuccessChime();
@@ -535,14 +622,14 @@ export const App: React.FC = () => {
       setCombo(newCombo);
 
       // Multi-quantity progression
-      const requiredQty = activeStep.quantity && activeStep.quantity > 1 ? activeStep.quantity : 1;
-      const currentScanned = (activeStep.scannedCount || 0) + 1;
+      const requiredQty = currentTargetStep.quantity && currentTargetStep.quantity > 1 ? currentTargetStep.quantity : 1;
+      const currentScanned = (currentTargetStep.scannedCount || 0) + 1;
       const isStepCompleted = currentScanned >= requiredQty;
 
       // Update step status
       const updatedSteps = [...activeMission.steps];
-      updatedSteps[activeStepIndex] = { 
-        ...activeStep, 
+      updatedSteps[targetStepIndex] = { 
+        ...currentTargetStep, 
         scannedCount: currentScanned,
         completed: isStepCompleted 
       };
@@ -595,7 +682,7 @@ export const App: React.FC = () => {
           team_name: `Duo ${clientGuestRef.current}`,
           current_mission_title: activeMission.title,
           progress_percent: progressPct,
-          current_step_index: activeStepIndex + 1,
+          current_step_index: targetStepIndex + 1,
           total_steps: updatedSteps.length,
           score: nextScore,
           combo: newCombo,
@@ -617,7 +704,7 @@ export const App: React.FC = () => {
         operator_name: `${clientGuestRef.current} (avec ${operatorCeaRef.current})`,
         barcode: cleanedCode,
         action_type: 'VALID_SCAN',
-        message: `✓ Étape ${activeStepIndex + 1} : ${activeStep.targetLabel} (+${addedPoints} pts)`,
+        message: `✓ Étape ${targetStepIndex + 1} : ${currentTargetStep.targetLabel} (+${addedPoints} pts)`,
         status: 'valid'
       }).catch(() => {});
 
@@ -630,14 +717,14 @@ export const App: React.FC = () => {
 
       // Live ERP Stock Update & Scenarios Actions
       const matchedInvItem = inventory.find(
-        (item) => item.sku.toUpperCase() === cleanedCode.toUpperCase()
+        (item) => isBarcodeMatching(cleanedCode, item.sku, item.lrCode)
       );
 
-      if (matchedInvItem && activeStep.barcodeType === 'article') {
+      if (matchedInvItem && currentTargetStep.barcodeType === 'article') {
         // Préparation / Picking : Décrémentation automatique du stock
         setInventory((prevInv) => {
           const nextInv = prevInv.map((item) =>
-            item.sku.toUpperCase() === cleanedCode.toUpperCase()
+            item.id === matchedInvItem.id
               ? { ...item, quantity: Math.max(0, item.quantity - 1) }
               : item
           );
@@ -686,7 +773,7 @@ export const App: React.FC = () => {
           timestamp,
           barcode: cleanedCode,
           status: 'valid',
-          message: `✓ Étape ${activeStepIndex + 1} validée : ${activeStep.targetLabel} (Combo x${newCombo})`
+          message: `✓ Étape ${targetStepIndex + 1} validée : ${currentTargetStep.targetLabel} (Combo x${newCombo})`
         },
         ...prev
       ]);
@@ -1010,9 +1097,6 @@ export const App: React.FC = () => {
 
   // DEDICATED HANDHELD ZEBRA PURE GAME MODE (NO HEADER, NO ADMIN/ERP TABS, LOCKED TO GAMEPLAY)
   if (currentView === 'play') {
-    // Station 2 receives alternate/reversed missions so they target DIFFERENT shelves and products
-    const stationMissions = stationId === 'poste-2' ? missions.slice().reverse() : missions;
-
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
         <ZebraPlayView
@@ -1023,7 +1107,7 @@ export const App: React.FC = () => {
           score={operator.score}
           combo={combo}
           shiftSecondsRemaining={shiftSecondsRemaining}
-          missions={stationMissions}
+          missions={missions}
           currentMissionIndex={currentMissionIndex}
           lastScannedCode={lastScannedCode}
           flashState={flashState}
@@ -1032,6 +1116,7 @@ export const App: React.FC = () => {
           otherStations={liveStations}
           inventory={inventory}
           onDeclareAnomaly={handleDeclareStockAnomaly}
+          onBarcodeScanned={handleBarcodeScanned}
         />
         {/* Celebration Diploma Modal */}
         <DiplomeModal
