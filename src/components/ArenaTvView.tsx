@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DuoStation, AppConfig } from '../types';
+import { DuoStation, AppConfig, Mission } from '../types';
 import { MISSIONS } from '../data/missions';
 import { 
   getStationsLive, 
@@ -45,10 +45,11 @@ import { ConfirmModal } from './ConfirmModal';
 
 interface ArenaTvViewProps {
   appConfig: AppConfig;
+  missions?: Mission[];
   onBackToHome?: () => void;
 }
 
-export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, onBackToHome }) => {
+export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: propMissions, onBackToHome }) => {
   const [stations, setStations] = useState<DuoStation[]>([]);
   const [topScores, setTopScores] = useState<RemoteScore[]>([]);
   const [lastEventMsg, setLastEventMsg] = useState<string>('En attente du départ du duel...');
@@ -275,14 +276,15 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, onBackToHom
     if (!station) return ['Étape 1', 'Étape 2', 'Étape 3', 'Livraison'];
     
     const missionTitle = station.current_mission_title?.toLowerCase() || '';
-    const foundMission = MISSIONS.find(m => 
+    const pool = (propMissions && propMissions.length > 0) ? propMissions : MISSIONS;
+    const foundMission = pool.find(m => 
       missionTitle.includes(m.title.toLowerCase().substring(0, 15)) ||
       m.title.toLowerCase().includes(missionTitle.substring(0, 15)) ||
       m.code.toLowerCase() === missionTitle
     );
 
     if (foundMission && foundMission.steps.length > 0) {
-      return foundMission.steps.map(step => {
+      return foundMission.steps.map((step: any) => {
         if (step.expectedBarcode === 'LOC-B01-T03') return 'Armoire B01';
         if (step.expectedBarcode === 'ART-KF40-INOX') return 'Bride KF40';
         if (step.expectedBarcode === 'REF191000007490') return 'Joint Kalrez';

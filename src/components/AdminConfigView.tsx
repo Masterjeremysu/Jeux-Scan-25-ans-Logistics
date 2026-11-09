@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mission, InventoryItem, AppConfig, Distraction, LiveHazard } from '../types';
+import { Mission, MissionStep, InventoryItem, AppConfig, Distraction, LiveHazard } from '../types';
 import { 
   Settings, 
   Save, 
@@ -65,6 +65,15 @@ interface AdminConfigViewProps {
   onUpdateInventory: (inventory: InventoryItem[]) => void;
 }
 
+const STANDARD_LOCATIONS = [
+  { barcode: 'LOC-B01-T03', label: 'Armoire B01 (Allée B - Tiroir T03)', lr: 'LOC_B01_T03', cr: 'ARMOIRE ALLEE B TIROIR T03' },
+  { barcode: 'LOC-ETAGERE-COLLECTE', label: 'Étagère de Collecte & Retours Clients', lr: 'ETA_COLLECT', cr: 'ETAGERE DE COLLECTE CLIENTS' },
+  { barcode: 'LOC-ETAGERE-LIVRAISON', label: 'Étagère de Livraison & Dépôt Client', lr: 'ETA_LIVR', cr: 'ETAGERE LIVRAISON CLIENT' },
+  { barcode: 'ZONE_POMPE_GRILLE_41', label: 'Zone Pompe Grille 41 (Stock Central)', lr: 'ZONE_PMP_41', cr: 'ZONE POMPE GRILLE 41' },
+  { barcode: 'LOC-ETA1-NIV1', label: 'Étagère 1 • Niveau 1 (Prise Colis)', lr: 'ETA_1_N1', cr: 'ETAGERE 1 NIVEAU BAS' },
+  { barcode: 'ZONE_RECEPTION_CENTRALE', label: 'La Réception Centrale (Départs Étranger)', lr: 'REC_CENT', cr: 'LA RECEPTION CENTRALE DEPARTS' }
+];
+
 export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
   appConfig,
   onUpdateAppConfig,
@@ -79,6 +88,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
   const [localInventory, setLocalInventory] = useState<InventoryItem[]>(inventory);
   const [selectedMissionIndex, setSelectedMissionIndex] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isLocalEditingMissionsRef = useRef(false);
 
   // Synchronisation avec les props quand les données distantes Supabase sont chargées
   useEffect(() => {
@@ -88,7 +98,8 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
   }, [inventory]);
 
   useEffect(() => {
-    if (missions && missions.length > 0) {
+    // Only overwrite local missions if not currently actively modifying them locally
+    if (missions && missions.length > 0 && !isLocalEditingMissionsRef.current) {
       setLocalMissions(missions);
     }
   }, [missions]);
@@ -114,7 +125,10 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         missions: localMissions,
         inventory: localInventory
       });
-    }, 600);
+      setTimeout(() => {
+        isLocalEditingMissionsRef.current = false;
+      }, 500);
+    }, 800);
 
     return () => clearTimeout(timer);
   }, [localConfig, localMissions, localInventory]);
@@ -421,82 +435,246 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  // Dedicated Save Missions Handler
+  const handleSaveMissions = async () => {
+    isLocalEditingMissionsRef.current = false;
+    onUpdateMissions(localMissions);
+    const success = await saveAppConfig({
+      ...localConfig,
+      missions: localMissions,
+      inventory: localInventory
+    });
+    if (success) {
+      showToast({
+        title: 'Missions Sauvegardées !',
+        message: `${localMissions.length} scénario(s) synchronisé(s) avec Supabase, les Scannettes et l'Arène TV`,
+        type: 'success'
+      });
+    } else {
+      showToast({
+        title: 'Missions enregistrées en local',
+        message: 'Sauvegardé dans le cache local (mode hors-ligne)',
+        type: 'info'
+      });
+    }
+  };
+
+  // Immutable mission field updater
+  const updateMissionField = (field: keyof Mission, value: any) => {
+    isLocalEditingMissionsRef.current = true;
+    setLocalMissions((prev) =>
+      prev.map((m, idx) => (idx === selectedMissionIndex ? { ...m, [field]: value } : m))
+    );
+  };
+
+  // Immutable step field updater
+  const updateStepField = (stepIdx: number, field: keyof MissionStep, value: any) => {
+    isLocalEditingMissionsRef.current = true;
+    setLocalMissions((prev) =>
+      prev.map((m, mIdx) => {
+        if (mIdx !== selectedMissionIndex) return m;
+        const newSteps = m.steps.map((st, sIdx) =>
+          sIdx === stepIdx ? { ...st, [field]: value } : st
+        );
+        return { ...m, steps: newSteps };
+      })
+    );
+  };
+
   // Duplicate a mission
   const handleDuplicateMission = (idx: number) => {
+    isLocalEditingMissionsRef.current = true;
     const src = localMissions[idx];
+    if (!src) return;
     const copy: Mission = {
       ...src,
-      id: `mission-${Date.now()}`,
+      id: `mission-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       title: `${src.title} (Copie)`,
       code: `${src.code}-BIS`,
-      steps: src.steps.map((s, i) => ({ ...s, id: `step-${Date.now()}-${i}`, completed: false }))
+      steps: src.steps.map((s, i) => ({
+        ...s,
+        id: `step-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
+        completed: false,
+        scannedCount: 0
+      }))
     };
     const updated = [...localMissions, copy];
     setLocalMissions(updated);
     setSelectedMissionIndex(updated.length - 1);
+    showToast({
+      title: 'Mission Dupliquée',
+      message: `"${copy.title}" créée avec ses ${copy.steps.length} étapes`,
+      type: 'success'
+    });
   };
 
-  // Add step to mission
-  const handleAddStep = (missionIdx: number) => {
-    const updated = [...localMissions];
-    const m = updated[missionIdx];
-    const newStep = {
-      id: `step-${Date.now()}`,
-      instruction: 'Scannez l\'article...',
+  // Add step to mission (with optional template item from inventory)
+  const handleAddStep = (missionIdx: number, templateItem?: InventoryItem) => {
+    isLocalEditingMissionsRef.current = true;
+    const newStep: MissionStep = templateItem ? {
+      id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      instruction: `Prélevez et scannez ${templateItem.name} (${templateItem.sku}).`,
+      expectedBarcode: templateItem.sku,
+      barcodeType: templateItem.category?.toLowerCase().includes('emplacement') ? 'location' : 'article',
+      targetLabel: templateItem.name,
+      lrCode: templateItem.lrCode || '',
+      crLabel: templateItem.crLabel || templateItem.name,
+      quantity: 1,
+      scannedCount: 0,
+      completed: false,
+      hint: `Scannez l'étiquette code-barres ${templateItem.sku}.`
+    } : {
+      id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      instruction: 'Scannez la pièce / l\'emplacement requis.',
       expectedBarcode: 'ART-NOUVEAU',
-      barcodeType: 'article' as const,
+      barcodeType: 'article',
       targetLabel: 'Nouvelle Pièce',
+      lrCode: '',
+      crLabel: '',
+      quantity: 1,
+      scannedCount: 0,
       completed: false,
       hint: 'Scannez le code affiché.'
     };
-    m.steps.push(newStep);
+
+    const updated = localMissions.map((m, idx) => {
+      if (idx !== missionIdx) return m;
+      return {
+        ...m,
+        steps: [...m.steps, newStep]
+      };
+    });
+
     setLocalMissions(updated);
+    showToast({
+      title: 'Étape Ajoutée',
+      message: `Nouvelle étape ajoutée (${updated[missionIdx].steps.length} étapes au total)`,
+      type: 'info'
+    });
+  };
+
+  // Duplicate a step within a mission
+  const handleDuplicateStep = (missionIdx: number, stepIdx: number) => {
+    isLocalEditingMissionsRef.current = true;
+    const targetMission = localMissions[missionIdx];
+    if (!targetMission || !targetMission.steps[stepIdx]) return;
+    const srcStep = targetMission.steps[stepIdx];
+    const copyStep: MissionStep = {
+      ...srcStep,
+      id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      instruction: `${srcStep.instruction} (Contrôle supplémentaire)`,
+      completed: false,
+      scannedCount: 0
+    };
+    const newSteps = [...targetMission.steps];
+    newSteps.splice(stepIdx + 1, 0, copyStep);
+    const updated = localMissions.map((m, idx) => idx === missionIdx ? { ...m, steps: newSteps } : m);
+    setLocalMissions(updated);
+    showToast({
+      title: 'Étape Dupliquée',
+      message: `Étape insérée en position #${stepIdx + 2}`,
+      type: 'info'
+    });
   };
 
   // Move step up/down
   const handleMoveStep = (missionIdx: number, stepIdx: number, direction: 'up' | 'down') => {
-    const updated = [...localMissions];
-    const steps = updated[missionIdx].steps;
+    isLocalEditingMissionsRef.current = true;
+    const targetMission = localMissions[missionIdx];
+    if (!targetMission) return;
     const targetIdx = direction === 'up' ? stepIdx - 1 : stepIdx + 1;
-    if (targetIdx < 0 || targetIdx >= steps.length) return;
-    const temp = steps[stepIdx];
-    steps[stepIdx] = steps[targetIdx];
-    steps[targetIdx] = temp;
+    if (targetIdx < 0 || targetIdx >= targetMission.steps.length) return;
+
+    const newSteps = [...targetMission.steps];
+    const temp = newSteps[stepIdx];
+    newSteps[stepIdx] = newSteps[targetIdx];
+    newSteps[targetIdx] = temp;
+
+    const updated = localMissions.map((m, idx) => idx === missionIdx ? { ...m, steps: newSteps } : m);
     setLocalMissions(updated);
   };
 
   // Remove step from mission
   const handleRemoveStep = (missionIdx: number, stepIdx: number) => {
-    const updated = [...localMissions];
-    updated[missionIdx].steps.splice(stepIdx, 1);
+    isLocalEditingMissionsRef.current = true;
+    const targetMission = localMissions[missionIdx];
+    if (!targetMission) return;
+    if (targetMission.steps.length <= 1) {
+      showToast({
+        title: 'Action impossible',
+        message: 'Une mission doit contenir au minimum 1 étape de scan.',
+        type: 'warning'
+      });
+      return;
+    }
+    const newSteps = targetMission.steps.filter((_, i) => i !== stepIdx);
+    const updated = localMissions.map((m, idx) => idx === missionIdx ? { ...m, steps: newSteps } : m);
     setLocalMissions(updated);
   };
 
   // Add new mission from scratch
   const handleAddMission = () => {
+    isLocalEditingMissionsRef.current = true;
+    const num = localMissions.length + 1;
     const newMission: Mission = {
-      id: `mission-${Date.now()}`,
-      title: 'Nouvelle Mission de Picking',
+      id: `mission-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      title: `Mission ${num} • Préparation Expédition`,
       code: `ORD-${Date.now().toString().slice(-4)}`,
-      client: 'Laboratoire / Quai Expédition',
+      client: 'CEA LETI • Salle Blanche / Bâtiment 17',
       priority: 'STANDARD',
-      description: 'Préparez les articles demandés et validez sur le quai d\'expédition.',
+      description: 'Préparez les articles demandés dans les casiers et validez sur le quai d\'expédition.',
       timeLimitSeconds: 120,
-      basePoints: 1000,
+      basePoints: 1200,
       steps: [
         {
-          id: `step-1`,
-          instruction: 'Scannez l\'emplacement de préparation.',
-          expectedBarcode: 'LOC-A01-T01',
+          id: `step-${Date.now()}-1`,
+          instruction: 'Rendez-vous à l\'armoire de stockage et scannez l\'emplacement.',
+          expectedBarcode: 'LOC-B01-T03',
           barcodeType: 'location',
-          targetLabel: 'Emplacement Allée A',
+          targetLabel: 'Armoire Stockage (Allée B - Casier B01)',
+          lrCode: 'LOC_B01',
+          crLabel: 'ARMOIRE ALLEE B CASIER B01',
+          quantity: 1,
+          scannedCount: 0,
           completed: false,
-          hint: 'Visez l\'étiquette du casier.'
+          hint: 'Visez l\'étiquette du casier de préparation.'
+        },
+        {
+          id: `step-${Date.now()}-2`,
+          instruction: 'Prélevez et scannez l\'article demandé.',
+          expectedBarcode: 'ART-KF40-INOX',
+          barcodeType: 'article',
+          targetLabel: 'Bride à Vide KF40 Inox 316L',
+          lrCode: 'BRD_KF40',
+          crLabel: 'BRIDE A VIDE KF40 INOX',
+          quantity: 1,
+          scannedCount: 0,
+          completed: false,
+          hint: 'Scannez le code-barres sur le sachet de la pièce.'
+        },
+        {
+          id: `step-${Date.now()}-3`,
+          instruction: 'Déposez la commande sur l\'étagère de livraison et validez le départ.',
+          expectedBarcode: 'LOC-ETAGERE-LIVRAISON',
+          barcodeType: 'location',
+          targetLabel: 'Étagère de Livraison & Dépôt Client',
+          lrCode: 'ETA_LIVR',
+          crLabel: 'ETAGERE LIVRAISON CLIENT',
+          quantity: 1,
+          scannedCount: 0,
+          completed: false,
+          hint: 'Scannez le panneau de livraison pour clore la mission.'
         }
       ]
     };
-    setLocalMissions([...localMissions, newMission]);
-    setSelectedMissionIndex(localMissions.length);
+    const updated = [...localMissions, newMission];
+    setLocalMissions(updated);
+    setSelectedMissionIndex(updated.length - 1);
+    showToast({
+      title: 'Nouvelle Mission Créée',
+      message: `Mission #${num} initialisée avec 3 étapes prêtes à l'emploi`,
+      type: 'success'
+    });
   };
 
   // Add station
@@ -1069,18 +1247,31 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
           {localMissions[selectedMissionIndex] ? (
             <div className="md:col-span-2 bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-xl space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
-                <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-                  <span>Mission #{selectedMissionIndex + 1} :</span>
-                  <span className="text-indigo-400">{localMissions[selectedMissionIndex].title}</span>
-                </h3>
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center space-x-2">
+                    <span>Mission #{selectedMissionIndex + 1} :</span>
+                    <span className="text-indigo-400 font-extrabold">{localMissions[selectedMissionIndex].title}</span>
+                  </h3>
+                  <span className="text-[11px] font-mono text-slate-400">
+                    ID : {localMissions[selectedMissionIndex].id} • {localMissions[selectedMissionIndex].steps.length} étape(s)
+                  </span>
+                </div>
 
                 <div className="flex items-center space-x-2">
                   <button
+                    onClick={handleSaveMissions}
+                    className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black flex items-center space-x-1.5 shadow-md shadow-emerald-500/20 cursor-pointer transition-all hover:scale-105 active:scale-95"
+                    title="Enregistrer toutes les modifications de missions dans le Cloud"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Sauvegarder</span>
+                  </button>
+                  <button
                     onClick={() => handleDuplicateMission(selectedMissionIndex)}
-                    className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center space-x-1"
+                    className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center space-x-1 cursor-pointer"
                     title="Dupliquer cette mission"
                   >
-                    <Copy className="w-3.5 h-3.5" />
+                    <Copy className="w-3.5 h-3.5 text-sky-400" />
                     <span className="hidden sm:inline">Dupliquer</span>
                   </button>
                   <button
@@ -1092,6 +1283,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                         confirmLabel: 'Supprimer',
                         variant: 'danger',
                         action: () => {
+                          isLocalEditingMissionsRef.current = true;
                           const updated = localMissions.filter((_, i) => i !== selectedMissionIndex);
                           setLocalMissions(updated);
                           setSelectedMissionIndex(Math.max(0, selectedMissionIndex - 1));
@@ -1114,57 +1306,41 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
               {/* General Mission Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Titre de la Mission :</label>
+                  <label className="text-xs text-slate-400 block mb-1 font-bold">Titre de la Mission :</label>
                   <input
                     type="text"
                     value={localMissions[selectedMissionIndex].title}
-                    onChange={(e) => {
-                      const updated = [...localMissions];
-                      updated[selectedMissionIndex].title = e.target.value;
-                      setLocalMissions(updated);
-                    }}
-                    className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white font-bold"
+                    onChange={(e) => updateMissionField('title', e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 px-3 py-2 rounded-xl text-xs text-white font-bold"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Code Référence :</label>
+                  <label className="text-xs text-slate-400 block mb-1 font-bold">Code Référence :</label>
                   <input
                     type="text"
                     value={localMissions[selectedMissionIndex].code}
-                    onChange={(e) => {
-                      const updated = [...localMissions];
-                      updated[selectedMissionIndex].code = e.target.value;
-                      setLocalMissions(updated);
-                    }}
-                    className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white font-mono"
+                    onChange={(e) => updateMissionField('code', e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 px-3 py-2 rounded-xl text-xs text-white font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Client / Destinataire :</label>
+                  <label className="text-xs text-slate-400 block mb-1 font-bold">Client / Destinataire :</label>
                   <input
                     type="text"
                     value={localMissions[selectedMissionIndex].client}
-                    onChange={(e) => {
-                      const updated = [...localMissions];
-                      updated[selectedMissionIndex].client = e.target.value;
-                      setLocalMissions(updated);
-                    }}
-                    className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white"
+                    onChange={(e) => updateMissionField('client', e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 px-3 py-2 rounded-xl text-xs text-white"
                   />
                 </div>
 
                 <div className="flex gap-2">
                   <div className="flex-1">
-                    <label className="text-xs text-slate-400 block mb-1">Priorité :</label>
+                    <label className="text-xs text-slate-400 block mb-1 font-bold">Priorité :</label>
                     <select
                       value={localMissions[selectedMissionIndex].priority}
-                      onChange={(e) => {
-                        const updated = [...localMissions];
-                        updated[selectedMissionIndex].priority = e.target.value as any;
-                        setLocalMissions(updated);
-                      }}
+                      onChange={(e) => updateMissionField('priority', e.target.value)}
                       className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white focus:outline-none"
                     >
                       <option value="STANDARD">STANDARD</option>
@@ -1173,84 +1349,146 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                     </select>
                   </div>
                   <div className="w-24">
-                    <label className="text-xs text-slate-400 block mb-1">Points :</label>
+                    <label className="text-xs text-slate-400 block mb-1 font-bold">Points :</label>
                     <input
                       type="number"
                       value={localMissions[selectedMissionIndex].basePoints}
-                      onChange={(e) => {
-                        const updated = [...localMissions];
-                        updated[selectedMissionIndex].basePoints = parseInt(e.target.value) || 0;
-                        setLocalMissions(updated);
-                      }}
+                      onChange={(e) => updateMissionField('basePoints', parseInt(e.target.value) || 0)}
                       className="w-full bg-slate-950 border border-slate-700 px-2 py-2 rounded-xl text-xs text-emerald-400 font-mono font-bold"
                     />
                   </div>
                   <div className="w-24">
-                    <label className="text-xs text-slate-400 block mb-1">Temps (s) :</label>
+                    <label className="text-xs text-slate-400 block mb-1 font-bold">Temps (s) :</label>
                     <input
                       type="number"
                       value={localMissions[selectedMissionIndex].timeLimitSeconds}
-                      onChange={(e) => {
-                        const updated = [...localMissions];
-                        updated[selectedMissionIndex].timeLimitSeconds = parseInt(e.target.value) || 0;
-                        setLocalMissions(updated);
-                      }}
+                      onChange={(e) => updateMissionField('timeLimitSeconds', parseInt(e.target.value) || 0)}
                       className="w-full bg-slate-950 border border-slate-700 px-2 py-2 rounded-xl text-xs text-amber-400 font-mono font-bold"
                     />
                   </div>
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="text-xs text-slate-400 block mb-1">Description du scénario :</label>
+                  <label className="text-xs text-slate-400 block mb-1 font-bold">Description du scénario :</label>
                   <textarea
                     rows={2}
                     value={localMissions[selectedMissionIndex].description}
-                    onChange={(e) => {
-                      const updated = [...localMissions];
-                      updated[selectedMissionIndex].description = e.target.value;
-                      setLocalMissions(updated);
-                    }}
+                    onChange={(e) => updateMissionField('description', e.target.value)}
                     className="w-full bg-slate-950 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-slate-200"
                   />
                 </div>
               </div>
 
               {/* Steps Sequence List */}
-              <div className="pt-4 border-t border-slate-800">
-                <div className="flex items-center justify-between mb-3">
+              <div className="pt-4 border-t border-slate-800 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
-                    <h4 className="text-xs font-bold font-mono text-slate-200 uppercase">
-                      Étapes de Scan ({localMissions[selectedMissionIndex].steps.length})
+                    <h4 className="text-xs font-bold font-mono text-slate-200 uppercase flex items-center gap-1.5">
+                      <Layers className="w-4 h-4 text-sky-400" />
+                      <span>Étapes de Scan ({localMissions[selectedMissionIndex].steps.length})</span>
                     </h4>
                     <span className="text-[11px] text-slate-400">
-                      Les codes-barres doivent être scannés dans cet ordre par la scannette.
+                      Les codes-barres doivent être scannés dans cet ordre par les scannettes Zebra.
                     </span>
                   </div>
-                  <button
-                    onClick={() => handleAddStep(selectedMissionIndex)}
-                    className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center space-x-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Ajouter une Étape</span>
-                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleAddStep(selectedMissionIndex)}
+                      className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center space-x-1 cursor-pointer shadow-md shadow-sky-600/20"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Ajouter une Étape</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-3">
                   {localMissions[selectedMissionIndex].steps.map((step, sIdx) => (
-                    <div key={step.id || sIdx} className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 space-y-2">
-                      <div className="flex items-center justify-between">
+                    <div key={step.id || sIdx} className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800 hover:border-slate-700 transition-all space-y-3 shadow-inner">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
                         <div className="flex items-center space-x-2">
-                          <span className="w-5 h-5 rounded-lg bg-sky-500/20 text-sky-400 font-bold text-xs flex items-center justify-center font-mono">
+                          <span className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 font-bold text-xs flex items-center justify-center font-mono border border-sky-500/40">
                             {sIdx + 1}
                           </span>
-                          <span className="text-xs font-bold text-white">Étape #{sIdx + 1}</span>
+                          <span className="text-xs font-black text-white">Étape #{sIdx + 1}</span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-slate-400">
+                            {step.barcodeType === 'location' ? '📍 Emplacement' : step.barcodeType === 'dock' ? '⚓ Quai' : '📦 Article'}
+                          </span>
                         </div>
 
-                        <div className="flex items-center space-x-1">
+                        {/* Quick Article / Location Auto-Filler */}
+                        <div className="flex items-center gap-1.5">
+                          <select
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (!val) return;
+                              const loc = STANDARD_LOCATIONS.find(l => l.barcode === val);
+                              if (loc) {
+                                isLocalEditingMissionsRef.current = true;
+                                setLocalMissions(prev => prev.map((m, mIdx) => {
+                                  if (mIdx !== selectedMissionIndex) return m;
+                                  const newSteps = m.steps.map((st, i) => i === sIdx ? {
+                                    ...st,
+                                    expectedBarcode: loc.barcode,
+                                    targetLabel: loc.label,
+                                    lrCode: loc.lr,
+                                    crLabel: loc.cr,
+                                    barcodeType: 'location' as const,
+                                    instruction: `Rendez-vous à l'emplacement ${loc.label.split('(')[0].trim()} et scannez l'étiquette.`,
+                                    hint: `Visez l'étiquette code-barres ${loc.barcode}.`
+                                  } : st);
+                                  return { ...m, steps: newSteps };
+                                }));
+                                return;
+                              }
+                              const item = localInventory.find(i => i.sku === val);
+                              if (item) {
+                                isLocalEditingMissionsRef.current = true;
+                                setLocalMissions(prev => prev.map((m, mIdx) => {
+                                  if (mIdx !== selectedMissionIndex) return m;
+                                  const newSteps = m.steps.map((st, i) => i === sIdx ? {
+                                    ...st,
+                                    expectedBarcode: item.sku,
+                                    targetLabel: item.name,
+                                    lrCode: item.lrCode || '',
+                                    crLabel: item.crLabel || item.name,
+                                    barcodeType: item.category?.toLowerCase().includes('emplacement') ? 'location' as const : 'article' as const,
+                                    instruction: `Prélevez et scannez ${item.name} (${item.sku}).`,
+                                    hint: `Scannez le code-barres ${item.sku}.`
+                                  } : st);
+                                  return { ...m, steps: newSteps };
+                                }));
+                              }
+                            }}
+                            defaultValue=""
+                            className="bg-slate-900 border border-sky-500/50 text-[11px] text-sky-300 font-mono px-2 py-1 rounded-lg focus:outline-none cursor-pointer"
+                          >
+                            <option value="">⚡ Remplir depuis Stock / Emplacements...</option>
+                            <optgroup label="📍 Emplacements Standard">
+                              {STANDARD_LOCATIONS.map(l => (
+                                <option key={l.barcode} value={l.barcode}>📍 {l.label} ({l.barcode})</option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="📦 Articles du Stock ERP">
+                              {localInventory.map(item => (
+                                <option key={item.id || item.sku} value={item.sku}>📦 {item.name} ({item.sku})</option>
+                              ))}
+                            </optgroup>
+                          </select>
+
+                          {/* Step Actions: Duplicate, Move Up, Move Down, Delete */}
+                          <button
+                            onClick={() => handleDuplicateStep(selectedMissionIndex, sIdx)}
+                            className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white"
+                            title="Dupliquer cette étape"
+                          >
+                            <Copy className="w-3.5 h-3.5 text-sky-400" />
+                          </button>
                           <button
                             onClick={() => handleMoveStep(selectedMissionIndex, sIdx, 'up')}
                             disabled={sIdx === 0}
-                            className="p-1 rounded bg-slate-800 text-slate-400 hover:text-white disabled:opacity-30"
+                            className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white disabled:opacity-30"
                             title="Monter"
                           >
                             <ArrowUp className="w-3.5 h-3.5" />
@@ -1258,14 +1496,14 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                           <button
                             onClick={() => handleMoveStep(selectedMissionIndex, sIdx, 'down')}
                             disabled={sIdx === localMissions[selectedMissionIndex].steps.length - 1}
-                            className="p-1 rounded bg-slate-800 text-slate-400 hover:text-white disabled:opacity-30"
+                            className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white disabled:opacity-30"
                             title="Descendre"
                           >
                             <ArrowDown className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleRemoveStep(selectedMissionIndex, sIdx)}
-                            className="p-1 rounded bg-rose-950 text-rose-300 hover:text-white ml-1"
+                            className="p-1.5 rounded-lg bg-rose-950 text-rose-300 hover:text-white"
                             title="Supprimer cette étape"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1273,18 +1511,26 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                        <div className="md:col-span-2">
-                          <label className="text-[10px] text-slate-400 block">Instruction affichée au joueur :</label>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5">
+                        <div className="md:col-span-3">
+                          <label className="text-[10px] text-slate-400 block font-bold">Consigne / Instruction affichée au joueur :</label>
                           <input
                             type="text"
                             value={step.instruction}
-                            onChange={(e) => {
-                              const updated = [...localMissions];
-                              updated[selectedMissionIndex].steps[sIdx].instruction = e.target.value;
-                              setLocalMissions(updated);
-                            }}
-                            className="w-full bg-slate-900 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs text-white"
+                            onChange={(e) => updateStepField(sIdx, 'instruction', e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] text-amber-400 font-bold block">Quantité requise :</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="99"
+                            value={step.quantity || 1}
+                            onChange={(e) => updateStepField(sIdx, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
+                            className="w-full bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs text-amber-400 font-mono font-bold"
                           />
                         </div>
 
@@ -1293,39 +1539,27 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                           <input
                             type="text"
                             value={step.expectedBarcode}
-                            onChange={(e) => {
-                              const updated = [...localMissions];
-                              updated[selectedMissionIndex].steps[sIdx].expectedBarcode = e.target.value.trim().toUpperCase();
-                              setLocalMissions(updated);
-                            }}
-                            className="w-full bg-slate-900 border border-amber-500/60 px-2.5 py-1.5 rounded-lg text-xs text-amber-300 font-mono font-bold"
+                            onChange={(e) => updateStepField(sIdx, 'expectedBarcode', e.target.value.trim().toUpperCase())}
+                            className="w-full bg-slate-900 border border-amber-500/60 px-3 py-2 rounded-xl text-xs text-amber-300 font-mono font-bold"
                           />
                         </div>
 
                         <div>
-                          <label className="text-[10px] text-slate-400 block">Désignation Cible :</label>
+                          <label className="text-[10px] text-slate-400 block font-bold">Désignation Cible :</label>
                           <input
                             type="text"
                             value={step.targetLabel}
-                            onChange={(e) => {
-                              const updated = [...localMissions];
-                              updated[selectedMissionIndex].steps[sIdx].targetLabel = e.target.value;
-                              setLocalMissions(updated);
-                            }}
-                            className="w-full bg-slate-900 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs text-white"
+                            onChange={(e) => updateStepField(sIdx, 'targetLabel', e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white"
                           />
                         </div>
 
                         <div>
-                          <label className="text-[10px] text-slate-400 block">Type d'Élément :</label>
+                          <label className="text-[10px] text-slate-400 block font-bold">Type d'Élément :</label>
                           <select
                             value={step.barcodeType}
-                            onChange={(e) => {
-                              const updated = [...localMissions];
-                              updated[selectedMissionIndex].steps[sIdx].barcodeType = e.target.value as any;
-                              setLocalMissions(updated);
-                            }}
-                            className="w-full bg-slate-900 border border-slate-700 px-2 py-1.5 rounded-lg text-xs text-white"
+                            onChange={(e) => updateStepField(sIdx, 'barcodeType', e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-700 px-2 py-2 rounded-xl text-xs text-white"
                           >
                             <option value="article">📦 Article / Pièce</option>
                             <option value="location">📍 Emplacement / Casier</option>
@@ -1336,16 +1570,12 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                         </div>
 
                         <div>
-                          <label className="text-[10px] text-slate-400 block">Astuce / Conseil au joueur :</label>
+                          <label className="text-[10px] text-slate-400 block font-bold">Astuce / Conseil :</label>
                           <input
                             type="text"
                             value={step.hint}
-                            onChange={(e) => {
-                              const updated = [...localMissions];
-                              updated[selectedMissionIndex].steps[sIdx].hint = e.target.value;
-                              setLocalMissions(updated);
-                            }}
-                            className="w-full bg-slate-900 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs text-slate-300"
+                            onChange={(e) => updateStepField(sIdx, 'hint', e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs text-slate-300"
                           />
                         </div>
                       </div>
@@ -1963,10 +2193,111 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
           {/* Section 4: Create / Edit Distraction Templates */}
           <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-4">
-            <h3 className="text-sm font-bold font-mono text-slate-300 uppercase flex items-center space-x-2">
-              <Plus className="w-4 h-4 text-emerald-400" />
-              <span>Créer un Nouveau Modèle d'Aléa :</span>
-            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+              <h3 className="text-sm font-bold font-mono text-slate-300 uppercase flex items-center space-x-2">
+                <Plus className="w-4 h-4 text-emerald-400" />
+                <span>Créer ou Configurer un Modèle d'Aléa :</span>
+              </h3>
+
+              {/* Quick Preset Generator from Inventory */}
+              <div className="flex items-center gap-2">
+                <select
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (!val) return;
+                    const item = localInventory.find(i => i.sku === val);
+                    if (item) {
+                      setNewDistraction({
+                        title: `🚨 URGENCE FLASH : Rupture de stock ${item.name} !`,
+                        expected_barcode: item.sku,
+                        barcode_label: `${item.name} (${item.sku})`,
+                        description: `Intervention logistique urgente demandée : prélevez et scannez immédiatement ${item.name} pour débloquer la production !`,
+                        time_limit_seconds: 45,
+                        points_bonus: 700,
+                        severity: 'critical',
+                        is_active: true
+                      });
+                    }
+                  }}
+                  defaultValue=""
+                  className="bg-slate-950 border border-amber-500/50 text-xs text-amber-300 font-mono px-3 py-1.5 rounded-xl focus:outline-none cursor-pointer"
+                >
+                  <option value="">⚡ Préremplir depuis un article Stock...</option>
+                  {localInventory.map(item => (
+                    <option key={item.id || item.sku} value={item.sku}>📦 {item.name} ({item.sku})</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Quick Template Chips */}
+            <div className="flex flex-wrap gap-2 pt-1">
+              <span className="text-[11px] text-slate-400 font-mono block w-full">Suggestions d'urgences d'entrepôt prêtes à charger :</span>
+              <button
+                type="button"
+                onClick={() => setNewDistraction({
+                  title: '🚨 URGENCE FLASH : Arrêt Banc Dépôt Bât. 17 !',
+                  expected_barcode: 'ART-KF40-INOX',
+                  barcode_label: 'Bride KF40 Inox (Casier Allée B)',
+                  description: 'Ligne PVD stoppée : amenez d\'urgence la bride KF40 inox pour reprise du vide.',
+                  time_limit_seconds: 40,
+                  points_bonus: 750,
+                  severity: 'critical',
+                  is_active: true
+                })}
+                className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 text-[11px] text-amber-300 rounded-lg border border-amber-500/30 cursor-pointer"
+              >
+                🚨 Arrêt Banc Dépôt (Bride KF40)
+              </button>
+              <button
+                type="button"
+                onClick={() => setNewDistraction({
+                  title: '⚠️ CONTRÔLE QUALITÉ : Scellé de sécurité transport',
+                  expected_barcode: 'ART-SCEL-SECURITE',
+                  barcode_label: 'Scellé de Sécurité Transport',
+                  description: 'Audit inopiné ISO 9001 : scannez le scellé de sécurité pour valider la conformité.',
+                  time_limit_seconds: 50,
+                  points_bonus: 500,
+                  severity: 'warning',
+                  is_active: true
+                })}
+                className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 text-[11px] text-amber-300 rounded-lg border border-amber-500/30 cursor-pointer"
+              >
+                ⚠️ Contrôle Qualité (Scellé)
+              </button>
+              <button
+                type="button"
+                onClick={() => setNewDistraction({
+                  title: '🚚 ARRIVÉE TRANSPORTEUR : Camion à quai',
+                  expected_barcode: 'DOCK-INTL-FRET',
+                  barcode_label: 'Quai Départs Fret International',
+                  description: 'Le transporteur international attend au quai : validez la prise en charge immédiate.',
+                  time_limit_seconds: 45,
+                  points_bonus: 600,
+                  severity: 'critical',
+                  is_active: true
+                })}
+                className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 text-[11px] text-amber-300 rounded-lg border border-amber-500/30 cursor-pointer"
+              >
+                🚚 Camion à Quai (Fret Intl)
+              </button>
+              <button
+                type="button"
+                onClick={() => setNewDistraction({
+                  title: '❄️ ALERTE CRYO : Contrôle vanne Zone Pompe 41',
+                  expected_barcode: 'ZONE_POMPE_GRILLE_41',
+                  barcode_label: 'Zone Pompe Grille 41',
+                  description: 'Variation de pression détectée sur le circuit cryo : scannez l\'emplacement Zone Pompe 41.',
+                  time_limit_seconds: 45,
+                  points_bonus: 650,
+                  severity: 'critical',
+                  is_active: true
+                })}
+                className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 text-[11px] text-amber-300 rounded-lg border border-amber-500/30 cursor-pointer"
+              >
+                ❄️ Alerte Cryo (Zone Pompe 41)
+              </button>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <div>

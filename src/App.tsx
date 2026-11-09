@@ -453,7 +453,8 @@ export const App: React.FC = () => {
   const handleSelectStation = (id: string, name: string) => {
     setStationId(id);
     setStationName(name);
-    setMissions(getStationMissions(MISSIONS, id));
+    const activeMissionsPool = missionsRef.current && missionsRef.current.length > 0 ? missionsRef.current : MISSIONS;
+    setMissions(getStationMissions(activeMissionsPool, id));
     localStorage.setItem('cea_station_id', id);
     localStorage.setItem('cea_station_name', name);
     if (currentView === 'kiosk') {
@@ -1108,6 +1109,10 @@ export const App: React.FC = () => {
     duo1: { cea: string; client: string },
     duo2: { cea: string; client: string }
   ) => {
+    const activeMissionsPool = missionsRef.current && missionsRef.current.length > 0 ? missionsRef.current : MISSIONS;
+    const m1 = getStationMissions(activeMissionsPool, 'poste-1');
+    const m2 = getStationMissions(activeMissionsPool, 'poste-2');
+
     // 1. Update Supabase live stations state
     await updateStationLive({
       station_id: 'poste-1',
@@ -1119,7 +1124,8 @@ export const App: React.FC = () => {
       combo: 0,
       progress_percent: 0,
       current_step_index: 0,
-      total_steps: 5,
+      total_steps: m1[0]?.steps?.length || 4,
+      current_mission_title: m1[0]?.title || 'Préparation Commande',
       status: 'in_progress'
     });
 
@@ -1133,7 +1139,8 @@ export const App: React.FC = () => {
       combo: 0,
       progress_percent: 0,
       current_step_index: 0,
-      total_steps: 5,
+      total_steps: m2[0]?.steps?.length || 4,
+      current_mission_title: m2[0]?.title || 'Collecte Client',
       status: 'in_progress'
     });
 
@@ -1234,6 +1241,7 @@ export const App: React.FC = () => {
       <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
         <ArenaTvView
           appConfig={appConfig}
+          missions={missions}
           onBackToHome={() => handleSelectView('home')}
         />
       </div>
