@@ -488,6 +488,62 @@ export const App: React.FC = () => {
     });
   };
 
+  // Advance to next mission or trigger fresh wave of orders
+  const advanceToNextMission = useCallback(() => {
+    const activeIdx = currentMissionIndexRef.current;
+    const currentMissions = missionsRef.current || missions;
+    const nextIdx = activeIdx + 1;
+
+    if (nextIdx < currentMissions.length) {
+      setCurrentMissionIndex(nextIdx);
+      const nextMission = currentMissions[nextIdx];
+      updateStationLive({
+        station_id: stationIdRef.current,
+        station_name: stationNameRef.current,
+        operator_cea: operatorCeaRef.current,
+        client_guest: clientGuestRef.current,
+        team_name: `Duo ${clientGuestRef.current}`,
+        current_mission_title: nextMission.title,
+        progress_percent: 0,
+        current_step_index: 0,
+        total_steps: nextMission.steps.length,
+        status: 'in_progress'
+      });
+      showToast({
+        title: `📦 COMMANDE SUIVANTE : ${nextMission.title}`,
+        message: 'Prenez connaissance de la consigne et préparez les pièces !',
+        type: 'info'
+      });
+    } else {
+      // Loop a fresh wave of missions with all steps refreshed, keeping accumulated score!
+      setMissions((prev) =>
+        prev.map((m) => ({
+          ...m,
+          steps: m.steps.map((st) => ({ ...st, completed: false, scannedCount: 0 }))
+        }))
+      );
+      setCurrentMissionIndex(0);
+      const firstMission = currentMissions[0];
+      updateStationLive({
+        station_id: stationIdRef.current,
+        station_name: stationNameRef.current,
+        operator_cea: operatorCeaRef.current,
+        client_guest: clientGuestRef.current,
+        team_name: `Duo ${clientGuestRef.current}`,
+        current_mission_title: firstMission.title,
+        progress_percent: 0,
+        current_step_index: 0,
+        total_steps: firstMission.steps.length,
+        status: 'in_progress'
+      });
+      showToast({
+        title: '⚡ NOUVELLE VAGUE DE COMMANDES DÉCLENCHÉE !',
+        message: 'Bravo pour votre rapidité ! Continuez à engranger des points !',
+        type: 'success'
+      });
+    }
+  }, [missions]);
+
   // Handle barcode scanned by hardware douchette or simulated button
   const handleBarcodeScanned = useCallback((code: string) => {
     const cleanedCode = code.trim();
@@ -729,35 +785,20 @@ export const App: React.FC = () => {
         if (hasNextMission) {
           showToast({
             title: `🎉 COMMANDE EXPÉDIÉE ! (+${activeMission.basePoints} pts)`,
-            message: `Bravo au binôme ! Préparation de la mission suivante...`,
+            message: `Bravo au binôme ! Préparation de la commande suivante...`,
             type: 'success',
             duration: 4000
           });
 
           // Transition to next mission after celebration
           setTimeout(() => {
-            const nextIdx = activeIndex + 1;
-            setCurrentMissionIndex(nextIdx);
-
-            const nextMission = currentMissions[nextIdx];
-            updateStationLive({
-              station_id: stationIdRef.current,
-              station_name: stationNameRef.current,
-              operator_cea: operatorCeaRef.current,
-              client_guest: clientGuestRef.current,
-              team_name: `Duo ${clientGuestRef.current}`,
-              current_mission_title: nextMission.title,
-              progress_percent: 0,
-              current_step_index: 0,
-              total_steps: nextMission.steps.length,
-              status: 'in_progress'
-            });
-          }, 2000);
+            advanceToNextMission();
+          }, 2500);
         } else {
           // ALL MISSIONS COMPLETED!
           showToast({
             title: '🏆 TOUTES LES MISSIONS ACCOMPLIES !',
-            message: `Performance légendaire ! Attribution du diplôme...`,
+            message: `Performance légendaire ! Vous pouvez consulter votre diplôme ou lancer une nouvelle vague !`,
             type: 'success',
             duration: 5000
           });
@@ -1169,6 +1210,9 @@ export const App: React.FC = () => {
           inventory={inventory}
           onDeclareAnomaly={handleDeclareStockAnomaly}
           onBarcodeScanned={handleBarcodeScanned}
+          onNextMission={advanceToNextMission}
+          onRestartShift={handleStartNewShift}
+          onOpenDiplome={() => setIsDiplomeOpen(true)}
         />
         {/* Celebration Diploma Modal */}
         <DiplomeModal

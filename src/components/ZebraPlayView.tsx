@@ -18,7 +18,9 @@ import {
   Camera,
   Radio,
   ScanBarcode,
-  Barcode
+  Barcode,
+  Award,
+  RotateCcw
 } from 'lucide-react';
 import { barcodeListener } from '../services/barcodeListener';
 import { CameraScannerModal } from './CameraScannerModal';
@@ -41,6 +43,9 @@ interface ZebraPlayViewProps {
   inventory?: InventoryItem[];
   onDeclareAnomaly?: (realQty: number) => void;
   onBarcodeScanned?: (code: string) => void;
+  onNextMission?: () => void;
+  onRestartShift?: () => void;
+  onOpenDiplome?: () => void;
 }
 
 export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
@@ -60,7 +65,10 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
   otherStations,
   inventory = [],
   onDeclareAnomaly,
-  onBarcodeScanned
+  onBarcodeScanned,
+  onNextMission,
+  onRestartShift,
+  onOpenDiplome
 }) => {
   const isPoste1 = stationId === 'poste-1';
   const mission = missions[currentMissionIndex] || missions[0];
@@ -230,8 +238,23 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
           <span>{formatTime(shiftSecondsRemaining)}</span>
         </div>
 
-        {/* Right: Score & Combo */}
+        {/* Right: Score, Combo & Diplome Button */}
         <div className="flex items-center space-x-2 shrink-0">
+          {onOpenDiplome && score > 0 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenDiplome();
+              }}
+              className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl transition-all cursor-pointer flex items-center gap-1 text-xs font-mono font-bold"
+              title="Consulter le Diplôme d'Honneur"
+            >
+              <Award className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Diplôme</span>
+            </button>
+          )}
+
           {combo > 1 && (
             <div className="hidden sm:flex items-center space-x-1 text-xs font-black font-mono px-2 py-0.5 rounded-lg bg-orange-500/20 text-orange-400 border border-orange-500/30 animate-pulse">
               <Flame className="w-3.5 h-3.5 fill-current" />
@@ -461,30 +484,127 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
           </div>
         ) : (
           /* Mission Completed Card */
-          <div className="w-full bg-emerald-950/40 rounded-3xl p-6 sm:p-8 border-2 border-emerald-500 text-center space-y-4 shadow-2xl animate-fade-in">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/30">
-              <Sparkles className="w-9 h-9 animate-pulse" />
+          <div className="w-full bg-slate-900 rounded-3xl p-5 sm:p-8 border-2 border-emerald-500/80 text-center space-y-5 shadow-2xl animate-fade-in max-w-xl mx-auto">
+            {/* Celebration Icon */}
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/30">
+              <Sparkles className="w-9 h-9 sm:w-11 sm:h-11 animate-pulse" />
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-white">COMMANDE EXPÉDIÉE AVEC SUCCÈS !</h2>
-            
-            {currentMissionIndex + 1 < missions.length ? (
-              <div className="space-y-2">
-                <p className="text-sm text-emerald-300 max-w-md mx-auto font-medium">
-                  Super boulot d'équipe ! Passage automatique à la commande suivante ({currentMissionIndex + 2}/{missions.length})...
-                </p>
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-mono border border-emerald-500/40 animate-pulse">
-                  <Radio className="w-3.5 h-3.5" />
-                  <span>Chargement du prochain bon de préparation...</span>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-slate-300 max-w-md mx-auto">
-                Félicitations au binôme ! Toutes les commandes de la session ont été traitées ! Regardez la grande TV 55" pour voir votre place au classement.
-              </p>
-            )}
 
-            <div className="text-3xl font-black font-mono text-emerald-400">
-              Score : {score} pts
+            {/* Heading */}
+            <div>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-400 block mb-1">
+                {currentMissionIndex + 1 < missions.length
+                  ? `COMMANDE ${currentMissionIndex + 1}/${missions.length} EXPÉDIÉE !`
+                  : 'CHALLENGE ACCOMPLI • TOUTES LES COMMANDES SONT TRAITÉES !'}
+              </span>
+              <h2 className="text-xl sm:text-2xl font-black text-white">
+                {currentMissionIndex + 1 < missions.length
+                  ? 'Super travail d\'équipe !'
+                  : '🏆 PERFORMANCE EXCEPTIONNELLE DU BINÔME !'}
+              </h2>
+            </div>
+
+            {/* Score & Badges Dashboard */}
+            <div className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-around gap-2">
+              <div>
+                <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block">
+                  Score Duo
+                </span>
+                <span className="text-2xl sm:text-3xl font-black font-mono text-emerald-400">
+                  {score} <span className="text-xs text-slate-400 font-normal">pts</span>
+                </span>
+              </div>
+              <div className="h-8 w-px bg-slate-800" />
+              <div>
+                <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block">
+                  Temps Restant
+                </span>
+                <span className="text-xl sm:text-2xl font-black font-mono text-amber-300">
+                  {formatTime(shiftSecondsRemaining)}
+                </span>
+              </div>
+              <div className="h-8 w-px bg-slate-800" />
+              <div>
+                <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block">
+                  Précision
+                </span>
+                <span className="text-xl sm:text-2xl font-black font-mono text-sky-400">
+                  100%
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons based on status */}
+            <div className="space-y-3 pt-1">
+              {currentMissionIndex + 1 < missions.length ? (
+                /* Next Mission Available */
+                <div className="space-y-2.5">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onNextMission?.();
+                    }}
+                    className="w-full py-4 px-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-display font-black text-base sm:text-lg rounded-2xl shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <span>PASSER À LA COMMANDE SUIVANTE ({currentMissionIndex + 2}/{missions.length})</span>
+                    <ChevronRight className="w-5 h-5 stroke-[3]" />
+                  </button>
+                  <p className="text-xs font-mono text-emerald-300/80 animate-pulse">
+                    ⚡ Passage automatique dans quelques instants, ou cliquez ci-dessus pour enchaîner immédiatement !
+                  </p>
+                </div>
+              ) : (
+                /* All Missions Finished in this wave */
+                <div className="space-y-3">
+                  {/* Big Gold Diploma Button */}
+                  {onOpenDiplome && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenDiplome();
+                      }}
+                      className="w-full py-4 px-6 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-300 hover:from-amber-300 hover:to-yellow-200 text-slate-950 font-display font-black text-base sm:text-lg rounded-2xl shadow-xl shadow-amber-400/30 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      <Award className="w-6 h-6 text-slate-950 fill-current" />
+                      <span>DÉCOUVRIR NOTRE DIPLÔME D'HONNEUR 📜</span>
+                    </button>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                    {/* New Wave Button (if time remaining) */}
+                    {onNextMission && shiftSecondsRemaining > 10 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onNextMission();
+                        }}
+                        className="py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-mono font-bold text-xs sm:text-sm rounded-xl border border-indigo-400/40 flex items-center justify-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
+                      >
+                        <Zap className="w-4 h-4 text-amber-300" />
+                        <span>NOUVELLE VAGUE (+BONUS)</span>
+                      </button>
+                    )}
+
+                    {/* Reset for New Duo Button */}
+                    {onRestartShift && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRestartShift();
+                        }}
+                        className="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono font-bold text-xs sm:text-sm rounded-xl border border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                      >
+                        <RotateCcw className="w-4 h-4 text-slate-400" />
+                        <span>Nouveau Binôme (Remise à zéro)</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
