@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
+import { toPng } from 'html-to-image';
 import { OperatorProfile, AppConfig } from '../types';
-import { Award, Printer, X, Star } from 'lucide-react';
+import { Award, Printer, X, Star, Download, QrCode } from 'lucide-react';
 
 interface DiplomeModalProps {
   isOpen: boolean;
@@ -23,15 +24,19 @@ export const DiplomeModal: React.FC<DiplomeModalProps> = ({
   appConfig
 }) => {
   const [orientation, setOrientation] = useState<'landscape' | 'portrait'>('landscape');
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       document.body.classList.add('diplome-print-mode');
+      // Subtle & discreet gold sparkles (professional, no confetti storm)
       try {
         confetti({
-          particleCount: 120,
-          spread: 80,
-          origin: { y: 0.6 }
+          particleCount: 30,
+          spread: 60,
+          colors: ['#f59e0b', '#d97706', '#fbbf24', '#0284c7'],
+          origin: { y: 0.55 },
+          ticks: 150
         });
       } catch {
         // Fallback
@@ -48,6 +53,27 @@ export const DiplomeModal: React.FC<DiplomeModalProps> = ({
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadImage = async () => {
+    const el = document.getElementById('diplome-printable-card');
+    if (!el) return;
+    try {
+      setIsExporting(true);
+      const dataUrl = await toPng(el, {
+        quality: 0.98,
+        pixelRatio: 2.2,
+        backgroundColor: '#fffdf9'
+      });
+      const link = document.createElement('a');
+      link.download = `Diplome_GT_Logistics_25ans_${cleanGuest.replace(/\s+/g, '_')}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.warn('Erreur lors du téléchargement du diplôme :', err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const currentDate = new Date().toLocaleDateString('fr-FR', {
@@ -85,6 +111,7 @@ export const DiplomeModal: React.FC<DiplomeModalProps> = ({
     .trim() || 'Collaborateur GT';
 
   const stationLabel = stationName || 'Poste 1 (Scannette A)';
+  const podiumUrl = `${(appConfig?.publicUrl || (typeof window !== 'undefined' ? window.location.origin : '')).replace(/\/$/, '')}/#podium`;
 
   return (
     <div className="diplome-modal-wrapper fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto print:relative print:inset-auto print:bg-white print:p-0 print:m-0 print:block print:z-auto print:backdrop-blur-none">
@@ -139,6 +166,16 @@ export const DiplomeModal: React.FC<DiplomeModalProps> = ({
                 Portrait
               </button>
             </div>
+
+            <button
+              onClick={handleDownloadImage}
+              disabled={isExporting}
+              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs flex items-center space-x-1.5 border border-amber-500/40 cursor-pointer transition-all disabled:opacity-50"
+              title="Télécharger l'image HD du diplôme pour le smartphone ou LinkedIn"
+            >
+              <Download className="w-4 h-4 text-amber-400" />
+              <span>{isExporting ? 'Génération...' : 'Image HD (PNG)'}</span>
+            </button>
 
             <button
               onClick={handlePrint}
@@ -268,12 +305,26 @@ export const DiplomeModal: React.FC<DiplomeModalProps> = ({
             </div>
 
             {/* Footer with Signatures & Seal */}
-            <div className="pt-3 mt-1 border-t-2 border-amber-500/40 flex items-end justify-between text-left px-2 sm:px-4">
+            <div className="pt-3 mt-1 border-t-2 border-amber-500/40 flex items-end justify-between text-left px-2 sm:px-4 gap-2">
               {/* Date & Location */}
               <div>
                 <span className="block font-mono text-[9px] text-slate-500 uppercase">Délivré à Grenoble le</span>
                 <span className="font-bold text-slate-900 text-xs sm:text-sm">{currentDate}</span>
                 <span className="block text-[9px] text-slate-500 font-mono">Stand GT Logistics • Site CEA Grenoble</span>
+              </div>
+
+              {/* Official QR Code for Leaderboard / Hall of Fame */}
+              <div className="flex items-center gap-2 bg-white/95 px-2.5 py-1.5 rounded-xl border border-amber-300 shadow-xs">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(podiumUrl)}`}
+                  alt="QR Hall of Fame"
+                  className="w-9 h-9 object-contain rounded"
+                />
+                <div className="text-left font-mono leading-tight">
+                  <span className="block text-[7px] text-slate-500 font-bold uppercase">Contrôle Officiel</span>
+                  <span className="block text-[8px] text-amber-900 font-black">Hall of Fame 25 Ans</span>
+                  <span className="block text-[7px] text-sky-700 font-semibold">Vérification en Ligne</span>
+                </div>
               </div>
 
               {/* Official Seal Badge */}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DuoStation, AppConfig, Mission } from '../types';
+import { DuoStation, AppConfig, Mission, OperatorProfile } from '../types';
 import { MISSIONS } from '../data/missions';
 import { 
   getStationsLive, 
@@ -38,10 +38,18 @@ import {
   ScanBarcode,
   X,
   Zap,
-  Activity
+  Activity,
+  AlertTriangle,
+  Plus,
+  Volume2,
+  VolumeX,
+  Mic,
+  FileText
 } from 'lucide-react';
 import { GameLogo } from './GameLogo';
 import { ConfirmModal } from './ConfirmModal';
+import { DiplomeModal } from './DiplomeModal';
+import { soundService } from '../services/soundService';
 
 interface ArenaTvViewProps {
   appConfig: AppConfig;
@@ -69,20 +77,118 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
 
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
-  // Match Countdown Timer
+  // Axe 1 & 3: Adrénaline TV & Régie Speaker
+  const [syncCountdown, setSyncCountdown] = useState<number | null>(null);
+  const [isEndMatchModalOpen, setIsEndMatchModalOpen] = useState<boolean>(false);
+  const [selectedDiplomeStation, setSelectedDiplomeStation] = useState<DuoStation | null>(null);
+  const [previousLeaderId, setPreviousLeaderId] = useState<string | null>(null);
+  const [takeoverBanner, setTakeoverBanner] = useState<{ text: string; team: string; color: string } | null>(null);
+  const [hazardAlert, setHazardAlert] = useState<string | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+
+  // Synchronized 3-2-1 Departure
+  const handleStartSyncCountdown = () => {
+    if (syncCountdown !== null || isMatchRunning) return;
+    setSyncCountdown(3);
+    soundService.playCountdownBeep(false);
+
+    let count = 3;
+    const interval = setInterval(() => {
+      count -= 1;
+      if (count > 0) {
+        setSyncCountdown(count);
+        soundService.playCountdownBeep(false);
+      } else if (count === 0) {
+        setSyncCountdown(0);
+        soundService.playCountdownBeep(true);
+        setIsMatchRunning(true);
+        setLastEventMsg('🚀 TOP DÉPART DUEL SYNCHRONISÉ ! Bonne chance aux deux binômes !');
+        setTimeout(() => setSyncCountdown(null), 1200);
+        clearInterval(interval);
+      } else {
+        clearInterval(interval);
+      }
+    }, 1000);
+  };
+
+  // Match Countdown Timer with Audio Cues
   useEffect(() => {
     if (!isMatchRunning) return;
     const timer = setInterval(() => {
       setMatchSeconds((prev) => {
         if (prev <= 1) {
           setIsMatchRunning(false);
+          soundService.playCountdownBeep(true);
+          soundService.playMatchEndGong();
+          setIsEndMatchModalOpen(true);
+          setLastEventMsg('🏁 FIN DU MATCH ! Résultats et proclamations en cours...');
           return 0;
+        }
+        // Countdown audio beeps during last 10 seconds (10 to 2)
+        if (prev <= 11 && prev > 1) {
+          soundService.playCountdownBeep(false);
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(timer);
   }, [isMatchRunning]);
+
+  // Overtime +30s
+  const handleAdd30Seconds = () => {
+    setMatchSeconds((prev) => prev + 30);
+    setLastEventMsg('⏱️ PROLONGATION RÉGIE : +30 secondes ajoutées au duel !');
+  };
+
+  // Quick Logistics Hazard Trigger from TV
+  const QUICK_HAZARDS = [
+    '⚠️ ALÉA FLASH : Contrôle qualité inopiné sur quai A (+100 pts bonus) !',
+    '📦 ALÉA FLASH : Colis fragile identifié - double scan de confirmation requis !',
+    '🚨 FLASH STOCK : Rupture immédiate sur rayonnage - bascule vers stock tampon !',
+    '⚡ FLASH SCAN : Code-barre froissé signalé - mode caméra recommandé !'
+  ];
+
+  const handleTriggerQuickHazardFromTv = () => {
+    const hazard = QUICK_HAZARDS[Math.floor(Math.random() * QUICK_HAZARDS.length)];
+    setHazardAlert(hazard);
+    setLastEventMsg(hazard);
+    setTimeout(() => setHazardAlert(null), 6000);
+  };
+
+  // Smart Live Speaker Commentary Ticker
+  const getSpeakerCommentary = (): string => {
+    const s1 = stations.find((s) => s.station_id === 'poste-1');
+    const s2 = stations.find((s) => s.station_id === 'poste-2');
+    const s1Score = s1?.score || 0;
+    const s2Score = s2?.score || 0;
+    const diff = Math.abs(s1Score - s2Score);
+
+    if (matchSeconds === 0) {
+      if (s1Score > s2Score) return `🏆 Victoire de ${s1?.team_name || 'Poste 1'} avec ${s1Score} pts ! Une cadence logistique magistrale !`;
+      if (s2Score > s1Score) return `🏆 Victoire de ${s2?.team_name || 'Poste 2'} avec ${s2Score} pts ! Une cadence logistique magistrale !`;
+      return "🤝 Égalité parfaite ! Un duel d'anthologie pour les 25 ans de GT Logistics !";
+    }
+
+    if (matchSeconds <= 30 && isMatchRunning) {
+      return "🔥 SPRINT FINAL : Moins de 30 secondes au chrono ! Tout peut basculer sur le dernier scan !";
+    }
+
+    if (diff <= 150 && (s1Score > 0 || s2Score > 0)) {
+      return `⚔️ Coude à coude palpitant : seulement ${diff} points d'écart entre les deux binômes !`;
+    }
+
+    if ((s1?.combo && s1.combo >= 3) || (s2?.combo && s2.combo >= 3)) {
+      const hotTeam = (s1?.combo || 0) >= 3 ? s1?.team_name : s2?.team_name;
+      return `⚡ Série parfaite sans faute pour ${hotTeam} ! Le multiplicateur de score s'envole !`;
+    }
+
+    if ((s1?.progress_percent || 0) >= 80 || (s2?.progress_percent || 0) >= 80) {
+      const leadingTeam = (s1?.progress_percent || 0) >= 80 ? s1?.team_name : s2?.team_name;
+      return `📦 ${leadingTeam} est tout proche de la validation finale sur le quai de livraison !`;
+    }
+
+    return "🎙️ Précision industrielle et réactivité : les deux binômes relèvent le défi logistique du CEA !";
+  };
 
   const formatMatchTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -222,6 +328,45 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
     };
   }, []);
 
+  // Leader Takeover Detection (Axe 1: Adrénaline Duel)
+  useEffect(() => {
+    if (!isMatchRunning) return;
+    const s1 = stations.find((s) => s.station_id === 'poste-1');
+    const s2 = stations.find((s) => s.station_id === 'poste-2');
+    if (!s1 || !s2) return;
+
+    const s1Score = s1.score || 0;
+    const s2Score = s2.score || 0;
+
+    let currentLeader: string | null = null;
+    if (s1Score > s2Score && s1Score > 0) currentLeader = 'poste-1';
+    else if (s2Score > s1Score && s2Score > 0) currentLeader = 'poste-2';
+
+    if (currentLeader && previousLeaderId && currentLeader !== previousLeaderId) {
+      const winningTeam = currentLeader === 'poste-1' ? (s1.team_name || 'Duo Bleu') : (s2.team_name || 'Duo Orange');
+      const color = currentLeader === 'poste-1' ? 'sky' : 'amber';
+      setTakeoverBanner({
+        text: `⚡ CHANGEMENT EN TÊTE : ${winningTeam} prend l'avantage !`,
+        team: winningTeam,
+        color
+      });
+      soundService.playTakeover();
+      const timer = setTimeout(() => setTakeoverBanner(null), 4500);
+      setPreviousLeaderId(currentLeader);
+      return () => clearTimeout(timer);
+    }
+
+    if (currentLeader && currentLeader !== previousLeaderId) {
+      setPreviousLeaderId(currentLeader);
+    }
+  }, [stations, isMatchRunning, previousLeaderId]);
+
+  const handleToggleSound = () => {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    soundService.setSoundEnabled(next);
+  };
+
   const handleLaunchDuelFromTv = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     localStorage.setItem('gt_d1_collab', d1Cea);
@@ -343,18 +488,28 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
           </div>
         </div>
 
-        {/* Center: GIANT ARENA CHRONOMETER */}
-        <div className="flex items-center gap-3 bg-slate-950 px-5 py-2 rounded-2xl border border-slate-800 shadow-inner">
+        {/* Center: GIANT ARENA CHRONOMETER (With Money Time styling) */}
+        <div className={`flex items-center gap-3 px-5 py-2 rounded-2xl border transition-all duration-300 shadow-inner ${
+          matchSeconds <= 30 && matchSeconds > 0 && isMatchRunning
+            ? 'bg-gradient-to-r from-slate-950 via-rose-950/40 to-slate-950 border-rose-500/80 shadow-[0_0_30px_rgba(244,63,94,0.3)] animate-pulse'
+            : 'bg-slate-950 border-slate-800'
+        }`}>
           <div className="text-center">
-            <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 font-bold block">
-              CHRONO DUEL (3 MIN)
+            <span className={`text-[9px] uppercase font-mono tracking-widest font-bold block ${
+              matchSeconds <= 30 && matchSeconds > 0 && isMatchRunning ? 'text-rose-400 font-black' : 'text-slate-500'
+            }`}>
+              {matchSeconds <= 30 && matchSeconds > 0 && isMatchRunning ? '🔥 SPRINT FINAL (MONEY TIME)' : 'CHRONO DUEL (3 MIN)'}
             </span>
-            <div className="font-display font-black text-3xl sm:text-5xl text-amber-300 tracking-wider drop-shadow-[0_0_20px_rgba(251,191,36,0.4)]">
+            <div className={`font-display font-black text-3xl sm:text-5xl tracking-wider ${
+              matchSeconds <= 30 && matchSeconds > 0 && isMatchRunning
+                ? 'text-rose-400 drop-shadow-[0_0_20px_rgba(244,63,94,0.6)]'
+                : 'text-amber-300 drop-shadow-[0_0_20px_rgba(251,191,36,0.4)]'
+            }`}>
               {formatMatchTime(matchSeconds)}
             </div>
           </div>
 
-          {/* Chrono Controls */}
+          {/* Chrono Controls & Régie Buttons */}
           <div className="flex items-center gap-1.5 pl-3 border-l border-slate-800">
             <button
               onClick={handleToggleMatch}
@@ -375,25 +530,76 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
             >
               <RotateCcw className="w-4 h-4" />
             </button>
+
+            {/* +30s Prolongation Button */}
+            <button
+              onClick={handleAdd30Seconds}
+              className="px-2.5 py-2 rounded-xl bg-indigo-950/80 hover:bg-indigo-900 text-indigo-300 hover:text-white border border-indigo-500/40 text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1"
+              title="Ajouter 30 secondes au duel"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>30s</span>
+            </button>
           </div>
         </div>
 
-        {/* Right: Actions & Duel Setup Button */}
-        <div className="flex items-center gap-2.5">
+        {/* Right: Actions, Régie Speaker & Duel Setup Button */}
+        <div className="flex items-center gap-2">
+          {/* Synchronized Departure 3-2-1 */}
+          <button
+            type="button"
+            onClick={handleStartSyncCountdown}
+            disabled={isMatchRunning || syncCountdown !== null}
+            className={`px-3 py-2 rounded-xl font-mono text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
+              isMatchRunning
+                ? 'bg-slate-900 border-slate-800 text-slate-600 opacity-50 cursor-not-allowed'
+                : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border-emerald-400/40 shadow-lg shadow-emerald-600/20'
+            }`}
+            title="Lancer le décompte 3-2-1 avec bips sonores"
+          >
+            <Radio className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Départ</span>
+            <span>3-2-1</span>
+          </button>
+
+          {/* Quick Hazard Trigger */}
+          <button
+            type="button"
+            onClick={handleTriggerQuickHazardFromTv}
+            className="px-2.5 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 hover:text-white border border-rose-500/40 text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1"
+            title="Déclencher un aléa logistique inopiné"
+          >
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden md:inline">Aléa</span>
+          </button>
+
+          {/* Sound Toggle */}
+          <button
+            onClick={handleToggleSound}
+            className={`p-2.5 rounded-xl border transition-colors cursor-pointer ${
+              soundEnabled
+                ? 'bg-slate-800 hover:bg-slate-700 text-emerald-400 border-slate-700'
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-500 border-slate-700'
+            }`}
+            title={soundEnabled ? 'Effets sonores activés' : 'Son coupé'}
+          >
+            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </button>
+
           {/* PRIMARY SETUP BUTTON: REGISTRATION & QR CODES */}
           <button
             type="button"
             onClick={() => setIsSetupModalOpen(true)}
-            className="px-4 py-2.5 bg-gradient-to-r from-sky-600 via-indigo-600 to-amber-500 hover:from-sky-500 hover:to-amber-400 text-white font-black text-xs rounded-xl shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all hover:scale-105 cursor-pointer"
+            className="px-3.5 py-2.5 bg-gradient-to-r from-sky-600 via-indigo-600 to-amber-500 hover:from-sky-500 hover:to-amber-400 text-white font-black text-xs rounded-xl shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all hover:scale-105 cursor-pointer"
           >
             <Users className="w-4 h-4 text-amber-300" />
             <QrCode className="w-4 h-4 text-sky-200" />
-            <span>CONSTITUER LES DUOS & QR CODES</span>
+            <span className="hidden md:inline">CONSTITUER DUOS & QR</span>
           </button>
 
           <button
             onClick={() => setIsResetConfirmOpen(true)}
-            className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/40 text-xs font-mono font-bold transition-colors cursor-pointer"
+            className="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/40 text-xs font-mono font-bold transition-colors cursor-pointer"
             title="Remettre les duos et scores à 0"
           >
             RÀZ
@@ -418,6 +624,24 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
           )}
         </div>
       </header>
+
+      {/* ========================================================================= */}
+      {/* BROADCAST NOTIFICATIONS (Leader Takeover & Hazards)                       */}
+      {/* ========================================================================= */}
+      {takeoverBanner && (
+        <div className="z-20 my-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-slate-950 font-black text-sm sm:text-base flex items-center justify-center gap-3 shadow-2xl shadow-amber-500/30 animate-bounce">
+          <Flame className="w-5 h-5 fill-current" />
+          <span className="tracking-wide uppercase">{takeoverBanner.text}</span>
+          <Flame className="w-5 h-5 fill-current" />
+        </div>
+      )}
+
+      {hazardAlert && (
+        <div className="z-20 my-2 px-6 py-2.5 rounded-2xl bg-gradient-to-r from-rose-950/90 via-red-950 to-slate-900 border border-rose-500/60 text-rose-200 font-mono font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-xl animate-pulse">
+          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>{hazardAlert}</span>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* 2. THE GRAND SPLIT DUEL ARENA                                             */}
@@ -768,6 +992,19 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
       </div>
 
       {/* ========================================================================= */}
+      {/* 2.5 LIVE SPEAKER / GALA COMMENTARY TICKER (Axe 3: Régie Micro Animateur)  */}
+      {/* ========================================================================= */}
+      <div className="z-10 my-1 bg-slate-900/90 border border-amber-500/30 rounded-2xl px-4 py-2.5 shadow-lg flex items-center gap-3">
+        <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/20 text-amber-300 rounded-xl border border-amber-500/30 font-mono text-xs font-bold shrink-0">
+          <Mic className="w-4 h-4 text-amber-400 animate-pulse" />
+          <span>SUGGESTION MICRO :</span>
+        </div>
+        <p className="font-sans text-xs sm:text-sm font-semibold text-slate-200 tracking-wide truncate">
+          {getSpeakerCommentary()}
+        </p>
+      </div>
+
+      {/* ========================================================================= */}
       {/* 3. LIVE SCANS MONITOR TICKER (Ce que les joueurs font en temps réel)       */}
       {/* ========================================================================= */}
       <div className="z-10 my-2 bg-slate-900/95 border border-indigo-500/30 rounded-2xl p-2.5 shadow-xl flex items-center gap-3 overflow-hidden">
@@ -1068,6 +1305,260 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
         onCancel={() => setIsResetConfirmOpen(false)}
         onConfirm={executeResetArena}
       />
+
+      {/* ========================================================================= */}
+      {/* 6. SYNCHRONIZED 3-2-1 DEPARTURE OVERLAY                                   */}
+      {/* ========================================================================= */}
+      {syncCountdown !== null && (
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center animate-fadeIn select-none">
+          <div className="relative flex flex-col items-center text-center">
+            {syncCountdown > 0 ? (
+              <div className="flex flex-col items-center">
+                <div className="w-48 h-48 rounded-full border-4 border-amber-400 bg-amber-500/10 flex items-center justify-center shadow-[0_0_80px_rgba(251,191,36,0.6)] animate-pulse">
+                  <span className="font-display font-black text-8xl text-amber-300">
+                    {syncCountdown}
+                  </span>
+                </div>
+                <span className="mt-8 font-mono text-2xl uppercase tracking-widest text-slate-200 font-bold">
+                  DÉPART IMMINENT...
+                </span>
+                <span className="mt-2 text-sm text-slate-400 font-mono">
+                  Préparez vos scannettes Zebra !
+                </span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center scale-110 transition-transform duration-300">
+                <div className="px-12 py-6 rounded-3xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 text-slate-950 shadow-[0_0_100px_rgba(16,185,129,0.8)]">
+                  <span className="font-display font-black text-6xl sm:text-7xl uppercase tracking-wider">
+                    TOP DÉPART !
+                  </span>
+                </div>
+                <span className="mt-8 font-mono text-2xl uppercase tracking-widest text-emerald-300 font-bold animate-pulse">
+                  QUE LES MEILLEURS LOGISTICIENS GAGNENT !
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 7. OFFICIAL END-OF-SHIFT PROCLAMATION MODAL (Axe 1 & 5)                   */}
+      {/* ========================================================================= */}
+      {isEndMatchModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fadeIn select-none">
+          <div className="relative bg-slate-900 border-2 border-amber-500/70 rounded-3xl p-6 sm:p-8 max-w-4xl w-full shadow-2xl text-slate-100 max-h-[95vh] overflow-y-auto">
+            {/* Close button */}
+            <button
+              onClick={() => setIsEndMatchModalOpen(false)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header */}
+            <div className="text-center pb-4 mb-6 border-b border-slate-800">
+              <span className="text-xs font-mono font-bold tracking-widest uppercase text-amber-400 block mb-1">
+                CHALLENGE LOGISTIQUE 25 ANS • CEA GRENOBLE
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-display font-black text-white tracking-wide">
+                FIN DE POSTE • PROCLAMATION DU DUEL
+              </h2>
+            </div>
+
+            {/* Winner Announcement Banner */}
+            {(() => {
+              const s1Score = station1?.score || 0;
+              const s2Score = station2?.score || 0;
+              const isS1Winner = s1Score > s2Score;
+              const isS2Winner = s2Score > s1Score;
+              const isTie = s1Score === s2Score;
+
+              return (
+                <div className={`p-4 rounded-2xl mb-6 text-center border shadow-xl ${
+                  isTie
+                    ? 'bg-indigo-950/60 border-indigo-500/50 text-indigo-200'
+                    : isS1Winner
+                    ? 'bg-gradient-to-r from-sky-950/80 via-indigo-950/80 to-sky-950/80 border-sky-400/60 text-sky-200'
+                    : 'bg-gradient-to-r from-amber-950/80 via-orange-950/80 to-amber-950/80 border-amber-400/60 text-amber-200'
+                }`}>
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <Trophy className="w-6 h-6 text-amber-400 animate-bounce" />
+                    <span className="font-display font-black text-xl sm:text-2xl uppercase tracking-wider text-white">
+                      {isTie
+                        ? '🤝 MATCH NUL HISTORIQUE !'
+                        : isS1Winner
+                        ? `🏆 VICTOIRE : ${station1?.team_name || 'DUO BLEU'} !`
+                        : `🏆 VICTOIRE : ${station2?.team_name || 'DUO ORANGE'} !`}
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm font-mono text-slate-300">
+                    {isTie
+                      ? `Une synchronisation parfaite avec ${s1Score} points chacun !`
+                      : isS1Winner
+                      ? `${station1?.team_name} remporte le duel avec ${s1Score} pts (écart de ${s1Score - s2Score} pts) !`
+                      : `${station2?.team_name} remporte le duel avec ${s2Score} pts (écart de ${s2Score - s1Score} pts) !`}
+                  </p>
+                </div>
+              );
+            })()}
+
+            {/* Side-by-Side Comparison */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+              {/* Station 1 Card */}
+              <div className="bg-slate-950/80 p-5 rounded-2xl border border-sky-500/40 space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-sky-400" />
+                    <span className="text-xs font-mono font-bold text-sky-400 uppercase">
+                      POSTE 1 • {station1?.team_name || 'Duo Bleu'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">Quai A</span>
+                </div>
+
+                <div className="space-y-2 text-xs font-mono">
+                  <div className="flex justify-between py-1 border-b border-slate-900">
+                    <span className="text-slate-400">Score Final :</span>
+                    <span className="font-display font-black text-lg text-white">
+                      {station1?.score || 0} PTS
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between py-1 border-b border-slate-900">
+                    <span className="text-slate-400">Flux Commande :</span>
+                    <span className={`font-bold ${isStation1Finished ? 'text-emerald-400' : 'text-sky-300'}`}>
+                      {station1?.progress_percent || 0}% {isStation1Finished && '(Complétée)'}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between py-1 border-b border-slate-900">
+                    <span className="text-slate-400">Multiplicateur Max :</span>
+                    <span className="font-bold text-amber-300">
+                      x{station1?.combo && station1.combo > 1 ? station1.combo : 1}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-400">Binôme :</span>
+                    <span className="text-slate-200">
+                      {station1?.operator_cea} & {station1?.client_guest}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedDiplomeStation(station1)}
+                  className="w-full mt-3 py-2.5 bg-sky-950/80 hover:bg-sky-900 text-sky-300 hover:text-white border border-sky-500/50 rounded-xl font-mono text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                >
+                  <Award className="w-4 h-4 text-amber-400" />
+                  <span>Voir Diplôme Duo Bleu</span>
+                </button>
+              </div>
+
+              {/* Station 2 Card */}
+              <div className="bg-slate-950/80 p-5 rounded-2xl border border-amber-500/40 space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                    <span className="text-xs font-mono font-bold text-amber-400 uppercase">
+                      POSTE 2 • {station2?.team_name || 'Duo Orange'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">Quai B</span>
+                </div>
+
+                <div className="space-y-2 text-xs font-mono">
+                  <div className="flex justify-between py-1 border-b border-slate-900">
+                    <span className="text-slate-400">Score Final :</span>
+                    <span className="font-display font-black text-lg text-white">
+                      {station2?.score || 0} PTS
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between py-1 border-b border-slate-900">
+                    <span className="text-slate-400">Flux Commande :</span>
+                    <span className={`font-bold ${isStation2Finished ? 'text-emerald-400' : 'text-amber-300'}`}>
+                      {station2?.progress_percent || 0}% {isStation2Finished && '(Complétée)'}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between py-1 border-b border-slate-900">
+                    <span className="text-slate-400">Multiplicateur Max :</span>
+                    <span className="font-bold text-amber-300">
+                      x{station2?.combo && station2.combo > 1 ? station2.combo : 1}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-400">Binôme :</span>
+                    <span className="text-slate-200">
+                      {station2?.operator_cea} & {station2?.client_guest}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedDiplomeStation(station2)}
+                  className="w-full mt-3 py-2.5 bg-amber-950/80 hover:bg-amber-900 text-amber-300 hover:text-white border border-amber-500/50 rounded-xl font-mono text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                >
+                  <Award className="w-4 h-4 text-amber-400" />
+                  <span>Voir Diplôme Duo Orange</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsEndMatchModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-colors cursor-pointer"
+              >
+                Fermer
+              </button>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEndMatchModalOpen(false);
+                    setIsSetupModalOpen(true);
+                  }}
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-indigo-600 to-amber-500 hover:from-sky-500 hover:to-amber-400 text-white font-black text-xs transition-all shadow-lg cursor-pointer flex items-center gap-1.5"
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Nouveau Duel & Binômes</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 8. OFFICIAL DIPLOMA MODAL (Axe 5)                                         */}
+      {/* ========================================================================= */}
+      {selectedDiplomeStation && (
+        <DiplomeModal
+          isOpen={!!selectedDiplomeStation}
+          onClose={() => setSelectedDiplomeStation(null)}
+          operator={{
+            name: selectedDiplomeStation.team_name || selectedDiplomeStation.station_name,
+            companyOrRole: `GT: ${selectedDiplomeStation.operator_cea} | Invité: ${selectedDiplomeStation.client_guest}`,
+            score: selectedDiplomeStation.score || 0,
+            completedMissions: (selectedDiplomeStation.progress_percent || 0) >= 100 ? 1 : 0,
+            accuracy: 100,
+            shiftDurationSeconds: appConfig.shiftDurationSeconds || 180
+          }}
+          collaboratorName={selectedDiplomeStation.operator_cea}
+          guestName={selectedDiplomeStation.client_guest}
+          stationName={selectedDiplomeStation.station_name}
+          appConfig={appConfig}
+        />
+      )}
     </div>
   );
 };
