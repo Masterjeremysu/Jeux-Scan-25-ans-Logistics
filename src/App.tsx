@@ -1267,12 +1267,41 @@ export const App: React.FC = () => {
     setCurrentMissionIndex(0);
     setLogs([]);
 
+    // Reset smart scoring counters
+    validScansCountRef.current = 0;
+    errorScansCountRef.current = 0;
+    lastStepStartTimeRef.current = Date.now();
+
     setMissions((prev) =>
       prev.map((m) => ({
         ...m,
-        steps: m.steps.map((st) => ({ ...st, completed: false }))
+        steps: m.steps.map((st) => ({ ...st, completed: false, scannedCount: 0 }))
       }))
     );
+
+    setOperator({
+      name: `Duo ${duo.client}`,
+      companyOrRole: `GT: ${duo.cea}`,
+      score: 0,
+      completedMissions: 0,
+      accuracy: 100,
+      shiftDurationSeconds: appConfig.shiftDurationSeconds || 180
+    });
+
+    updateStationLive({
+      station_id: targetStationId,
+      station_name: targetStationName,
+      operator_cea: duo.cea,
+      client_guest: duo.client,
+      team_name: `Duo ${duo.client}`,
+      score: 0,
+      combo: 0,
+      progress_percent: 0,
+      current_step_index: 0,
+      total_steps: 5,
+      status: 'in_progress',
+      current_mission_title: missions[0]?.title || 'Préparation Commande Multi-Articles'
+    });
 
     setCurrentView('kiosk');
     soundService.playSuccessJingle();

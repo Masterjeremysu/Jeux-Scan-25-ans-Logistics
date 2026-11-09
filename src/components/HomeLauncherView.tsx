@@ -14,7 +14,8 @@ import {
   ShieldCheck,
   CheckCircle2,
   ExternalLink,
-  X
+  X,
+  Clock
 } from 'lucide-react';
 import { AppConfig, DuoStation } from '../types';
 import { GameLogo } from './GameLogo';
@@ -125,7 +126,7 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
             <Swords className="w-4 h-4 text-amber-400" />
             <span>⚔️ DUEL 2 DUOS</span>
             <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-bold hidden sm:inline">
-              Recommandé
+              Face-à-Face
             </span>
           </button>
 
@@ -138,8 +139,11 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
-            <Play className="w-4 h-4 text-emerald-300" />
-            <span>⏱️ DÉFI CHRONO (1 POSTE)</span>
+            <Clock className="w-4 h-4 text-emerald-300" />
+            <span>⏱️ DÉFI CHRONO (1 DUO)</span>
+            <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-400 text-slate-950 font-bold hidden sm:inline">
+              Contre-la-Montre
+            </span>
           </button>
         </div>
 
@@ -278,66 +282,120 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
         {/* SOLO / SINGLE STATION MODE */}
         {gameMode === 'solo' && (
           <form onSubmit={handleLaunchSolo} className="bg-slate-900/90 rounded-3xl p-5 sm:p-7 border border-slate-800 shadow-2xl relative overflow-hidden backdrop-blur-xl">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+
             <div className="text-center mb-6">
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                Mode Entraînement ou Poste Unique
+                Challenge Logistique • 1 Duo Contre-la-Montre
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-white mt-2">
-                Démarrer sur ce Poste
+                Défi Chrono en Binôme
               </h2>
+              <p className="text-xs text-slate-400 mt-1 max-w-lg mx-auto">
+                1 Collaborateur GT + 1 Invité en tandem sur un poste dédié pour établir le meilleur score du shift !
+              </p>
             </div>
 
-            <div className="max-w-md mx-auto space-y-4 mb-6">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Sélection du Poste de Scan
-                </label>
-                <select
-                  value={soloStation}
-                  onChange={(e) => setSoloStation(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-sky-300 font-bold focus:outline-none"
-                >
-                  <option value="poste-1">Poste 1 (Scannette A • Étagère 1)</option>
-                  <option value="poste-2">Poste 2 (Scannette B • Étagère 2)</option>
-                </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6">
+              {/* DUO EN COURSE */}
+              <div className="bg-slate-950/80 rounded-2xl p-4 sm:p-5 border-2 border-emerald-500/40 shadow-lg space-y-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping" />
+                    <span className="text-sm font-black font-mono text-emerald-400 uppercase tracking-wide">
+                      Binôme en Course
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-800">
+                    Poste Unique
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Collaborateur GT
+                  </label>
+                  <input
+                    type="text"
+                    value={d1Cea}
+                    onChange={(e) => setD1Cea(e.target.value)}
+                    placeholder="Ex: Jeremy (GT)"
+                    className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm text-white font-semibold focus:outline-none transition-colors"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Invité
+                  </label>
+                  <input
+                    type="text"
+                    value={d1Client}
+                    onChange={(e) => setD1Client(e.target.value)}
+                    placeholder="Nom de l'invité"
+                    className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm text-amber-300 font-semibold focus:outline-none transition-colors"
+                    required
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Collaborateur GT
-                </label>
-                <input
-                  type="text"
-                  value={d1Cea}
-                  onChange={(e) => setD1Cea(e.target.value)}
-                  placeholder="Ex: Jeremy (GT)"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-semibold focus:outline-none"
-                  required
-                />
-              </div>
+              {/* POSTE & DURÉE DU SHIFT */}
+              <div className="bg-slate-950/80 rounded-2xl p-4 sm:p-5 border border-slate-800 flex flex-col justify-between space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-2">
+                    Sélection du Poste de Scan
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSoloStation('poste-1')}
+                      className={`p-3 rounded-xl border text-xs font-mono font-bold transition-all text-left cursor-pointer ${
+                        soloStation === 'poste-1'
+                          ? 'bg-sky-950/80 border-sky-400 text-sky-200 shadow-lg shadow-sky-500/20'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                      }`}
+                    >
+                      <span className="block font-black text-white text-sm mb-0.5">Poste 1 (Scannette A)</span>
+                      <span className="text-[10px] text-sky-300 block">Allée B • Étagère 1</span>
+                    </button>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Invité
-                </label>
-                <input
-                  type="text"
-                  value={d1Client}
-                  onChange={(e) => setD1Client(e.target.value)}
-                  placeholder="Nom de l'invité"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-amber-300 font-semibold focus:outline-none"
-                  required
-                />
+                    <button
+                      type="button"
+                      onClick={() => setSoloStation('poste-2')}
+                      className={`p-3 rounded-xl border text-xs font-mono font-bold transition-all text-left cursor-pointer ${
+                        soloStation === 'poste-2'
+                          ? 'bg-amber-950/80 border-amber-400 text-amber-200 shadow-lg shadow-amber-500/20'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                      }`}
+                    >
+                      <span className="block font-black text-white text-sm mb-0.5">Poste 2 (Scannette B)</span>
+                      <span className="text-[10px] text-amber-300 block">Allée D • Étagère 2</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800/80 text-xs font-mono text-slate-300 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-emerald-400" />
+                    <span>Temps de Shift :</span>
+                  </div>
+                  <span className="font-bold text-amber-300 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
+                    {Math.floor((appConfig.shiftDurationSeconds || 180) / 60)}:00 Standard
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            {/* Launch Actions */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
               <button
                 type="submit"
-                className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm rounded-2xl shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2 transition-all hover:scale-105 cursor-pointer"
+                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-base sm:text-lg rounded-2xl shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-3 transition-all hover:scale-[1.02] cursor-pointer"
               >
-                <Play className="w-5 h-5 fill-current" />
-                <span>JOUER SUR CET ÉCRAN</span>
+                <Sparkles className="w-5 h-5 text-slate-950" />
+                <span>🚀 DÉMARRER LE DÉFI CHRONO</span>
+                <ArrowRight className="w-5 h-5" />
               </button>
 
               <button
@@ -346,10 +404,10 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
                   handleLaunchSolo({ preventDefault: () => {} } as any);
                   setShowQrModal(true);
                 }}
-                className="w-full sm:w-auto px-6 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-sm rounded-2xl flex items-center justify-center gap-2 transition-all cursor-pointer"
+                className="w-full sm:w-auto px-5 py-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm rounded-2xl border border-slate-700 flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
-                <QrCode className="w-5 h-5 text-emerald-400" />
-                <span>FLASHER SUR SCANNETTE ZEBRA</span>
+                <QrCode className="w-4 h-4 text-emerald-400" />
+                <span>Flasher Scannette Zebra</span>
               </button>
             </div>
           </form>

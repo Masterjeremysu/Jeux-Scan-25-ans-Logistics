@@ -20,7 +20,8 @@ import {
   ScanBarcode,
   Barcode,
   Award,
-  RotateCcw
+  RotateCcw,
+  Trophy
 } from 'lucide-react';
 import { barcodeListener } from '../services/barcodeListener';
 import { CameraScannerModal } from './CameraScannerModal';
@@ -269,18 +270,29 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
         </div>
       </header>
 
-      {/* 2. RIVAL RADAR (Mini duel progress bar vs the other station) */}
-      {rival && (
+      {/* 2. RIVAL RADAR OR SOLO DUO CHALLENGE TARGET */}
+      {rival && rival.status === 'in_progress' && (rival.score > 0 || rival.progress_percent > 0) ? (
         <div className="mt-2.5 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800/80 flex items-center justify-between text-xs font-mono shrink-0">
           <div className="flex items-center space-x-1.5 text-slate-400 truncate">
-            <Swords className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-bounce" />
-            <span className="truncate">Rival ({rival.station_name.split(' ')[0]}) : <strong className="text-slate-200">{rival.team_name}</strong></span>
+            <Swords className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="truncate">Adversaire ({rival.station_name.split(' ')[0]}) : <strong className="text-slate-200">{rival.team_name}</strong></span>
           </div>
           <div className="flex items-center space-x-2 shrink-0 ml-2">
             <div className="w-16 sm:w-24 bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
               <div className="bg-amber-400 h-full rounded-full transition-all duration-300" style={{ width: `${rival.progress_percent}%` }} />
             </div>
-            <span className="text-amber-400 font-bold">{rival.progress_percent}%</span>
+            <span className="text-amber-400 font-bold">{rival.score} pts</span>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-2.5 bg-gradient-to-r from-slate-900 via-emerald-950/40 to-slate-900 px-3.5 py-1.5 rounded-xl border border-emerald-500/30 flex items-center justify-between text-xs font-mono shrink-0">
+          <div className="flex items-center space-x-1.5 text-slate-300 truncate">
+            <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="truncate">Défi Chrono Duo • <strong className="text-emerald-300">Objectif Record</strong></span>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[10px] text-slate-400">Palier Or :</span>
+            <span className="text-amber-400 font-black">2 000 pts</span>
           </div>
         </div>
       )}
