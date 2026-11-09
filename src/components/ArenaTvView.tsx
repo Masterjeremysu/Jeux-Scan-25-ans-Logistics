@@ -453,6 +453,32 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
   const isStation1Finished = (station1?.progress_percent ?? 0) >= 100 || station1?.status === 'completed';
   const isStation2Finished = (station2?.progress_percent ?? 0) >= 100 || station2?.status === 'completed';
 
+  const missionsPool = (propMissions && propMissions.length > 0) ? propMissions : MISSIONS;
+
+  const getStationMissionIndex = (station?: DuoStation): number => {
+    if (!station) return 0;
+    const title = (station.current_mission_title || '').toLowerCase().trim();
+    const idx = missionsPool.findIndex(m => 
+      title.includes(m.title.toLowerCase().substring(0, 15)) ||
+      m.title.toLowerCase().includes(title.substring(0, 15)) ||
+      m.code.toLowerCase() === title
+    );
+    return idx !== -1 ? idx : 0;
+  };
+
+  const getMissionShortTitle = (m: Mission, idx: number): string => {
+    if (m.code.includes('601') || m.title.toLowerCase().includes('multi-articles')) return '1. Cde Multi-Articles';
+    if (m.code.includes('COL') || m.title.toLowerCase().includes('collecte')) return '2. Retour en Stock';
+    if (m.code.includes('REA') || m.title.toLowerCase().includes('reacteur')) return '3. Réappro Réacteur';
+    if (m.code.includes('INT') || m.title.toLowerCase().includes('internationale')) return '4. Expéd. Inter.';
+    return `${idx + 1}. ${m.title.split('(')[0].trim().slice(0, 20)}`;
+  };
+
+  const activeIdx1 = getStationMissionIndex(station1);
+  const activeIdx2 = getStationMissionIndex(station2);
+  const completedCount1 = activeIdx1 + (isStation1Finished ? 1 : 0);
+  const completedCount2 = activeIdx2 + (isStation2Finished ? 1 : 0);
+
   return (
     <div className="w-full min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-3 sm:p-5 lg:p-7 select-none relative overflow-hidden font-sans">
       {/* Dynamic Ambient Background Glows */}
@@ -685,6 +711,57 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
               </div>
             </div>
 
+            {/* Multi-Mission Shift Roadmap (Axe 2: Visualisation du Tour Complet) */}
+            <div className="my-2 bg-slate-950/90 rounded-2xl p-2.5 border border-sky-500/30">
+              <div className="flex items-center justify-between text-[10px] font-mono mb-1.5">
+                <span className="font-bold uppercase tracking-wider flex items-center gap-1.5 text-sky-400">
+                  <Package className="w-3.5 h-3.5" />
+                  <span>Feuille de Route du Shift</span>
+                </span>
+                <span className="bg-sky-950 px-2 py-0.5 rounded-full text-sky-300 font-bold border border-sky-800/60">
+                  {completedCount1} / {missionsPool.length} Commandes
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 font-mono text-[9px]">
+                {missionsPool.slice(0, 3).map((m, mIdx) => {
+                  const isPast = mIdx < activeIdx1;
+                  const isCurrent = mIdx === activeIdx1;
+                  const isDone = isPast || (isCurrent && isStation1Finished);
+
+                  return (
+                    <div
+                      key={m.id || mIdx}
+                      className={`p-2 rounded-xl border transition-all flex flex-col justify-between ${
+                        isDone
+                          ? 'bg-emerald-950/60 border-emerald-500/60 text-emerald-300'
+                          : isCurrent
+                          ? 'bg-sky-950/80 border-sky-400 text-sky-200 shadow-md shadow-sky-500/20 animate-pulse'
+                          : 'bg-slate-900/60 border-slate-800/80 text-slate-500'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1 font-bold">
+                        <span className="truncate">{getMissionShortTitle(m, mIdx)}</span>
+                        {isDone ? (
+                          <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                        ) : isCurrent ? (
+                          <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping shrink-0" />
+                        ) : (
+                          <Clock className="w-2.5 h-2.5 text-slate-600 shrink-0" />
+                        )}
+                      </div>
+                      <div className="text-[8px] mt-1 flex justify-between items-center opacity-80">
+                        <span>
+                          {isDone ? 'Validée (100%)' : isCurrent ? `${station1?.progress_percent || 0}%` : 'À venir'}
+                        </span>
+                        <span className="font-bold">+{m.basePoints} pts</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Live Action Tracker (What the player is doing right now) */}
             <div className="my-3 bg-slate-950/90 rounded-2xl p-3 border border-sky-500/30 flex items-center justify-between gap-2">
               <div className="truncate">
@@ -881,6 +958,57 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
                 <span className="bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-800 text-amber-300 font-semibold">
                   Invité : <strong>{station2?.client_guest || 'Alexandre'}</strong>
                 </span>
+              </div>
+            </div>
+
+            {/* Multi-Mission Shift Roadmap (Axe 2: Visualisation du Tour Complet) */}
+            <div className="my-2 bg-slate-950/90 rounded-2xl p-2.5 border border-amber-500/30">
+              <div className="flex items-center justify-between text-[10px] font-mono mb-1.5">
+                <span className="font-bold uppercase tracking-wider flex items-center gap-1.5 text-amber-400">
+                  <Package className="w-3.5 h-3.5" />
+                  <span>Feuille de Route du Shift</span>
+                </span>
+                <span className="bg-amber-950 px-2 py-0.5 rounded-full text-amber-300 font-bold border border-amber-800/60">
+                  {completedCount2} / {missionsPool.length} Commandes
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 font-mono text-[9px]">
+                {missionsPool.slice(0, 3).map((m, mIdx) => {
+                  const isPast = mIdx < activeIdx2;
+                  const isCurrent = mIdx === activeIdx2;
+                  const isDone = isPast || (isCurrent && isStation2Finished);
+
+                  return (
+                    <div
+                      key={m.id || mIdx}
+                      className={`p-2 rounded-xl border transition-all flex flex-col justify-between ${
+                        isDone
+                          ? 'bg-emerald-950/60 border-emerald-500/60 text-emerald-300'
+                          : isCurrent
+                          ? 'bg-amber-950/80 border-amber-400 text-amber-200 shadow-md shadow-amber-500/20 animate-pulse'
+                          : 'bg-slate-900/60 border-slate-800/80 text-slate-500'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1 font-bold">
+                        <span className="truncate">{getMissionShortTitle(m, mIdx)}</span>
+                        {isDone ? (
+                          <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                        ) : isCurrent ? (
+                          <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+                        ) : (
+                          <Clock className="w-2.5 h-2.5 text-slate-600 shrink-0" />
+                        )}
+                      </div>
+                      <div className="text-[8px] mt-1 flex justify-between items-center opacity-80">
+                        <span>
+                          {isDone ? 'Validée (100%)' : isCurrent ? `${station2?.progress_percent || 0}%` : 'À venir'}
+                        </span>
+                        <span className="font-bold">+{m.basePoints} pts</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

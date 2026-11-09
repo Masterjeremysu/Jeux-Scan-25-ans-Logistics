@@ -173,6 +173,11 @@ export const App: React.FC = () => {
   const clientGuestRef = useRef(clientGuest);
   clientGuestRef.current = clientGuest;
 
+  // Real-time Scoring Intelligence (Speed bonus & Accuracy tracking)
+  const lastStepStartTimeRef = useRef<number>(Date.now());
+  const validScansCountRef = useRef<number>(0);
+  const errorScansCountRef = useRef<number>(0);
+
   const [operator, setOperator] = useState<OperatorProfile>({
     name: 'Duo ' + clientGuest,
     companyOrRole: 'GT Logistics • 25 Ans',
@@ -280,6 +285,9 @@ export const App: React.FC = () => {
         if (isNewMatchSignal) {
           setCurrentMissionIndex(0);
           setCombo(0);
+          validScansCountRef.current = 0;
+          errorScansCountRef.current = 0;
+          lastStepStartTimeRef.current = Date.now();
           setShiftSecondsRemaining(appConfig.shiftDurationSeconds || 180);
           setMissions((prev) =>
             prev.map((m) => ({
@@ -497,6 +505,7 @@ export const App: React.FC = () => {
 
     if (nextIdx < currentMissions.length) {
       setCurrentMissionIndex(nextIdx);
+      lastStepStartTimeRef.current = Date.now();
       const nextMission = currentMissions[nextIdx];
       updateStationLive({
         station_id: stationIdRef.current,
@@ -721,8 +730,62 @@ export const App: React.FC = () => {
 
       // Check if full mission completed
       const isMissionDone = updatedSteps.every((s) => s.completed);
+
+      // 1. Prime de Cadence (Chrono-Bonus dynamique basé sur la rapidité)
+      const elapsedSeconds = Math.max(1, Math.round((Date.now() - lastStepStartTimeRef.current) / 1000));
+      let speedBonus = 0;
+      let speedBadge = '';
+      if (elapsedSeconds <= 6) {
+        speedBonus = 100;
+        speedBadge = '⚡ Scan Éclair (<6s)';
+      } else if (elapsedSeconds <= 12) {
+        speedBonus = 50;
+        speedBadge = '⏱️ Cadence Fluide (<12s)';
+      } else if (elapsedSeconds <= 20) {
+        speedBonus = 20;
+        speedBadge = '✓ Rythme Régulier';
+      }
+
+      // 2. Pondération industrielle selon la tâche
+      let taskBasePoints = 150;
+      if (currentTargetStep.barcodeType === 'location') {
+        taskBasePoints = 100; // Repérage d'armoire / allée
+      } else if (currentTargetStep.barcodeType === 'article') {
+        const isCriticalPiece = currentTargetStep.expectedBarcode.includes('KALREZ') || 
+                                currentTargetStep.expectedBarcode.includes('7490') || 
+                                currentTargetStep.expectedBarcode.includes('INOX');
+        taskBasePoints = isCriticalPiece ? 250 : 180;
+        if (requiredQty > 1) taskBasePoints += 50; // Bonus prélèvement multiple
+      } else if (currentTargetStep.barcodeType === 'package') {
+        taskBasePoints = 150; // Emballage / Colis
+      } else if (currentTargetStep.barcodeType === 'dock') {
+        taskBasePoints = 300; // Livraison finale sur quai client
+      }
+
+      // 3. Multiplicateur de Combo
       const comboBonus = newCombo * (appConfig.comboBonusPoints || 50);
-      const addedPoints = (isMissionDone ? activeMission.basePoints : 150) + comboBonus;
+
+      // 4. Prime de Clôture de Mission
+      const missionCompletionBonus = isMissionDone ? (activeMission.basePoints || 1000) : 0;
+
+      // Score cumulé intelligent
+      const addedPoints = taskBasePoints + speedBonus + comboBonus + missionCompletionBonus;
+
+      // Suivi de la précision industrielle
+      validScansCountRef.current += 1;
+      const totalScans = validScansCountRef.current + errorScansCountRef.current;
+      const currentAccuracy = Math.max(50, Math.round((validScansCountRef.current / totalScans) * 100));
+
+      // Réinitialiser le chrono pour l'étape suivante
+      lastStepStartTimeRef.current = Date.now();
+
+      if (!isMissionDone) {
+        showToast({
+          title: `+${addedPoints} pts ${speedBadge ? '• ' + speedBadge : ''}`,
+          message: `${currentTargetStep.targetLabel} validé (Combo x${newCombo})`,
+          type: 'success'
+        });
+      }
 
       setOperator((prev) => {
         const nextScore = prev.score + addedPoints;
@@ -736,7 +799,7 @@ export const App: React.FC = () => {
             score: nextScore,
             time_spent: '02:00',
             completed_missions: nextMissions,
-            accuracy: 100
+            accuracy: currentAccuracy
           }).catch(() => {});
         }
 
@@ -765,7 +828,8 @@ export const App: React.FC = () => {
         return {
           ...prev,
           score: nextScore,
-          completedMissions: nextMissions
+          completedMissions: nextMissions,
+          accuracy: currentAccuracy
         };
       });
 
@@ -877,11 +941,34 @@ export const App: React.FC = () => {
       soundService.playErrorBuzz();
       setCombo(0);
 
-      updateStationLive({
-        station_id: stationIdRef.current,
-        combo: 0,
-        last_scan_code: cleanedCode,
-        last_scan_status: 'invalid'
+      errorScansCountRef.current += 1;
+      const totalScans = validScansCountRef.current + errorScansCountRef.current;
+      const currentAccuracy = Math.max(40, Math.round((validScansCountRef.current / totalScans) * 100));
+
+      const PENALTY = 50; // -50 pts pénalité de non-conformité industrielle
+
+      setOperator((prev) => {
+        const nextScore = Math.max(0, prev.score - PENALTY);
+
+        updateStationLive({
+          station_id: stationIdRef.current,
+          combo: 0,
+          score: nextScore,
+          last_scan_code: cleanedCode,
+          last_scan_status: 'invalid'
+        });
+
+        return {
+          ...prev,
+          score: nextScore,
+          accuracy: currentAccuracy
+        };
+      });
+
+      showToast({
+        title: '⚠️ Non-Conformité CEA (-50 pts)',
+        message: `Code [${cleanedCode}] erroné ! Multiplicateur combo réinitialisé.`,
+        type: 'error'
       });
 
       broadcastScan({
@@ -889,7 +976,7 @@ export const App: React.FC = () => {
         operator_name: `${clientGuestRef.current} (avec ${operatorCeaRef.current})`,
         barcode: cleanedCode,
         action_type: 'INVALID_SCAN',
-        message: `✗ Erreur scan (${cleanedCode})`,
+        message: `✗ Erreur scan [${cleanedCode}] (-50 pts)`,
         status: 'invalid'
       }).catch(() => {});
 
@@ -899,7 +986,7 @@ export const App: React.FC = () => {
           timestamp,
           barcode: cleanedCode,
           status: 'invalid',
-          message: `✗ Code erroné ! Attendu : ${activeStep.expectedBarcode}`
+          message: `✗ Non-conformité (-50 pts) ! Attendu : ${activeStep.expectedBarcode}`
         },
         ...prev
       ]);
