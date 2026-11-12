@@ -83,6 +83,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     () => appConfig.locations && appConfig.locations.length > 0 ? appConfig.locations : INITIAL_LOCATIONS
   );
   const [selectedMissionIndex, setSelectedMissionIndex] = useState<number>(0);
+  const [manualBarcodeSteps, setManualBarcodeSteps] = useState<Record<number, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isLocalEditingMissionsRef = useRef(false);
 
@@ -614,6 +615,125 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     const newSteps = targetMission.steps.filter((_, i) => i !== stepIdx);
     const updated = localMissions.map((m, idx) => idx === missionIdx ? { ...m, steps: newSteps } : m);
     setLocalMissions(updated);
+  };
+
+  // Sélecteur Intelligent d'Étape : remplit automatiquement code, désignation, type et consignes
+  const handleSelectStepPreset = (missionIdx: number, stepIdx: number, rawCode: string) => {
+    isLocalEditingMissionsRef.current = true;
+    if (!rawCode) return;
+
+    if (rawCode === '__custom__') {
+      setManualBarcodeSteps(prev => ({ ...prev, [stepIdx]: true }));
+      return;
+    }
+
+    // 1. Emplacement d'entrepôt
+    const loc = localLocations.find(l => l.barcode === rawCode);
+    if (loc) {
+      setLocalMissions(prev => prev.map((m, mIdx) => {
+        if (mIdx !== missionIdx) return m;
+        const isDelivery = loc.barcode.includes('LIVRAISON') || loc.barcode.includes('RECEPTION') || loc.barcode.includes('DOCK');
+        const cleanName = loc.label.split('(')[0].trim();
+        const newSteps = m.steps.map((st, i) => i === stepIdx ? {
+          ...st,
+          expectedBarcode: loc.barcode,
+          targetLabel: loc.label,
+          lrCode: loc.lrCode || loc.barcode.replace(/^(ART|LOC)-/, '').replace(/-/g, '_'),
+          crLabel: loc.crLabel || loc.label.toUpperCase(),
+          barcodeType: isDelivery ? ('dock' as const) : ('location' as const),
+          instruction: isDelivery
+            ? `Acheminez la commande vers ${cleanName} et validez le scan final.`
+            : `Rendez-vous à l'emplacement ${cleanName} et scannez l'étiquette.`,
+          hint: `Visez l'étiquette code-barres ${loc.barcode}.`
+        } : st);
+        return { ...m, steps: newSteps };
+      }));
+      setManualBarcodeSteps(prev => ({ ...prev, [stepIdx]: false }));
+      return;
+    }
+
+    // 2. Article du stock ERP
+    const item = localInventory.find(i => i.sku === rawCode);
+    if (item) {
+      setLocalMissions(prev => prev.map((m, mIdx) => {
+        if (mIdx !== missionIdx) return m;
+        const currentQty = m.steps[stepIdx]?.quantity || 1;
+        const newSteps = m.steps.map((st, i) => i === stepIdx ? {
+          ...st,
+          expectedBarcode: item.sku,
+          targetLabel: item.name,
+          lrCode: item.lrCode || item.sku.replace('ART-', 'REF_').replace(/-/g, '_'),
+          crLabel: item.crLabel || item.name,
+          barcodeType: 'article' as const,
+          instruction: `Prélevez et scannez ${currentQty > 1 ? `les ${currentQty} ` : ''}${item.name} (${item.sku}).`,
+          hint: currentQty > 1 ? `Scannez chaque pièce prélevée (${currentQty} pcs attendues).` : `Scannez le code-barres ${item.sku}.`
+        } : st);
+        return { ...m, steps: newSteps };
+      }));
+      setManualBarcodeSteps(prev => ({ ...prev, [stepIdx]: false }));
+      return;
+    }
+
+    // 3. Documents & expéditions
+    if (rawCode === 'DOC-TRANSPORT-INTL') {
+      setLocalMissions(prev => prev.map((m, mIdx) => {
+        if (mIdx !== missionIdx) return m;
+        const newSteps = m.steps.map((st, i) => i === stepIdx ? {
+          ...st,
+          expectedBarcode: 'DOC-TRANSPORT-INTL',
+          targetLabel: 'Document de Transport International',
+          lrCode: 'DOC_TRP',
+          crLabel: 'DOCUMENT TRANSPORT EXPEDITION',
+          barcodeType: 'package' as const,
+          instruction: 'Contrôlez le document de transport rempli et scannez le bordereau.',
+          hint: 'Visez le document de transport fixé sur le colis.'
+        } : st);
+        return { ...m, steps: newSteps };
+      }));
+      setManualBarcodeSteps(prev => ({ ...prev, [stepIdx]: false }));
+      return;
+    }
+
+    if (rawCode === 'ART-CARTON-EXP') {
+      setLocalMissions(prev => prev.map((m, mIdx) => {
+        if (mIdx !== missionIdx) return m;
+        const newSteps = m.steps.map((st, i) => i === stepIdx ? {
+          ...st,
+          expectedBarcode: 'ART-CARTON-EXP',
+          targetLabel: 'Colis Carton Double Cannelure CEA',
+          lrCode: 'CTN_DBL1',
+          crLabel: 'CARTON DOUBLE CANNELURE CEA',
+          barcodeType: 'package' as const,
+          instruction: 'Vérifiez la conformité du colis et scannez le code-barres du carton.',
+          hint: 'Scannez le carton d\'expédition homologué.'
+        } : st);
+        return { ...m, steps: newSteps };
+      }));
+      setManualBarcodeSteps(prev => ({ ...prev, [stepIdx]: false }));
+      return;
+    }
+
+    if (rawCode === 'ZONE_RECEPTION_CENTRALE') {
+      setLocalMissions(prev => prev.map((m, mIdx) => {
+        if (mIdx !== missionIdx) return m;
+        const newSteps = m.steps.map((st, i) => i === stepIdx ? {
+          ...st,
+          expectedBarcode: 'ZONE_RECEPTION_CENTRALE',
+          targetLabel: 'La Réception Centrale (Départs Étranger)',
+          lrCode: 'REC_CENT',
+          crLabel: 'LA RECEPTION CENTRALE DEPARTS',
+          barcodeType: 'dock' as const,
+          instruction: 'Déposez le colis à La Réception Centrale et validez l\'expédition.',
+          hint: 'Scannez le panneau « La Réception Centrale » pour clôturer.'
+        } : st);
+        return { ...m, steps: newSteps };
+      }));
+      setManualBarcodeSteps(prev => ({ ...prev, [stepIdx]: false }));
+      return;
+    }
+
+    // Fallback valeur personnalisée
+    updateStepField(stepIdx, 'expectedBarcode', rawCode);
   };
 
   // Add new mission from scratch
@@ -1513,7 +1633,43 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const firstLoc = localLocations[0];
+                        handleAddStep(selectedMissionIndex);
+                        if (firstLoc) {
+                          setTimeout(() => {
+                            const newSteps = localMissions[selectedMissionIndex]?.steps || [];
+                            handleSelectStepPreset(selectedMissionIndex, newSteps.length, firstLoc.barcode);
+                          }, 50);
+                        }
+                      }}
+                      className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-300 text-xs font-semibold flex items-center space-x-1 cursor-pointer border border-slate-700"
+                      title="Ajouter une étape ciblant un emplacement d'entrepôt"
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-sky-400" />
+                      <span>+ Emplacement</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const firstArt = localInventory[0];
+                        if (firstArt) {
+                          handleAddStep(selectedMissionIndex, firstArt);
+                        } else {
+                          handleAddStep(selectedMissionIndex);
+                        }
+                      }}
+                      className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-semibold flex items-center space-x-1 cursor-pointer border border-slate-700"
+                      title="Ajouter une étape ciblant un article du stock ERP"
+                    >
+                      <Boxes className="w-3.5 h-3.5 text-amber-400" />
+                      <span>+ Article</span>
+                    </button>
+
                     <button
                       onClick={() => handleAddStep(selectedMissionIndex)}
                       className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center space-x-1 cursor-pointer shadow-md shadow-sky-600/20"
@@ -1541,49 +1697,9 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                         {/* Quick Article / Location Auto-Filler */}
                         <div className="flex items-center gap-1.5">
                           <select
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              if (!val) return;
-                              const loc = localLocations.find(l => l.barcode === val);
-                              if (loc) {
-                                isLocalEditingMissionsRef.current = true;
-                                setLocalMissions(prev => prev.map((m, mIdx) => {
-                                  if (mIdx !== selectedMissionIndex) return m;
-                                  const newSteps = m.steps.map((st, i) => i === sIdx ? {
-                                    ...st,
-                                    expectedBarcode: loc.barcode,
-                                    targetLabel: loc.label,
-                                    lrCode: loc.lrCode,
-                                    crLabel: loc.crLabel || loc.label.toUpperCase(),
-                                    barcodeType: 'location' as const,
-                                    instruction: `Rendez-vous à l'emplacement ${loc.label.split('(')[0].trim()} et scannez l'étiquette.`,
-                                    hint: `Visez l'étiquette code-barres ${loc.barcode}.`
-                                  } : st);
-                                  return { ...m, steps: newSteps };
-                                }));
-                                return;
-                              }
-                              const item = localInventory.find(i => i.sku === val);
-                              if (item) {
-                                isLocalEditingMissionsRef.current = true;
-                                setLocalMissions(prev => prev.map((m, mIdx) => {
-                                  if (mIdx !== selectedMissionIndex) return m;
-                                  const newSteps = m.steps.map((st, i) => i === sIdx ? {
-                                    ...st,
-                                    expectedBarcode: item.sku,
-                                    targetLabel: item.name,
-                                    lrCode: item.lrCode || '',
-                                    crLabel: item.crLabel || item.name,
-                                    barcodeType: item.category?.toLowerCase().includes('emplacement') ? 'location' as const : 'article' as const,
-                                    instruction: `Prélevez et scannez ${item.name} (${item.sku}).`,
-                                    hint: `Scannez le code-barres ${item.sku}.`
-                                  } : st);
-                                  return { ...m, steps: newSteps };
-                                }));
-                              }
-                            }}
-                            defaultValue=""
-                            className="bg-slate-900 border border-sky-500/50 text-[11px] text-sky-300 font-mono px-2 py-1 rounded-lg focus:outline-none cursor-pointer"
+                            value={step.expectedBarcode}
+                            onChange={(e) => handleSelectStepPreset(selectedMissionIndex, sIdx, e.target.value)}
+                            className="bg-slate-900 border border-sky-500/50 text-[11px] text-sky-300 font-mono px-2 py-1 rounded-lg focus:outline-none cursor-pointer max-w-[220px] truncate"
                           >
                             <option value="">⚡ Remplir depuis Stock / Emplacements...</option>
                             <optgroup label="📍 Emplacements de l'Entrepôt">
@@ -1595,6 +1711,11 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                               {localInventory.map(item => (
                                 <option key={item.id || item.sku} value={item.sku}>📦 {item.name} ({item.sku})</option>
                               ))}
+                            </optgroup>
+                            <optgroup label="📋 Documents & Colis">
+                              <option value="DOC-TRANSPORT-INTL">📋 DOC-TRANSPORT-INTL • Doc Transport</option>
+                              <option value="ART-CARTON-EXP">📦 ART-CARTON-EXP • Carton Expédition</option>
+                              <option value="ZONE_RECEPTION_CENTRALE">⚓ ZONE_RECEPTION_CENTRALE • Réception Centrale</option>
                             </optgroup>
                           </select>
 
@@ -1650,19 +1771,95 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                             min="1"
                             max="99"
                             value={step.quantity || 1}
-                            onChange={(e) => updateStepField(sIdx, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
+                            onChange={(e) => {
+                              const qty = Math.max(1, parseInt(e.target.value) || 1);
+                              updateStepField(sIdx, 'quantity', qty);
+                              if (step.barcodeType === 'article') {
+                                const name = step.targetLabel || step.expectedBarcode;
+                                updateStepField(sIdx, 'instruction', `Prélevez et scannez ${qty > 1 ? `les ${qty} ` : ''}${name} (${step.expectedBarcode}).`);
+                                updateStepField(sIdx, 'hint', qty > 1 ? `Scannez chaque pièce prélevée (${qty} pcs attendues).` : `Scannez le code-barres ${step.expectedBarcode}.`);
+                              }
+                            }}
                             className="w-full bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs text-amber-400 font-mono font-bold"
                           />
                         </div>
 
-                        <div>
-                          <label className="text-[10px] text-amber-400 font-bold block">Code-Barres Attendu :</label>
-                          <input
-                            type="text"
-                            value={step.expectedBarcode}
-                            onChange={(e) => updateStepField(sIdx, 'expectedBarcode', e.target.value.trim().toUpperCase())}
-                            className="w-full bg-slate-900 border border-amber-500/60 px-3 py-2 rounded-xl text-xs text-amber-300 font-mono font-bold"
-                          />
+                        {/* Sélecteur de Code-Barres Attendu (Liste Déroulante avec Option Saisie Libre) */}
+                        <div className="md:col-span-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-[10px] text-amber-400 font-bold flex items-center gap-1.5">
+                              <span>Code-Barres Attendu :</span>
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => setManualBarcodeSteps(prev => ({ ...prev, [sIdx]: !prev[sIdx] }))}
+                              className="text-[9px] text-sky-400 hover:text-sky-300 hover:underline flex items-center gap-1 cursor-pointer font-sans"
+                            >
+                              {manualBarcodeSteps[sIdx] ? '📋 Choisir dans la liste déroulante' : '✏️ Taper manuellement'}
+                            </button>
+                          </div>
+
+                          {!manualBarcodeSteps[sIdx] ? (
+                            <select
+                              value={step.expectedBarcode}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === '__custom__') {
+                                  setManualBarcodeSteps(prev => ({ ...prev, [sIdx]: true }));
+                                } else {
+                                  handleSelectStepPreset(selectedMissionIndex, sIdx, val);
+                                }
+                              }}
+                              className="w-full bg-slate-900 border-2 border-amber-500/70 focus:border-amber-400 px-3 py-2 rounded-xl text-xs text-amber-300 font-mono font-bold focus:outline-none transition-all cursor-pointer shadow-sm"
+                            >
+                              <option value="">-- Sélectionnez l'emplacement ou l'article à scanner --</option>
+                              <optgroup label="📍 Emplacements & Casiers de l'Entrepôt">
+                                {localLocations.map((l) => (
+                                  <option key={l.barcode} value={l.barcode}>
+                                    📍 {l.barcode} — {l.label}
+                                  </option>
+                                ))}
+                              </optgroup>
+                              <optgroup label="📦 Articles & Pièces du Stock ERP">
+                                {localInventory.map((item) => (
+                                  <option key={item.id || item.sku} value={item.sku}>
+                                    📦 {item.sku} — {item.name} ({item.quantity} {item.unit || 'pcs'} en stock)
+                                  </option>
+                                ))}
+                              </optgroup>
+                              <optgroup label="📋 Documents & Expéditions">
+                                <option value="DOC-TRANSPORT-INTL">📋 DOC-TRANSPORT-INTL — Document de Transport International</option>
+                                <option value="ART-CARTON-EXP">📦 ART-CARTON-EXP — Colis Carton Double Cannelure CEA</option>
+                                <option value="ZONE_RECEPTION_CENTRALE">⚓ ZONE_RECEPTION_CENTRALE — La Réception Centrale (Départs)</option>
+                                <option value="SCEL-SEC-RED">🔒 SCEL-SEC-RED — Scellé de Sécurité Rouge</option>
+                              </optgroup>
+                              {step.expectedBarcode &&
+                               !localLocations.some(l => l.barcode === step.expectedBarcode) &&
+                               !localInventory.some(i => i.sku === step.expectedBarcode) &&
+                               !['DOC-TRANSPORT-INTL', 'ART-CARTON-EXP', 'ZONE_RECEPTION_CENTRALE', 'SCEL-SEC-RED'].includes(step.expectedBarcode) && (
+                                <optgroup label="🏷️ Code actuel">
+                                  <option value={step.expectedBarcode}>🏷️ {step.expectedBarcode} (Personnalisé)</option>
+                                </optgroup>
+                              )}
+                              <option value="__custom__">✏️ + Saisie manuelle d'un autre code...</option>
+                            </select>
+                          ) : (
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                list={`step-datalist-${sIdx}`}
+                                value={step.expectedBarcode}
+                                onChange={(e) => updateStepField(sIdx, 'expectedBarcode', e.target.value.trim().toUpperCase())}
+                                placeholder="Tapez le code (ex: LOC-B01-T03 ou REF...)"
+                                className="flex-1 bg-slate-900 border-2 border-amber-500/70 focus:border-amber-400 px-3 py-2 rounded-xl text-xs text-amber-300 font-mono font-bold focus:outline-none"
+                                autoFocus
+                              />
+                              <datalist id={`step-datalist-${sIdx}`}>
+                                {localLocations.map(l => <option key={l.barcode} value={l.barcode}>{l.label}</option>)}
+                                {localInventory.map(i => <option key={i.id || i.sku} value={i.sku}>{i.name}</option>)}
+                              </datalist>
+                            </div>
+                          )}
                         </div>
 
                         <div>
