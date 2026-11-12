@@ -612,7 +612,7 @@ export const App: React.FC = () => {
     });
 
     // ========================================================
-    // EASTER EGG : LE TICKET D'OR DES 25 ANS (CHARLIE & LA CHOCOLATERIE)
+    // EASTER EGG : LE TICKET D'OR DU JUBILÉ 25 ANS DU GROUPE GT LOGISTICS
     // ========================================================
     const upperClean = cleanedCode.toUpperCase();
     const isGoldenTicketScan = 
@@ -644,7 +644,7 @@ export const App: React.FC = () => {
         operator_name: `${clientGuestRef.current} (avec ${operatorCeaRef.current})`,
         barcode: 'ART-GT25-VIP',
         action_type: 'GOLDEN_TICKET',
-        message: `🎟️ TICKET D'OR 25 ANS ! ${clientGuestRef.current} a déniché le Ticket d'Or Charlie & la Chocolaterie (+2 500 pts d'Or) !`,
+        message: `🎟️ TICKET D'OR 25 ANS ! ${clientGuestRef.current} a déniché le Ticket d'Or du Jubilé GT (+2 500 pts d'Or) !`,
         status: 'valid'
       }).catch(() => {});
 
@@ -1585,7 +1585,7 @@ export const App: React.FC = () => {
         hasGoldenTicket={hasFoundGoldenTicket}
       />
 
-      {/* Easter Egg Golden Ticket 25 Ans Modal (Charlie & la Chocolaterie) */}
+      {/* Easter Egg Golden Ticket 25 Ans Modal (Édition Jubilé d'Or GT Logistics) */}
       <GoldenTicketModal
         isOpen={isGoldenTicketOpen}
         duoName={`${clientGuest} (avec ${operatorCea})`}

@@ -327,7 +327,7 @@ class SoundService {
     } catch {}
   }
 
-  // Willy Wonka Style "Golden Ticket" Triumphant Magical Fanfare (25 Ans GT Logistics)
+  // Fanfare Triomphale du Ticket d'Or (Jubilé 25 Ans GT Logistics)
   public playGoldenTicketFanfare() {
     if (!this.soundEnabled) return;
     try {

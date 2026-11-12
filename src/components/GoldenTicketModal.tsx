@@ -69,7 +69,7 @@ export const GoldenTicketModal: React.FC<GoldenTicketModalProps> = ({
         </button>
 
         {/* ========================================================
-            THE WILLY WONKA STYLE "GOLDEN TICKET" CANVAS
+            THE GOLDEN TICKET CANVAS (ÉDITION JUBILÉ GT LOGISTICS)
             ======================================================== */}
         <div
           id="golden-ticket-printable"
@@ -105,7 +105,7 @@ export const GoldenTicketModal: React.FC<GoldenTicketModalProps> = ({
               <Sparkles className="w-4 h-4 fill-current animate-spin" style={{ animationDuration: '6s' }} />
             </div>
 
-            {/* Giant Willy Wonka Style Header */}
+            {/* Giant Title Header */}
             <div>
               <h1
                 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-[#4a3406] drop-shadow-sm font-serif"
@@ -114,11 +114,11 @@ export const GoldenTicketModal: React.FC<GoldenTicketModalProps> = ({
                   textShadow: '1px 1px 0px rgba(255,255,255,0.7), 2px 2px 2px rgba(120, 80, 10, 0.3)'
                 }}
               >
-                GOLDEN TICKET
+                TICKET D'OR DU JUBILÉ
               </h1>
-              <div className="h-1 w-32 bg-gradient-to-r from-transparent via-[#8d6210] to-transparent mx-auto mt-1" />
+              <div className="h-1 w-36 bg-gradient-to-r from-transparent via-[#8d6210] to-transparent mx-auto mt-1" />
               <p className="text-xs sm:text-sm font-serif font-black uppercase tracking-[0.2em] text-[#7d560c] mt-1.5">
-                Félicitations à l'Heureux Découvreur !
+                Édition Officielle 25 Ans GT Logistics • Félicitations à l'Heureux Découvreur !
               </p>
             </div>
 

@@ -475,7 +475,7 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
               <button
                 onClick={onOpenGoldenTicket}
                 className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-amber-950 font-black text-xs flex items-center space-x-1.5 border border-amber-500/60 shadow-sm transition-all cursor-pointer"
-                title="Prévisualiser le Ticket d'Or Willy Wonka comme un joueur qui le découvre"
+                title="Prévisualiser le Ticket d'Or des 25 Ans comme un joueur qui le découvre"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-800" />
                 <span>Tester Pop-up Ticket d'Or</span>

@@ -773,7 +773,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
       {/* ========================================================================= */}
       {/* BROADCAST NOTIFICATIONS (Leader Takeover, Hazards & Easter Egg)           */}
       {/* ========================================================================= */}
-      {/* GOLDEN TICKET 25 ANS WILLY WONKA EVENT BANNER */}
+      {/* GOLDEN TICKET 25 ANS GT LOGISTICS EVENT BANNER */}
       {goldenTicketEvent && (
         <div className="z-30 my-3 p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-slate-950 font-black border-4 border-[#8d6210] shadow-[0_0_60px_rgba(245,158,11,0.6)] animate-pulse flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
@@ -790,7 +790,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
                 </span>
               </div>
               <h2 className="text-lg sm:text-2xl font-serif font-black uppercase text-[#3a2603] tracking-tight mt-1">
-                LE TICKET D'OR WILLY WONKA A ÉTÉ DÉCOUVERT PAR : {goldenTicketEvent.teamName.toUpperCase()} !
+                LE TICKET D'OR DU JUBILÉ A ÉTÉ DÉCOUVERT PAR : {goldenTicketEvent.teamName.toUpperCase()} !
               </h2>
             </div>
           </div>
