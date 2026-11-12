@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { toPng } from 'html-to-image';
 import { OperatorProfile, AppConfig } from '../types';
-import { Award, Printer, X, Star, Download, QrCode } from 'lucide-react';
+import { Award, Printer, X, Star, Download, QrCode, Sparkles } from 'lucide-react';
 
 interface DiplomeModalProps {
   isOpen: boolean;
@@ -12,6 +12,7 @@ interface DiplomeModalProps {
   guestName?: string;
   stationName?: string;
   appConfig?: AppConfig;
+  hasGoldenTicket?: boolean;
 }
 
 export const DiplomeModal: React.FC<DiplomeModalProps> = ({
@@ -21,7 +22,8 @@ export const DiplomeModal: React.FC<DiplomeModalProps> = ({
   collaboratorName,
   guestName,
   stationName,
-  appConfig
+  appConfig,
+  hasGoldenTicket
 }) => {
   const [orientation, setOrientation] = useState<'landscape' | 'portrait'>('landscape');
   const [isExporting, setIsExporting] = useState(false);
@@ -278,6 +280,17 @@ export const DiplomeModal: React.FC<DiplomeModalProps> = ({
               <p className="text-xs text-slate-700 max-w-xl mx-auto leading-relaxed mt-2.5 px-4 font-sans">
                 {diplomaDesc}
               </p>
+
+              {/* Special Golden Ticket 25 Ans Collector Ribbon */}
+              {hasGoldenTicket && (
+                <div className="mt-2.5 max-w-lg mx-auto bg-gradient-to-r from-amber-200 via-amber-100 to-yellow-200 border-2 border-amber-500/80 rounded-xl px-4 py-1.5 shadow-sm flex items-center justify-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-700 animate-spin" style={{ animationDuration: '6s' }} />
+                  <span className="font-serif font-black text-xs uppercase tracking-wider text-amber-950">
+                    ★ DÉCOUVREUR OFFICIEL DU TICKET D'OR 25 ANS (+2 500 PTS) ★
+                  </span>
+                  <Sparkles className="w-4 h-4 text-amber-700 animate-spin" style={{ animationDuration: '6s' }} />
+                </div>
+              )}
             </div>
 
             {/* Performance Stats Cards */}

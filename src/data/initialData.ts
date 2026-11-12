@@ -372,7 +372,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
 export interface BarcodeItemCatalog {
   code: string;
   label: string;
-  type: 'article' | 'location' | 'package' | 'seal' | 'dock';
+  type: 'article' | 'location' | 'package' | 'seal' | 'dock' | 'golden_ticket';
   quantity?: number;
   location?: string;
   lrCode?: string;
@@ -402,5 +402,12 @@ export const BARCODE_CATALOG: BarcodeItemCatalog[] = [
     type: 'package',
     lrCode: 'DOC_TRP',
     crLabel: 'DOCUMENT TRANSPORT EXPEDITION'
+  },
+  {
+    code: 'ART-GT25-VIP',
+    label: '🎟️ TICKET D\'OR • Archive Collector 25 Ans GT Logistics (2001-2026)',
+    type: 'golden_ticket',
+    lrCode: 'GT_25ANS',
+    crLabel: 'ARCHIVE COMMEMORATIVE 25 ANS GROUPE GT'
   }
 ];

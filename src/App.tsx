@@ -10,6 +10,7 @@ import { PodiumView } from './components/PodiumView';
 import { ArenaTvView } from './components/ArenaTvView';
 import { AdminConfigView } from './components/AdminConfigView';
 import { DiplomeModal } from './components/DiplomeModal';
+import { GoldenTicketModal } from './components/GoldenTicketModal';
 import { ZebraPlayView } from './components/ZebraPlayView';
 import { HomeLauncherView } from './components/HomeLauncherView';
 import { ToastContainer, showToast } from './components/ToastNotification';
@@ -177,6 +178,8 @@ export const App: React.FC = () => {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [shiftSecondsRemaining, setShiftSecondsRemaining] = useState<number>(180);
   const [isDiplomeOpen, setIsDiplomeOpen] = useState<boolean>(false);
+  const [isGoldenTicketOpen, setIsGoldenTicketOpen] = useState<boolean>(false);
+  const [hasFoundGoldenTicket, setHasFoundGoldenTicket] = useState<boolean>(false);
 
   // Duo & Multi-station States
   const [operatorCea, setOperatorCea] = useState<string>(() => localStorage.getItem('gt_collab_name') || 'Jeremy (GT)');
@@ -607,6 +610,56 @@ export const App: React.FC = () => {
       minute: '2-digit',
       second: '2-digit'
     });
+
+    // ========================================================
+    // EASTER EGG : LE TICKET D'OR DES 25 ANS (CHARLIE & LA CHOCOLATERIE)
+    // ========================================================
+    const upperClean = cleanedCode.toUpperCase();
+    const isGoldenTicketScan = 
+      upperClean === 'ART-GT25-VIP' ||
+      upperClean === 'GT_25ANS' ||
+      upperClean === 'GT-25-ANS' ||
+      upperClean === 'GT25ANS';
+
+    if (isGoldenTicketScan) {
+      triggerFlash('green');
+      const bonusGolden = 2500;
+      setOperator((prev) => ({
+        ...prev,
+        score: prev.score + bonusGolden
+      }));
+
+      setHasFoundGoldenTicket(true);
+      setIsGoldenTicketOpen(true);
+
+      showToast({
+        title: '🎟️ TICKET D\'OR 25 ANS DÉCOUVERT (+2 500 PTS) !',
+        message: 'Incroyable trouvaille en rayon ! Vous avez déniché l\'Archive Secrète du Groupe GT !',
+        type: 'success',
+        duration: 9000
+      });
+
+      broadcastScan({
+        station_name: stationNameRef.current,
+        operator_name: `${clientGuestRef.current} (avec ${operatorCeaRef.current})`,
+        barcode: 'ART-GT25-VIP',
+        action_type: 'GOLDEN_TICKET',
+        message: `🎟️ TICKET D'OR 25 ANS ! ${clientGuestRef.current} a déniché le Ticket d'Or Charlie & la Chocolaterie (+2 500 pts d'Or) !`,
+        status: 'valid'
+      }).catch(() => {});
+
+      setLogs((prev) => [
+        {
+          id: generateUniqueLogId(),
+          timestamp,
+          barcode: cleanedCode,
+          status: 'valid',
+          message: `🎟️ TICKET D'OR 25 ANS : Archive Historique découverte en rayon ! (+2 500 pts Bonus)`
+        },
+        ...prev
+      ]);
+      return;
+    }
 
     // 0. PRIORITY CHECK: Is there an ongoing active Hazard / Distraction?
     if (activeHazardRef.current) {
@@ -1399,6 +1452,7 @@ export const App: React.FC = () => {
           guestName={clientGuest}
           stationName={stationName}
           appConfig={appConfig}
+          hasGoldenTicket={hasFoundGoldenTicket}
         />
       </div>
     );
@@ -1493,6 +1547,7 @@ export const App: React.FC = () => {
             locations={appConfig.locations || INITIAL_LOCATIONS}
             missions={missions}
             distractions={distractions}
+            onOpenGoldenTicket={() => setIsGoldenTicketOpen(true)}
           />
         )}
 
@@ -1527,6 +1582,14 @@ export const App: React.FC = () => {
         guestName={clientGuest}
         stationName={stationName}
         appConfig={appConfig}
+        hasGoldenTicket={hasFoundGoldenTicket}
+      />
+
+      {/* Easter Egg Golden Ticket 25 Ans Modal (Charlie & la Chocolaterie) */}
+      <GoldenTicketModal
+        isOpen={isGoldenTicketOpen}
+        duoName={`${clientGuest} (avec ${operatorCea})`}
+        onClose={() => setIsGoldenTicketOpen(false)}
       />
 
       {/* Global Toast Notifications (Bottom Right) */}

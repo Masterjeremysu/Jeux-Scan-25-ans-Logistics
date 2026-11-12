@@ -94,7 +94,7 @@ export interface MissionStep {
   id: string;
   instruction: string;
   expectedBarcode: string;
-  barcodeType: 'location' | 'article' | 'package' | 'seal' | 'dock';
+  barcodeType: 'location' | 'article' | 'package' | 'seal' | 'dock' | 'golden_ticket';
   targetLabel: string;
   lrCode?: string; // L/R : Référence courte pour l'étiquette physique
   crLabel?: string; // C/R : Désignation industrielle en majuscules

@@ -27,6 +27,7 @@ export interface LiveActivityEvent {
   operator_name: string;
   barcode: string;
   action_type: string;
+  points_delta?: number;
   message: string;
   status: 'valid' | 'invalid' | 'warning';
   created_at?: string;

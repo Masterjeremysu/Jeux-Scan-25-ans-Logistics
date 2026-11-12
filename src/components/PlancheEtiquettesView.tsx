@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { InventoryItem, Mission, Distraction, WarehouseLocation } from '../types';
 import { BARCODE_CATALOG, BarcodeItemCatalog, INITIAL_LOCATIONS } from '../data/initialData';
-import { Printer, Filter, X, Tag, Sliders, Layers, FileText, CheckCircle2 } from 'lucide-react';
+import { Printer, Filter, X, Tag, Sliders, Layers, FileText, CheckCircle2, Sparkles } from 'lucide-react';
 import { GtStockLabel } from './GtStockLabel';
 
 export interface ZebraFormat {
@@ -25,6 +25,7 @@ interface PlancheEtiquettesViewProps {
   locations?: WarehouseLocation[];
   missions?: Mission[];
   distractions?: Distraction[];
+  onOpenGoldenTicket?: () => void;
 }
 
 export interface BarcodeItem {
@@ -39,7 +40,8 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
   inventory,
   locations = INITIAL_LOCATIONS,
   missions,
-  distractions
+  distractions,
+  onOpenGoldenTicket
 }) => {
   const [filterType, setFilterType] = useState<string>('all');
   const [printerMode, setPrinterMode] = useState<'a4' | 'zebra'>('zebra'); // Défaut Zebra pour rouleau thermique
@@ -156,6 +158,9 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
     if (filterType === 'package_dock') {
       return allItems.filter((i) => i.type === 'package' || i.type === 'dock');
     }
+    if (filterType === 'golden_ticket') {
+      return allItems.filter((i) => i.type === 'golden_ticket' || i.code === 'ART-GT25-VIP');
+    }
     return allItems.filter((i) => i.type === filterType);
   }, [allItems, filterType]);
 
@@ -166,7 +171,8 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
       location: allItems.filter((i) => i.type === 'location').length,
       article: allItems.filter((i) => i.type === 'article').length,
       package_dock: allItems.filter((i) => i.type === 'package' || i.type === 'dock').length,
-      seal: allItems.filter((i) => i.type === 'seal').length
+      seal: allItems.filter((i) => i.type === 'seal').length,
+      golden_ticket: allItems.filter((i) => i.type === 'golden_ticket' || i.code === 'ART-GT25-VIP').length
     };
   }, [allItems]);
 
@@ -449,10 +455,36 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
                 ⚡ Aléas & Scellés ({counts.seal})
               </button>
             )}
+
+            {counts.golden_ticket > 0 && (
+              <button
+                onClick={() => setFilterType('golden_ticket')}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center space-x-1.5 ${
+                  filterType === 'golden_ticket'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-md ring-2 ring-amber-300'
+                    : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-300'
+                }`}
+              >
+                <span>🎟️ Ticket d'Or 25 Ans ({counts.golden_ticket})</span>
+              </button>
+            )}
           </div>
 
-          <div className="text-[11px] text-slate-500 italic">
-            Astuce : Compatible 100% avec les imprimantes thermiques Zebra ZD421d, ZD420d et GK420d.
+          <div className="flex items-center gap-3">
+            {onOpenGoldenTicket && (
+              <button
+                onClick={onOpenGoldenTicket}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-amber-950 font-black text-xs flex items-center space-x-1.5 border border-amber-500/60 shadow-sm transition-all cursor-pointer"
+                title="Prévisualiser le Ticket d'Or Willy Wonka comme un joueur qui le découvre"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-800" />
+                <span>Tester Pop-up Ticket d'Or</span>
+              </button>
+            )}
+
+            <div className="text-[11px] text-slate-500 italic hidden sm:block">
+              Compatible 100% Zebra ZD421d, ZD420d & A4.
+            </div>
           </div>
         </div>
       </div>

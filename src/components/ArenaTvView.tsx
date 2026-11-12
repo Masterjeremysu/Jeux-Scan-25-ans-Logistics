@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import confetti from 'canvas-confetti';
 import { DuoStation, AppConfig, Mission, OperatorProfile } from '../types';
 import { MISSIONS } from '../data/missions';
 import { 
@@ -89,6 +90,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
   const [previousLeaderId, setPreviousLeaderId] = useState<string | null>(null);
   const [takeoverBanner, setTakeoverBanner] = useState<{ text: string; team: string; color: string } | null>(null);
   const [hazardAlert, setHazardAlert] = useState<string | null>(null);
+  const [goldenTicketEvent, setGoldenTicketEvent] = useState<{ teamName: string; points: number } | null>(null);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
 
   // Synchronized 3-2-1 Departure
@@ -338,6 +340,27 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
       if (!isMounted) return;
       setLiveActivities((prev) => [activity, ...prev].slice(0, 6));
       setLastEventMsg(`${activity.station_name} • ${activity.message}`);
+
+      if (activity.action_type === 'GOLDEN_TICKET') {
+        setGoldenTicketEvent({
+          teamName: activity.station_name || 'Un Duo d\'Élite',
+          points: activity.points_delta || 2500
+        });
+        if (soundEnabled) {
+          soundService.playGoldenTicketFanfare();
+        }
+        try {
+          confetti({
+            particleCount: 160,
+            spread: 95,
+            origin: { y: 0.4 },
+            colors: ['#f59e0b', '#fbbf24', '#d97706', '#e30613', '#ffffff']
+          });
+        } catch {}
+        setTimeout(() => {
+          setGoldenTicketEvent(null);
+        }, 12000);
+      }
     });
 
     // Subscribe to scores leaderboard updates
@@ -748,8 +771,41 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
       </header>
 
       {/* ========================================================================= */}
-      {/* BROADCAST NOTIFICATIONS (Leader Takeover & Hazards)                       */}
+      {/* BROADCAST NOTIFICATIONS (Leader Takeover, Hazards & Easter Egg)           */}
       {/* ========================================================================= */}
+      {/* GOLDEN TICKET 25 ANS WILLY WONKA EVENT BANNER */}
+      {goldenTicketEvent && (
+        <div className="z-30 my-3 p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-slate-950 font-black border-4 border-[#8d6210] shadow-[0_0_60px_rgba(245,158,11,0.6)] animate-pulse flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-amber-600/30 border-2 border-amber-700/60 flex items-center justify-center text-2xl shadow-inner animate-bounce">
+              🎟️
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] sm:text-xs font-serif font-black tracking-[0.25em] uppercase text-amber-950 bg-white/80 px-2.5 py-0.5 rounded-full border border-amber-600/40">
+                  ★ ARCHIVE COMMÉMORATIVE • GROUPE GT (25 ANS) & CEA (10 ANS) ★
+                </span>
+                <span className="text-xs font-mono font-black text-emerald-900 bg-emerald-200/90 border border-emerald-500/50 px-2.5 py-0.5 rounded-full">
+                  +{goldenTicketEvent.points.toLocaleString()} PTS JUBILÉ D'OR
+                </span>
+              </div>
+              <h2 className="text-lg sm:text-2xl font-serif font-black uppercase text-[#3a2603] tracking-tight mt-1">
+                LE TICKET D'OR WILLY WONKA A ÉTÉ DÉCOUVERT PAR : {goldenTicketEvent.teamName.toUpperCase()} !
+              </h2>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setGoldenTicketEvent(null)}
+              className="px-4 py-2 rounded-xl bg-slate-950 text-amber-300 hover:text-white font-mono text-xs font-bold border border-amber-500 cursor-pointer shadow-md transition-colors"
+            >
+              Fermer (ou auto 12s)
+            </button>
+          </div>
+        </div>
+      )}
+
       {takeoverBanner && (
         <div className="z-20 my-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-slate-950 font-black text-sm sm:text-base flex items-center justify-center gap-3 shadow-2xl shadow-amber-500/30 animate-bounce">
           <Flame className="w-5 h-5 fill-current" />

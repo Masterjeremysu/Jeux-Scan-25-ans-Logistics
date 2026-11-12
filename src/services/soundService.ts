@@ -326,6 +326,48 @@ class SoundService {
       });
     } catch {}
   }
+
+  // Willy Wonka Style "Golden Ticket" Triumphant Magical Fanfare (25 Ans GT Logistics)
+  public playGoldenTicketFanfare() {
+    if (!this.soundEnabled) return;
+    try {
+      this.initCtx();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+      // Magical ascending fanfare notes: C5, E5, G5, C6, E6, G6
+      const fanfareNotes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
+      fanfareNotes.forEach((freq, idx) => {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = idx >= 4 ? 'triangle' : 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.11);
+        gain.gain.setValueAtTime(0.24, now + idx * 0.11);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.11 + 0.8);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now + idx * 0.11);
+        osc.stop(now + idx * 0.11 + 0.85);
+      });
+
+      // Shimmering sparkle overlay
+      const sparkles = [2093.00, 2637.02, 3135.96]; // C7, E7, G7
+      sparkles.forEach((freq, idx) => {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + 0.7 + idx * 0.08);
+        gain.gain.setValueAtTime(0.12, now + 0.7 + idx * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7 + idx * 0.08 + 0.5);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now + 0.7 + idx * 0.08);
+        osc.stop(now + 0.7 + idx * 0.08 + 0.55);
+      });
+    } catch {}
+  }
 }
 
 export const soundService = new SoundService();
