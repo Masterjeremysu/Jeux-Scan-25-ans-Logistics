@@ -211,4 +211,109 @@
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
+
+  /* ----------------------------------------------------
+     6. MODE ROULEAU THERMIQUE ZEBRA ZD421D (1 ÉTIQUETTE PAR ÉTIQUETTE / PAGE)
+     Permet d'imprimer 30 étiquettes sur rouleau continu, découpées / séparées une par une
+     ---------------------------------------------------- */
+  body.printing-zebra-roll {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  body.printing-zebra-roll .no-print,
+  body.printing-zebra-roll .sheet-header,
+  body.printing-zebra-roll .sheet-footer,
+  body.printing-zebra-roll .single-label-modal-wrapper,
+  body.printing-zebra-roll header,
+  body.printing-zebra-roll nav {
+    display: none !important;
+  }
+
+  body.printing-zebra-roll #printable-sheet {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  body.printing-zebra-roll #printable-sheet .grid {
+    display: block !important;
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.printing-zebra-roll .zebra-label-item {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+    width: var(--zebra-width, 100mm) !important;
+    height: var(--zebra-height, 50mm) !important;
+    max-width: var(--zebra-width, 100mm) !important;
+    max-height: var(--zebra-height, 50mm) !important;
+    margin: 0 auto !important;
+    padding: 1.5mm 2.5mm !important;
+    background: #ffffff !important;
+    border: none !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow: hidden !important;
+  }
+
+  body.printing-zebra-roll .zebra-label-item:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  /* Mode Zebra unitaire */
+  body.printing-single-zebra #printable-sheet {
+    display: none !important;
+  }
+
+  body.printing-single-zebra .single-label-modal-wrapper {
+    display: block !important;
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  body.printing-single-zebra .single-label-modal-box {
+    display: block !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    width: 100% !important;
+  }
+
+  body.printing-single-zebra #single-label-print-card {
+    display: flex !important;
+    visibility: visible !important;
+    position: static !important;
+    margin: 0 auto !important;
+    width: var(--zebra-width, 100mm) !important;
+    height: var(--zebra-height, 50mm) !important;
+    max-width: var(--zebra-width, 100mm) !important;
+    max-height: var(--zebra-height, 50mm) !important;
+    padding: 1.5mm 2.5mm !important;
+    border: none !important;
+    box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow: hidden !important;
+  }
 }

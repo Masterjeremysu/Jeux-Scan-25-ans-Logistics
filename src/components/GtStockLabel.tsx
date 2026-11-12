@@ -6,7 +6,7 @@ export interface GtStockLabelProps {
   lrCode?: string;
   crLabel?: string;
   type?: string;
-  size?: 'compact' | 'standard' | 'large';
+  size?: 'compact' | 'standard' | 'large' | 'zebra';
   idSuffix?: string;
   className?: string;
   showCutLine?: boolean;
@@ -90,8 +90,12 @@ export const GtStockLabel: React.FC<GtStockLabelProps> = ({
         JsBarcode(svgRef.current, cleanCode, {
           format: 'CODE128',
           lineColor: '#000000',
-          width: isLocation ? (size === 'compact' ? 1.8 : size === 'large' ? 2.8 : 2.2) : (size === 'compact' ? 1.6 : size === 'large' ? 2.6 : 2.0),
-          height: isLocation ? (size === 'compact' ? 44 : size === 'large' ? 70 : 54) : (size === 'compact' ? 38 : size === 'large' ? 62 : 48),
+          width: isLocation 
+            ? (size === 'compact' ? 1.8 : size === 'large' ? 2.8 : size === 'zebra' ? 2.1 : 2.2) 
+            : (size === 'compact' ? 1.6 : size === 'large' ? 2.6 : size === 'zebra' ? 1.9 : 2.0),
+          height: isLocation 
+            ? (size === 'compact' ? 44 : size === 'large' ? 70 : size === 'zebra' ? 48 : 54) 
+            : (size === 'compact' ? 38 : size === 'large' ? 62 : size === 'zebra' ? 42 : 48),
           displayValue: false, // Rendu personnalisé sous le code-barres
           margin: 0,
           background: 'transparent'
@@ -109,6 +113,8 @@ export const GtStockLabel: React.FC<GtStockLabelProps> = ({
           ? 'max-w-xs text-xs'
           : size === 'large'
           ? 'max-w-md text-sm'
+          : size === 'zebra'
+          ? 'w-full h-full max-w-none text-xs p-2 sm:p-2.5 rounded-lg'
           : 'max-w-sm text-xs'
       } ${className}`}
       style={{
