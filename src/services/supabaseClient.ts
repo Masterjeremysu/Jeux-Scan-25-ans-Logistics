@@ -52,7 +52,7 @@ export interface StoredAppConfig {
 
 const LOCAL_STORAGE_KEY = 'cea_wms_custom_config_v2';
 
-// Fetch leaderboard ordered by score descending (Real database rows only, no mock)
+// Fetch leaderboard ordered by score descending (Deduplicated: highest score per duo/player)
 export async function getRemoteLeaderboard(): Promise<RemoteScore[]> {
   if (!supabase) return [];
   try {
@@ -61,13 +61,27 @@ export async function getRemoteLeaderboard(): Promise<RemoteScore[]> {
       .select('*')
       .order('score', { ascending: false })
       .order('created_at', { ascending: true })
-      .limit(50);
+      .limit(100);
 
     if (error) {
       console.warn('[Supabase] Erreur récupération scores:', error.message);
       return [];
     }
-    return (data as RemoteScore[]) || [];
+    const rawScores = (data as RemoteScore[]) || [];
+    
+    // Déduplication par nom de duo / joueur : on garde uniquement le score le plus élevé par équipe
+    const seenNames = new Set<string>();
+    const deduplicated: RemoteScore[] = [];
+
+    for (const sc of rawScores) {
+      const cleanKey = (sc.name || '').trim().toLowerCase();
+      if (!cleanKey) continue;
+      if (seenNames.has(cleanKey)) continue;
+      seenNames.add(cleanKey);
+      deduplicated.push(sc);
+    }
+
+    return deduplicated;
   } catch (err) {
     console.warn('[Supabase] Exception getRemoteLeaderboard:', err);
     return [];
@@ -112,10 +126,67 @@ export async function resetLiveActivity(): Promise<boolean> {
   }
 }
 
-// Save score to Supabase
+// Fetch recent live activities from Supabase (to populate ticker on page load)
+export async function getRecentLiveActivities(limit: number = 8): Promise<LiveActivityEvent[]> {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('live_activity')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.warn('[Supabase] Erreur getRecentLiveActivities:', error.message);
+      return [];
+    }
+    return (data as LiveActivityEvent[]) || [];
+  } catch (err) {
+    console.warn('[Supabase] Exception getRecentLiveActivities:', err);
+    return [];
+  }
+}
+
+// Save or update score to Supabase (Upsert / preserve best score without duplicates)
 export async function submitScore(score: Omit<RemoteScore, 'id' | 'created_at'>): Promise<boolean> {
   if (!supabase) return false;
   try {
+    const cleanName = (score.name || '').trim();
+    if (!cleanName) return false;
+
+    // Vérifier si ce joueur / duo a déjà un score existant
+    const { data: existingRows } = await supabase
+      .from('scores')
+      .select('id, score')
+      .eq('name', cleanName)
+      .limit(1);
+
+    if (existingRows && existingRows.length > 0) {
+      const existing = existingRows[0];
+      // Si le nouveau score est supérieur ou égal, on met à jour la ligne existante
+      if (score.score >= existing.score) {
+        const { error: updateError } = await supabase
+          .from('scores')
+          .update({
+            score: score.score,
+            company: score.company,
+            time_spent: score.time_spent,
+            completed_missions: score.completed_missions,
+            accuracy: score.accuracy
+          })
+          .eq('id', existing.id);
+
+        if (updateError) {
+          console.warn('[Supabase] Erreur mise à jour score existant:', updateError.message);
+          return false;
+        }
+        return true;
+      }
+      // Si le nouveau score est inférieur, on conserve le meilleur existant sans dupliquer
+      return true;
+    }
+
+    // Aucun score préalable : insertion nouvelle
     const { error } = await supabase.from('scores').insert([score]);
     if (error) {
       console.warn('[Supabase] Erreur enregistrement score:', error.message);

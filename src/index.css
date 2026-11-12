@@ -82,6 +82,9 @@
 
   /* 2. UNIVERSAL HIDE SCREEN-ONLY CONTROLS */
   .no-print,
+  .toast-container,
+  [role="status"],
+  [aria-live="polite"],
   header,
   nav,
   button {

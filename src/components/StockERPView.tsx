@@ -1,120 +1,197 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { InventoryItem } from '../types';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { InventoryItem, WarehouseLocation } from '../types';
+import { INITIAL_LOCATIONS } from '../data/initialData';
 import { 
   Search, 
   MapPin, 
   Plus, 
   Save, 
   Trash2, 
-  Edit3, 
+  Copy,
   CheckCircle2, 
   AlertCircle,
-  PackageCheck,
+  Package,
+  Layers,
+  ArrowRight,
+  ExternalLink,
   RotateCcw
 } from 'lucide-react';
 import { showToast } from './ToastNotification';
 
 interface StockERPViewProps {
   inventory: InventoryItem[];
+  locations?: WarehouseLocation[];
   onUpdateQuantity: (id: string, delta: number) => void;
   onUpdateInventory?: (newInv: InventoryItem[]) => Promise<void> | void;
+  onNavigateToAdminLocations?: () => void;
 }
 
 export const StockERPView: React.FC<StockERPViewProps> = ({ 
   inventory, 
+  locations = INITIAL_LOCATIONS,
   onUpdateQuantity,
-  onUpdateInventory 
+  onUpdateInventory,
+  onNavigateToAdminLocations
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [isEditMode, setIsEditMode] = useState(false);
   const [localItems, setLocalItems] = useState<InventoryItem[]>(inventory);
+  const [hasChanges, setHasChanges] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Synchronisation lorsque l'inventaire distant change
+  // Synchroniser avec les props extérieures UNIQUEMENT si l'utilisateur n'a pas de modifications en cours
   useEffect(() => {
-    if (!isEditMode) {
+    if (!hasChanges) {
       setLocalItems(inventory);
     }
-  }, [inventory, isEditMode]);
+  }, [inventory, hasChanges]);
 
-  // Auto-synchronisation debounced : propage immédiatement toutes les frappes de l'utilisateur
-  const isInitialERP = useRef(true);
+  // Raccourci clavier Ctrl+S / Cmd+S pour sauvegarder instantanément
   useEffect(() => {
-    if (isInitialERP.current) {
-      isInitialERP.current = false;
-      return;
-    }
-    if (!isEditMode) return;
-
-    const timer = setTimeout(() => {
-      if (onUpdateInventory) {
-        onUpdateInventory(localItems);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSaveAll();
       }
-    }, 700);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [localItems, onUpdateInventory]);
 
-    return () => clearTimeout(timer);
-  }, [localItems, isEditMode, onUpdateInventory]);
+  // Modification immuable et stable d'un champ sans casser les sélections ou copier-coller
+  const handleFieldChange = useCallback((id: string, field: keyof InventoryItem, value: any) => {
+    setLocalItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const updated = { ...item, [field]: value };
+        // Si le nom change, synchroniser le crLabel pour l'impression
+        if (field === 'name') {
+          updated.crLabel = String(value).toUpperCase();
+        }
+        return updated;
+      })
+    );
+    setHasChanges(true);
+  }, []);
 
-  const filtered = localItems.filter((item) => {
-    const matchesSearch = 
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.lrCode && item.lrCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (item.gestionnaire && item.gestionnaire.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (item.machinePdt && item.machinePdt.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (item.refEquipementier && item.refEquipementier.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      item.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCat = selectedCategory === 'all' || item.category === selectedCategory;
-    return matchesSearch && matchesCat;
-  });
+  // Liste des emplacements disponibles pour le datalist
+  const locationOptions = useMemo(() => {
+    const locMap = new Map<string, string>();
+    // Emplacements configurés
+    locations.forEach((loc) => {
+      locMap.set(loc.barcode, loc.label);
+    });
+    // Emplacements déjà présents dans l'inventaire
+    localItems.forEach((it) => {
+      if (it.location && !locMap.has(it.location)) {
+        locMap.set(it.location, `Emplacement ${it.location}`);
+      }
+    });
+    return Array.from(locMap.entries()).map(([barcode, label]) => ({ barcode, label }));
+  }, [locations, localItems]);
 
-  const categories = ['all', 'Vide & Cryo', 'Microélectronique', 'Consommables'];
+  const categories = useMemo(() => {
+    const set = new Set<string>(['Vide & Cryo', 'Microélectronique', 'Consommables']);
+    localItems.forEach((it) => {
+      if (it.category) set.add(it.category);
+    });
+    return ['all', ...Array.from(set)];
+  }, [localItems]);
 
-  // Ajouter un nouvel article dans la liste
+  const filtered = useMemo(() => {
+    const q = searchTerm.toLowerCase().trim();
+    return localItems.filter((item) => {
+      const matchesSearch = 
+        !q ||
+        (item.name && item.name.toLowerCase().includes(q)) ||
+        (item.sku && item.sku.toLowerCase().includes(q)) ||
+        (item.lrCode && item.lrCode.toLowerCase().includes(q)) ||
+        (item.location && item.location.toLowerCase().includes(q)) ||
+        (item.gestionnaire && item.gestionnaire.toLowerCase().includes(q)) ||
+        (item.machinePdt && item.machinePdt.toLowerCase().includes(q)) ||
+        (item.refEquipementier && item.refEquipementier.toLowerCase().includes(q));
+      const matchesCat = selectedCategory === 'all' || item.category === selectedCategory;
+      return matchesSearch && matchesCat;
+    });
+  }, [localItems, searchTerm, selectedCategory]);
+
+  // Ajouter un nouvel article
   const handleAddNewItem = () => {
+    const newSku = `REF${Date.now().toString().slice(-9)}`;
     const newItem: InventoryItem = {
       id: `item-${Date.now()}`,
-      sku: `REF${Date.now().toString().slice(-12)}`,
-      lrCode: 'REF_NEW',
-      crLabel: 'NOUVEL ARTICLE INDUSTRIEL',
+      sku: newSku,
+      lrCode: `REF_${Date.now().toString().slice(-4)}`,
       name: 'NOUVEL ARTICLE INDUSTRIEL',
-      category: 'Vide & Cryo',
-      location: 'ZONE_POMPE_GRILLE_41',
+      crLabel: 'NOUVEL ARTICLE INDUSTRIEL',
+      category: selectedCategory !== 'all' ? selectedCategory : 'Consommables',
+      location: locations[0]?.barcode || 'LOC-B01-T03',
       quantity: 10,
       unit: 'pcs',
       critical: false,
-      batch: 'LOT-2026',
-      description: 'Pièce industrielle de stock...',
+      batch: `LOT-${new Date().getFullYear()}`,
+      description: 'Pièce industrielle référencée GT Logistics',
       gestionnaire: 'GT Logistics',
       machinePdt: 'Poste 1',
-      refEquipementier: 'OEM-REF-01'
+      refEquipementier: 'OEM-GT-01'
     };
-    setLocalItems([...localItems, newItem]);
-    if (!isEditMode) setIsEditMode(true);
+    setLocalItems((prev) => [newItem, ...prev]);
+    setHasChanges(true);
+    showToast({
+      title: 'Nouvelle Référence Créée',
+      message: 'Complétez les champs et cliquez sur "Enregistrer les Modifications"',
+      type: 'info'
+    });
+  };
+
+  // Dupliquer un article existant
+  const handleDuplicateItem = (item: InventoryItem) => {
+    const duplicated: InventoryItem = {
+      ...item,
+      id: `item-${Date.now()}`,
+      sku: `${item.sku}-BIS`,
+      lrCode: `${item.lrCode || 'REF'}_BIS`,
+      name: `${item.name} (COPIE)`,
+      crLabel: `${item.crLabel || item.name} (COPIE)`
+    };
+    setLocalItems((prev) => [duplicated, ...prev]);
+    setHasChanges(true);
+    showToast({
+      title: 'Référence Dupliquée',
+      message: `${duplicated.name} ajoutée au stock`,
+      type: 'info'
+    });
   };
 
   // Supprimer un article
-  const handleDeleteItem = (id: string) => {
-    setLocalItems(localItems.filter((item) => item.id !== id));
+  const handleDeleteItem = (id: string, name: string) => {
+    if (window.confirm(`Supprimer définitivement l'article "${name}" du stock ?`)) {
+      setLocalItems((prev) => prev.filter((it) => it.id !== id));
+      setHasChanges(true);
+      showToast({
+        title: 'Article Supprimé',
+        message: 'Pensez à cliquer sur "Enregistrer" pour synchroniser',
+        type: 'warning'
+      });
+    }
   };
 
-  // Enregistrer toutes les modifications dans Supabase et l'ERP
+  // Enregistrer toutes les modifications
   const handleSaveAll = async () => {
     setIsSaving(true);
     try {
       if (onUpdateInventory) {
         await onUpdateInventory(localItems);
       }
+      setHasChanges(false);
       showToast({
         title: 'Stock ERP Enregistré',
         message: `${localItems.length} références synchronisées en direct sur tous les postes`,
         type: 'success'
       });
-      setIsEditMode(false);
     } catch (err) {
       showToast({
-        title: 'Erreur Cloud',
+        title: 'Erreur Enregistrement',
         message: 'Impossible de synchroniser avec Supabase pour le moment',
         type: 'warning'
       });
@@ -123,83 +200,106 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
     }
   };
 
-  // Annuler les modifications non enregistrées
-  const handleCancelEdit = () => {
-    setLocalItems(inventory);
-    setIsEditMode(false);
+  // Réinitialiser les modifications non enregistrées
+  const handleCancelChanges = () => {
+    if (window.confirm('Annuler toutes les modifications non enregistrées ?')) {
+      setLocalItems(inventory);
+      setHasChanges(false);
+    }
   };
 
   return (
-    <div className="min-h-[calc(100vh-65px)] p-3 sm:p-5 flex flex-col gap-4">
-      {/* Top Banner & Command Bar */}
-      <div className="bg-slate-900 rounded-2xl p-4 border border-slate-800 flex flex-wrap items-center justify-between gap-4 shadow-xl">
+    <div className="min-h-[calc(100vh-65px)] p-3 sm:p-5 flex flex-col gap-4 font-sans bg-[#071224] text-slate-100">
+      {/* Datalist invisible pour les suggestions d'emplacements rapides */}
+      <datalist id="warehouse-locations-list">
+        {locationOptions.map((loc) => (
+          <option key={loc.barcode} value={loc.barcode}>
+            {loc.label}
+          </option>
+        ))}
+      </datalist>
+
+      {/* Top Banner & Command Bar GT Logistics */}
+      <div className="bg-[#0c1e3a]/95 rounded-2xl p-4 border border-slate-700/80 flex flex-wrap items-center justify-between gap-4 shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-red-600 via-rose-500 to-transparent opacity-80" />
+
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-extrabold text-white">GESTION DES STOCKS & ERP TRAÇABILITÉ</h2>
-            {isEditMode && (
-              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono text-[10px] font-bold uppercase animate-pulse">
-                Mode Édition Actif
+            <span className="font-sans font-black italic tracking-tight text-white text-lg">
+              <span>gt</span>
+              <span className="ml-1 not-italic font-bold text-slate-200 lowercase">logistics</span>
+            </span>
+            <span className="text-slate-500">•</span>
+            <h2 className="text-base sm:text-lg font-black text-white tracking-wide uppercase">
+              GESTION DES STOCKS & ERP TRAÇABILITÉ
+            </h2>
+            {hasChanges && (
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 font-mono text-[10px] font-bold uppercase animate-pulse">
+                Modifications en attente
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-400 font-mono mt-0.5">
-            Base de données magasins centraux CEA Minatec / LETI • Traçabilité Référence GT Logistics
+          <p className="text-xs text-slate-300 font-sans mt-0.5 flex items-center gap-2">
+            <span>Base de données magasins centraux CEA LETI</span>
+            <span className="text-red-500">•</span>
+            <span className="italic text-slate-400">Tous les champs sont éditables directement (Réf, Code-barres, Désignation, Emplacement)</span>
           </p>
         </div>
 
+        {/* Action Buttons: Add / Save / Locations */}
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Action Buttons: Edit / Add / Save */}
-          {isEditMode ? (
-            <>
-              <button
-                type="button"
-                onClick={handleAddNewItem}
-                className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center space-x-1.5 cursor-pointer shadow-md"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Ajouter un Article</span>
-              </button>
+          {/* Nouveau Référence */}
+          <button
+            type="button"
+            onClick={handleAddNewItem}
+            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-sky-600/30 cursor-pointer transition-all"
+            title="Créer une nouvelle référence d'article"
+          >
+            <Plus className="w-4 h-4 text-white" />
+            <span>+ Nouvel Article</span>
+          </button>
 
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold flex items-center space-x-1.5 cursor-pointer"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Annuler</span>
-              </button>
-
-              <button
-                type="button"
-                disabled={isSaving}
-                onClick={handleSaveAll}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs flex items-center space-x-2 shadow-lg shadow-emerald-500/30 cursor-pointer transition-all"
-              >
-                <Save className="w-4 h-4" />
-                <span>{isSaving ? 'Enregistrement...' : 'Enregistrer le Stock'}</span>
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => setIsEditMode(true)}
-                className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center space-x-1.5 cursor-pointer shadow-md shadow-sky-600/20"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-                <span>Modifier les Articles</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleAddNewItem}
-                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center space-x-1.5 cursor-pointer border border-slate-700"
-              >
-                <Plus className="w-3.5 h-3.5 text-sky-400" />
-                <span>Nouvel Article</span>
-              </button>
-            </>
+          {/* Gérer Emplacements */}
+          {onNavigateToAdminLocations && (
+            <button
+              type="button"
+              onClick={onNavigateToAdminLocations}
+              className="px-3 py-2 rounded-xl bg-[#0e2752] hover:bg-[#13356e] text-sky-300 hover:text-white border border-sky-500/40 font-bold text-xs flex items-center space-x-1.5 cursor-pointer transition-all"
+              title="Configurer les étagères, tiroirs et zones physiques de l'entrepôt"
+            >
+              <MapPin className="w-3.5 h-3.5 text-amber-400" />
+              <span>Gérer les Emplacements</span>
+            </button>
           )}
+
+          {/* Annuler si modifications */}
+          {hasChanges && (
+            <button
+              type="button"
+              onClick={handleCancelChanges}
+              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold flex items-center space-x-1.5 cursor-pointer border border-slate-700"
+              title="Annuler les modifications en cours"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+              <span>Annuler</span>
+            </button>
+          )}
+
+          {/* Enregistrer les modifications */}
+          <button
+            type="button"
+            disabled={isSaving}
+            onClick={handleSaveAll}
+            className={`px-5 py-2 rounded-xl font-black text-xs flex items-center space-x-2 shadow-lg cursor-pointer transition-all ${
+              hasChanges
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-emerald-500/40 ring-2 ring-emerald-300 animate-pulse'
+                : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+            }`}
+            title="Enregistrer toutes les modifications dans la base (Ctrl + S)"
+          >
+            <Save className="w-4 h-4 text-current" />
+            <span>{isSaving ? 'Enregistrement...' : hasChanges ? 'Enregistrer les Modifications (Ctrl+S)' : 'Stock à Jour'}</span>
+          </button>
 
           {/* Search Bar */}
           <div className="relative">
@@ -208,21 +308,21 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Rechercher réf, code-barres, machine..."
-              className="bg-slate-950 border border-slate-700 pl-9 pr-3 py-1.5 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 w-64"
+              placeholder="Rechercher réf, SKU, emplacement..."
+              className="bg-[#071224] border border-slate-700 pl-9 pr-3 py-1.5 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 w-56 sm:w-64"
             />
           </div>
 
           {/* Category Filter */}
-          <div className="flex items-center space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+          <div className="flex items-center space-x-1 bg-[#071224] p-1 rounded-xl border border-slate-800 text-xs">
             {categories.map((cat) => (
               <button
                 key={cat}
                 type="button"
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1 rounded-lg font-medium transition-colors ${
+                className={`px-2.5 py-1 rounded-lg font-medium transition-colors ${
                   selectedCategory === cat
-                    ? 'bg-sky-600 text-white'
+                    ? 'bg-sky-600 text-white font-bold'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -233,285 +333,206 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
         </div>
       </div>
 
-      {/* Stock Table */}
-      <div className="bg-slate-900 rounded-3xl border border-slate-800 flex-1 overflow-hidden shadow-xl flex flex-col">
+      {/* Stock Table avec Édition Directe Fiable */}
+      <div className="bg-[#0c1e3a]/95 rounded-3xl border border-slate-700/80 flex-1 overflow-hidden shadow-2xl flex flex-col">
         <div className="overflow-x-auto flex-1">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-950/90 text-slate-400 font-mono uppercase text-[10px] sm:text-[11px] sticky top-0 border-b border-slate-800 z-10 backdrop-blur-md">
+            <thead className="bg-[#08152c] text-slate-300 font-mono uppercase text-[10px] sm:text-[11px] sticky top-0 border-b border-slate-700 z-10 backdrop-blur-md">
               <tr>
-                <th className="py-3 px-3">Réf</th>
-                <th className="py-3 px-3">Code SKU (Code-barres)</th>
-                <th className="py-3 px-3">Désignation</th>
+                <th className="py-3 px-3">Réf Article</th>
+                <th className="py-3 px-3">Code-barres SKU</th>
+                <th className="py-3 px-3">Désignation & Description</th>
                 <th className="py-3 px-3 text-right">Qté en stock</th>
-                <th className="py-3 px-3">Emplacement</th>
+                <th className="py-3 px-3">Emplacement Physique</th>
                 <th className="py-3 px-3">Gestionnaire</th>
-                <th className="py-3 px-3">Machine PDT</th>
-                <th className="py-3 px-3">Réf Équipementier</th>
+                <th className="py-3 px-3">Machine / Poste</th>
                 <th className="py-3 px-3 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-sans">
-              {filtered.map((item, idx) => {
-                const realIdx = localItems.findIndex((it) => it.id === item.id);
-                return (
-                  <tr key={item.id || idx} className="hover:bg-slate-800/40 transition-colors">
-                    {/* 1. Réf (ex: JNT_A001) */}
-                    <td className="py-2.5 px-3 whitespace-nowrap">
-                      {isEditMode ? (
-                        <input
-                          type="text"
-                          value={item.lrCode || ''}
-                          placeholder="JNT_A001"
-                          onChange={(e) => {
-                            const updated = [...localItems];
-                            updated[realIdx].lrCode = e.target.value.trim().toUpperCase();
-                            setLocalItems(updated);
-                          }}
-                          className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-amber-400 font-mono font-bold w-24 text-xs"
-                        />
-                      ) : (
-                        <span className="font-mono font-black text-amber-400 text-xs">
-                          {item.lrCode || item.sku.replace('ART-', 'REF_')}
-                        </span>
-                      )}
+            <tbody className="divide-y divide-slate-800 font-sans">
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-slate-400 font-mono">
+                    Aucun article trouvé. Cliquez sur "+ Nouvel Article" pour en ajouter un.
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-800/50 transition-colors group">
+                    {/* 1. Réf article (ex: JNT_A001) */}
+                    <td className="py-2 px-3 whitespace-nowrap">
+                      <input
+                        type="text"
+                        value={item.lrCode || ''}
+                        onChange={(e) => handleFieldChange(item.id, 'lrCode', e.target.value)}
+                        placeholder="JNT_A001"
+                        className="bg-[#071224] border border-slate-700 focus:border-amber-400 px-2 py-1 rounded-lg text-amber-300 font-mono font-bold w-28 text-xs focus:outline-none"
+                        title="Référence courte article imprimée sur le ticket L/R"
+                      />
                     </td>
 
-                    {/* 2. Code-barres SKU */}
-                    <td className="py-2.5 px-3 whitespace-nowrap">
-                      {isEditMode ? (
-                        <input
-                          type="text"
-                          value={item.sku}
-                          placeholder="REF191000..."
-                          onChange={(e) => {
-                            const updated = [...localItems];
-                            updated[realIdx].sku = e.target.value.trim().toUpperCase();
-                            setLocalItems(updated);
-                          }}
-                          className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-sky-400 font-mono font-bold w-36 text-xs"
-                        />
-                      ) : (
-                        <span className="font-mono font-bold text-sky-400">
-                          {item.sku}
-                        </span>
-                      )}
+                    {/* 2. Code-barres SKU (ex: REF191000007490) */}
+                    <td className="py-2 px-3 whitespace-nowrap">
+                      <input
+                        type="text"
+                        value={item.sku || ''}
+                        onChange={(e) => handleFieldChange(item.id, 'sku', e.target.value)}
+                        placeholder="REF191000..."
+                        className="bg-[#071224] border border-slate-700 focus:border-sky-400 px-2 py-1 rounded-lg text-sky-400 font-mono font-bold w-40 text-xs focus:outline-none"
+                        title="Code-barres scanné au laser par les joueurs"
+                      />
                     </td>
 
-                    {/* 3. Désignation */}
-                    <td className="py-2.5 px-3 min-w-[200px]">
-                      {isEditMode ? (
+                    {/* 3. Désignation & Description */}
+                    <td className="py-2 px-3 min-w-[240px]">
+                      <div className="space-y-1">
                         <input
                           type="text"
-                          value={item.name}
-                          placeholder="Désignation"
-                          onChange={(e) => {
-                            const updated = [...localItems];
-                            updated[realIdx].name = e.target.value;
-                            updated[realIdx].crLabel = e.target.value.toUpperCase();
-                            setLocalItems(updated);
-                          }}
-                          className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-white font-semibold w-full text-xs"
+                          value={item.name || ''}
+                          onChange={(e) => handleFieldChange(item.id, 'name', e.target.value)}
+                          placeholder="Nom de la pièce..."
+                          className="bg-[#071224] border border-slate-700 focus:border-slate-400 px-2 py-1 rounded-lg text-white font-semibold w-full text-xs focus:outline-none"
                         />
-                      ) : (
-                        <div>
-                          <div className="font-semibold text-slate-100 uppercase text-xs">{item.crLabel || item.name}</div>
-                          {item.description && (
-                            <div className="text-[10px] text-slate-400 font-sans truncate max-w-xs">{item.description}</div>
-                          )}
-                        </div>
-                      )}
-                    </td>
-
-                    {/* 4. Quantité en stock */}
-                    <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                      {isEditMode ? (
-                        <div className="flex items-center justify-end space-x-1">
-                          <input
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) => {
-                              const updated = [...localItems];
-                              updated[realIdx].quantity = parseInt(e.target.value) || 0;
-                              setLocalItems(updated);
-                            }}
-                            className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-emerald-400 font-mono w-16 text-xs text-right"
-                          />
-                          <input
-                            type="text"
-                            value={item.unit}
-                            onChange={(e) => {
-                              const updated = [...localItems];
-                              updated[realIdx].unit = e.target.value;
-                              setLocalItems(updated);
-                            }}
-                            className="bg-slate-950 border border-slate-700 px-1 py-1 rounded text-slate-400 font-mono w-12 text-center text-xs"
-                          />
-                        </div>
-                      ) : (
-                        <div>
-                          <span className={`text-sm font-mono font-black ${
-                            item.quantity <= 5 ? 'text-rose-400' : item.quantity <= 15 ? 'text-amber-400' : 'text-emerald-400'
-                          }`}>
-                            {item.quantity}
-                          </span>
-                          <span className="text-[10px] text-slate-400 ml-1 font-mono">{item.unit}</span>
-                        </div>
-                      )}
-                    </td>
-
-                    {/* 5. Emplacement */}
-                    <td className="py-2.5 px-3 whitespace-nowrap">
-                      {isEditMode ? (
                         <input
                           type="text"
-                          value={item.location}
-                          placeholder="ZONE_... ou LOC-..."
-                          onChange={(e) => {
-                            const updated = [...localItems];
-                            updated[realIdx].location = e.target.value.trim().toUpperCase();
-                            setLocalItems(updated);
-                          }}
-                          className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-sky-300 font-mono w-32 text-xs"
+                          value={item.description || ''}
+                          onChange={(e) => handleFieldChange(item.id, 'description', e.target.value)}
+                          placeholder="Description / utilisation..."
+                          className="bg-[#071224]/80 border border-slate-800 focus:border-slate-700 px-2 py-0.5 rounded text-[10px] text-slate-400 w-full focus:outline-none"
                         />
-                      ) : (
-                        <div className="flex items-center space-x-1 font-mono font-bold text-sky-300">
-                          <MapPin className="w-3 h-3 text-amber-400 shrink-0" />
-                          <span>{item.location}</span>
-                        </div>
-                      )}
+                      </div>
+                    </td>
+
+                    {/* 4. Quantité en stock & Boutons delta */}
+                    <td className="py-2 px-3 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end space-x-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newQ = Math.max(0, item.quantity - 1);
+                            handleFieldChange(item.id, 'quantity', newQ);
+                            onUpdateQuantity(item.id, -1);
+                          }}
+                          className="w-6 h-6 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center font-bold text-xs cursor-pointer"
+                          title="-1 pièce"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => handleFieldChange(item.id, 'quantity', parseInt(e.target.value) || 0)}
+                          className="bg-[#071224] border border-slate-700 px-1 py-1 rounded-lg text-emerald-400 font-mono font-bold w-14 text-xs text-right focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newQ = item.quantity + 1;
+                            handleFieldChange(item.id, 'quantity', newQ);
+                            onUpdateQuantity(item.id, 1);
+                          }}
+                          className="w-6 h-6 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center font-bold text-xs cursor-pointer"
+                          title="+1 pièce"
+                        >
+                          +
+                        </button>
+                        <input
+                          type="text"
+                          value={item.unit || 'pcs'}
+                          onChange={(e) => handleFieldChange(item.id, 'unit', e.target.value)}
+                          className="bg-[#071224] border border-slate-800 px-1 py-1 rounded text-slate-400 font-mono w-10 text-center text-[10px] focus:outline-none"
+                          title="Unité de mesure (pcs, boîtes, etc.)"
+                        />
+                      </div>
+                    </td>
+
+                    {/* 5. Emplacement Physique (Avec Datalist & Choix Rapide) */}
+                    <td className="py-2 px-3 whitespace-nowrap">
+                      <div className="flex items-center space-x-1">
+                        <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <input
+                          type="text"
+                          list="warehouse-locations-list"
+                          value={item.location || ''}
+                          onChange={(e) => handleFieldChange(item.id, 'location', e.target.value)}
+                          placeholder="LOC-B01-T03..."
+                          className="bg-[#071224] border border-slate-700 focus:border-amber-400 px-2 py-1 rounded-lg text-sky-300 font-mono font-semibold w-40 text-xs focus:outline-none"
+                          title="Emplacement physique dans l'entrepôt (tapez ou choisissez dans la liste)"
+                        />
+                      </div>
                     </td>
 
                     {/* 6. Gestionnaire */}
-                    <td className="py-2.5 px-3 whitespace-nowrap">
-                      {isEditMode ? (
-                        <input
-                          type="text"
-                          value={item.gestionnaire || ''}
-                          placeholder="GT Logistics"
-                          onChange={(e) => {
-                            const updated = [...localItems];
-                            updated[realIdx].gestionnaire = e.target.value;
-                            setLocalItems(updated);
-                          }}
-                          className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-slate-200 text-xs w-28"
-                        />
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium text-[10px] border border-slate-700">
-                          {item.gestionnaire || 'GT Logistics'}
-                        </span>
-                      )}
+                    <td className="py-2 px-3 whitespace-nowrap">
+                      <input
+                        type="text"
+                        value={item.gestionnaire || ''}
+                        onChange={(e) => handleFieldChange(item.id, 'gestionnaire', e.target.value)}
+                        placeholder="GT Logistics"
+                        className="bg-[#071224] border border-slate-700 focus:border-slate-500 px-2 py-1 rounded-lg text-slate-300 text-xs w-28 focus:outline-none"
+                      />
                     </td>
 
-                    {/* 7. Machine PDT */}
-                    <td className="py-2.5 px-3 whitespace-nowrap">
-                      {isEditMode ? (
-                        <input
-                          type="text"
-                          value={item.machinePdt || ''}
-                          placeholder="Poste / Machine"
-                          onChange={(e) => {
-                            const updated = [...localItems];
-                            updated[realIdx].machinePdt = e.target.value;
-                            setLocalItems(updated);
-                          }}
-                          className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-slate-300 font-mono text-xs w-32"
-                        />
-                      ) : (
-                        <span className="font-mono text-slate-300 text-[11px]">
-                          {item.machinePdt || 'Standard'}
-                        </span>
-                      )}
+                    {/* 7. Machine / Poste */}
+                    <td className="py-2 px-3 whitespace-nowrap">
+                      <input
+                        type="text"
+                        value={item.machinePdt || ''}
+                        onChange={(e) => handleFieldChange(item.id, 'machinePdt', e.target.value)}
+                        placeholder="Poste / Bâti..."
+                        className="bg-[#071224] border border-slate-700 focus:border-slate-500 px-2 py-1 rounded-lg text-slate-300 font-mono text-[11px] w-32 focus:outline-none"
+                      />
                     </td>
 
-                    {/* 8. Réf Équipementier */}
-                    <td className="py-2.5 px-3 whitespace-nowrap">
-                      {isEditMode ? (
-                        <input
-                          type="text"
-                          value={item.refEquipementier || ''}
-                          placeholder="Réf Constructeur"
-                          onChange={(e) => {
-                            const updated = [...localItems];
-                            updated[realIdx].refEquipementier = e.target.value;
-                            setLocalItems(updated);
-                          }}
-                          className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-slate-400 font-mono text-xs w-32"
-                        />
-                      ) : (
-                        <span className="font-mono text-slate-400 text-[11px]">
-                          {item.refEquipementier || '-'}
-                        </span>
-                      )}
-                    </td>
-
-                    {/* 9. Actions */}
-                    <td className="py-2.5 px-3 text-center whitespace-nowrap">
-                      {isEditMode ? (
+                    {/* 8. Actions (Dupliquer / Supprimer) */}
+                    <td className="py-2 px-3 text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center space-x-1">
                         <button
                           type="button"
-                          onClick={() => handleDeleteItem(item.id)}
-                          className="text-rose-400 hover:text-rose-300 p-1.5 rounded hover:bg-rose-950/40 cursor-pointer"
-                          title="Supprimer cet article"
+                          onClick={() => handleDuplicateItem(item)}
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-sky-950 text-slate-400 hover:text-sky-300 transition-colors cursor-pointer"
+                          title="Dupliquer cette référence"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Copy className="w-3.5 h-3.5" />
                         </button>
-                      ) : (
-                        <div className="flex items-center justify-center space-x-1">
-                          <button
-                            type="button"
-                            onClick={() => onUpdateQuantity(item.id, -1)}
-                            className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold border border-slate-700 cursor-pointer"
-                            title="Consommer 1 unité (sauvegarde automatique)"
-                          >
-                            -
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => onUpdateQuantity(item.id, 1)}
-                            className="w-6 h-6 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold cursor-pointer"
-                            title="Ajouter 1 unité (sauvegarde automatique)"
-                          >
-                            +
-                          </button>
-                        </div>
-                      )}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteItem(item.id, item.name)}
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-950/80 text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
+                          title="Supprimer cette référence du stock"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
-                );
-              })}
+                ))
+              )}
             </tbody>
           </table>
         </div>
 
-        {/* Footer Bar */}
-        <div className="bg-slate-950/80 p-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400 font-mono">
-          <div className="flex items-center gap-2">
-            <PackageCheck className="w-4 h-4 text-emerald-400" />
-            <span>Total Articles Référencés : <strong className="text-white">{filtered.length}</strong></span>
+        {/* Footer info bar */}
+        <div className="p-3 bg-[#08152c] border-t border-slate-700 flex flex-wrap items-center justify-between text-xs font-mono text-slate-400">
+          <div className="flex items-center gap-3">
+            <span>{filtered.length} référence(s) affichée(s)</span>
+            <span className="text-slate-600">•</span>
+            <span>Total stock : {filtered.reduce((acc, it) => acc + (it.quantity || 0), 0)} unités</span>
           </div>
 
-          {isEditMode && (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer"
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                disabled={isSaving}
-                onClick={handleSaveAll}
-                className="px-5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs flex items-center space-x-1.5 shadow-md shadow-emerald-500/20 cursor-pointer"
-              >
-                <Save className="w-3.5 h-3.5" />
-                <span>{isSaving ? 'Enregistrement...' : 'Enregistrer les Modifications'}</span>
-              </button>
-            </div>
-          )}
-
-          <span>Synchronisé en temps réel avec le Cloud Supabase & la Scannette</span>
+          <div className="flex items-center gap-2">
+            {hasChanges ? (
+              <span className="text-amber-400 flex items-center gap-1 font-bold">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>N'oubliez pas d'enregistrer vos modifications (Ctrl + S)</span>
+              </span>
+            ) : (
+              <span className="text-emerald-400 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Toutes les références sont synchronisées</span>
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

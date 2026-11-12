@@ -18,6 +18,16 @@ export interface DuoStation {
   updated_at?: string;
 }
 
+export interface WarehouseLocation {
+  id: string;
+  barcode: string; // e.g. "LOC-B01-T03" ou "ZONE_POMPE_GRILLE_41"
+  label: string; // e.g. "Armoire B01 (Allée B - Tiroir T03)"
+  lrCode?: string; // e.g. "LOC_B01_T03"
+  crLabel?: string; // e.g. "ARMOIRE ALLEE B TIROIR T03"
+  zone?: string; // e.g. "Magasin Central", "Quai Expédition", "Poste 1", "Poste 2"
+  description?: string;
+}
+
 export interface AppConfig {
   eventTitle: string;
   eventSubtitle: string;
@@ -33,6 +43,7 @@ export interface AppConfig {
   autoHazardsEnabled?: boolean;
   hazardIntervalSeconds?: number;
   clientsCatalog?: string[];
+  locations?: WarehouseLocation[]; // Emplacements personnalisés configurables par l'utilisateur
 }
 
 export interface Distraction {

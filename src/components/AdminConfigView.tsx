@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mission, MissionStep, InventoryItem, AppConfig, Distraction, LiveHazard } from '../types';
 import { 
   Settings, 
   Save, 
@@ -35,7 +34,8 @@ import {
   Swords,
   QrCode,
   ExternalLink,
-  Smartphone
+  Smartphone,
+  MapPin
 } from 'lucide-react';
 import { 
   saveAppConfig, 
@@ -51,10 +51,11 @@ import {
   deleteScoreById,
   RemoteScore
 } from '../services/supabaseClient';
-import { INITIAL_INVENTORY } from '../data/initialData';
+import { INITIAL_INVENTORY, INITIAL_LOCATIONS } from '../data/initialData';
 import { MISSIONS } from '../data/missions';
 import { ConfirmModal } from './ConfirmModal';
 import { showToast } from './ToastNotification';
+import { Mission, MissionStep, InventoryItem, AppConfig, Distraction, LiveHazard, WarehouseLocation } from '../types';
 
 interface AdminConfigViewProps {
   appConfig: AppConfig;
@@ -65,15 +66,6 @@ interface AdminConfigViewProps {
   onUpdateInventory: (inventory: InventoryItem[]) => void;
 }
 
-const STANDARD_LOCATIONS = [
-  { barcode: 'LOC-B01-T03', label: 'Armoire B01 (Allée B - Tiroir T03)', lr: 'LOC_B01_T03', cr: 'ARMOIRE ALLEE B TIROIR T03' },
-  { barcode: 'LOC-ETAGERE-COLLECTE', label: 'Étagère de Collecte & Retours Clients', lr: 'ETA_COLLECT', cr: 'ETAGERE DE COLLECTE CLIENTS' },
-  { barcode: 'LOC-ETAGERE-LIVRAISON', label: 'Étagère de Livraison & Dépôt Client', lr: 'ETA_LIVR', cr: 'ETAGERE LIVRAISON CLIENT' },
-  { barcode: 'ZONE_POMPE_GRILLE_41', label: 'Zone Pompe Grille 41 (Stock Central)', lr: 'ZONE_PMP_41', cr: 'ZONE POMPE GRILLE 41' },
-  { barcode: 'LOC-ETA1-NIV1', label: 'Étagère 1 • Niveau 1 (Prise Colis)', lr: 'ETA_1_N1', cr: 'ETAGERE 1 NIVEAU BAS' },
-  { barcode: 'ZONE_RECEPTION_CENTRALE', label: 'La Réception Centrale (Départs Étranger)', lr: 'REC_CENT', cr: 'LA RECEPTION CENTRALE DEPARTS' }
-];
-
 export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
   appConfig,
   onUpdateAppConfig,
@@ -82,10 +74,13 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
   inventory,
   onUpdateInventory
 }) => {
-  const [activeTab, setActiveTab] = useState<'branding' | 'rules' | 'stations' | 'missions' | 'inventory' | 'hazards' | 'database'>('branding');
+  const [activeTab, setActiveTab] = useState<'branding' | 'rules' | 'stations' | 'missions' | 'inventory' | 'locations' | 'hazards' | 'database'>('branding');
   const [localConfig, setLocalConfig] = useState<AppConfig>(appConfig);
   const [localMissions, setLocalMissions] = useState<Mission[]>(missions);
   const [localInventory, setLocalInventory] = useState<InventoryItem[]>(inventory);
+  const [localLocations, setLocalLocations] = useState<WarehouseLocation[]>(
+    () => appConfig.locations && appConfig.locations.length > 0 ? appConfig.locations : INITIAL_LOCATIONS
+  );
   const [selectedMissionIndex, setSelectedMissionIndex] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isLocalEditingMissionsRef = useRef(false);
@@ -117,11 +112,15 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     }
 
     const timer = setTimeout(() => {
-      onUpdateAppConfig(localConfig);
+      const configWithLocs = {
+        ...localConfig,
+        locations: localLocations
+      };
+      onUpdateAppConfig(configWithLocs);
       onUpdateMissions(localMissions);
       onUpdateInventory(localInventory);
       saveAppConfig({
-        ...localConfig,
+        ...configWithLocs,
         missions: localMissions,
         inventory: localInventory
       });
@@ -131,7 +130,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     }, 800);
 
     return () => clearTimeout(timer);
-  }, [localConfig, localMissions, localInventory]);
+  }, [localConfig, localMissions, localInventory, localLocations]);
 
   // Hazards & Distractions States
   const [distractions, setDistractions] = useState<Distraction[]>([]);
@@ -237,12 +236,16 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
   // Save to Cloud and local state
   const handleSaveAll = async () => {
-    onUpdateAppConfig(localConfig);
+    const configWithLocs = {
+      ...localConfig,
+      locations: localLocations
+    };
+    onUpdateAppConfig(configWithLocs);
     onUpdateMissions(localMissions);
     onUpdateInventory(localInventory);
 
     const success = await saveAppConfig({
-      ...localConfig,
+      ...configWithLocs,
       missions: localMissions,
       inventory: localInventory
     });
@@ -839,6 +842,113 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     });
   };
 
+  // Add Location
+  const handleAddNewLocation = () => {
+    const num = localLocations.length + 1;
+    const newLoc: WarehouseLocation = {
+      id: `loc-${Date.now()}`,
+      barcode: `LOC-ZONE-${num.toString().padStart(2, '0')}`,
+      label: `Zone / Étagère #${num}`,
+      lrCode: `LOC_Z${num}`,
+      crLabel: `ZONE ETAGERE ${num}`,
+      zone: 'Magasin Central'
+    };
+    setLocalLocations(prev => [...prev, newLoc]);
+    showToast({
+      title: 'Emplacement Ajouté',
+      message: `"${newLoc.label}" créé (${newLoc.barcode})`,
+      type: 'info'
+    });
+  };
+
+  // Duplicate Location
+  const handleDuplicateLocation = (loc: WarehouseLocation) => {
+    const copy: WarehouseLocation = {
+      ...loc,
+      id: `loc-${Date.now()}`,
+      barcode: `${loc.barcode}-BIS`,
+      label: `${loc.label} (Copie)`,
+      lrCode: `${loc.lrCode || 'LOC'}_BIS`
+    };
+    setLocalLocations(prev => [...prev, copy]);
+    showToast({
+      title: 'Emplacement Dupliqué',
+      message: `${copy.label} créé`,
+      type: 'info'
+    });
+  };
+
+  // Update Location Field
+  const handleUpdateLocationField = (id: string, field: keyof WarehouseLocation, value: any) => {
+    setLocalLocations(prev => prev.map(loc => {
+      if (loc.id !== id) return loc;
+      const updated = { ...loc, [field]: value };
+      if (field === 'label' && !loc.crLabel) {
+        updated.crLabel = String(value).toUpperCase();
+      }
+      return updated;
+    }));
+  };
+
+  // Delete Location
+  const handleDeleteLocation = (id: string, label: string) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Supprimer cet emplacement ?',
+      message: `Voulez-vous supprimer l'emplacement "${label}" ? Les articles ou missions pointant vers lui devront être réassignés.`,
+      confirmLabel: 'Supprimer',
+      variant: 'danger',
+      action: () => {
+        setLocalLocations(prev => prev.filter(l => l.id !== id));
+        showToast({
+          title: 'Emplacement Supprimé',
+          message: label,
+          type: 'warning'
+        });
+      }
+    });
+  };
+
+  // Reset Locations to default
+  const handleResetLocations = () => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Réinitialiser aux emplacements standards ?',
+      message: 'Cette action restaurera la liste standard des emplacements GT Logistics / CEA Minatec.',
+      confirmLabel: 'Réinitialiser',
+      variant: 'warning',
+      action: () => {
+        setLocalLocations(INITIAL_LOCATIONS);
+        showToast({
+          title: 'Emplacements Réinitialisés',
+          message: `${INITIAL_LOCATIONS.length} emplacements rétablis`,
+          type: 'success'
+        });
+      }
+    });
+  };
+
+  // Dedicated Save Locations
+  const handleSaveLocations = async () => {
+    const configWithLocs = {
+      ...localConfig,
+      locations: localLocations
+    };
+    onUpdateAppConfig(configWithLocs);
+    const ok = await saveAppConfig({
+      ...configWithLocs,
+      missions: localMissions,
+      inventory: localInventory
+    });
+    if (ok) {
+      showToast({
+        title: 'Emplacements Enregistrés',
+        message: `${localLocations.length} emplacements physiques synchronisés dans Supabase`,
+        type: 'success'
+      });
+    }
+  };
+
   return (
     <div className="min-h-[calc(100vh-65px)] p-3 sm:p-5 flex flex-col gap-4 max-w-7xl mx-auto w-full select-none">
       {/* Top Banner */}
@@ -1066,13 +1176,23 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         </button>
 
         <button
+          onClick={() => setActiveTab('locations')}
+          className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            activeTab === 'locations' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <MapPin className="w-3.5 h-3.5 text-amber-400" />
+          <span>4. Emplacements & Entrepôt ({localLocations.length})</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('stations')}
           className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
             activeTab === 'stations' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
           }`}
         >
           <Monitor className="w-3.5 h-3.5" />
-          <span>4. Postes & Scannettes ({localConfig.availableStations?.length || 0})</span>
+          <span>5. Postes & Scannettes ({localConfig.availableStations?.length || 0})</span>
         </button>
 
         <button
@@ -1082,7 +1202,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
           }`}
         >
           <Award className="w-3.5 h-3.5" />
-          <span>5. Règles & Diplômes</span>
+          <span>6. Règles & Diplômes</span>
         </button>
 
         <button
@@ -1092,7 +1212,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
           }`}
         >
           <Zap className="w-3.5 h-3.5" />
-          <span>6. Aléas & Distractions ({distractions.length})</span>
+          <span>7. Aléas & Distractions ({distractions.length})</span>
         </button>
 
         <button
@@ -1102,7 +1222,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
           }`}
         >
           <AlertTriangle className="w-3.5 h-3.5" />
-          <span>7. Données & Sauvegardes</span>
+          <span>8. Données & Sauvegardes</span>
         </button>
       </div>
 
@@ -1423,7 +1543,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                             onChange={(e) => {
                               const val = e.target.value;
                               if (!val) return;
-                              const loc = STANDARD_LOCATIONS.find(l => l.barcode === val);
+                              const loc = localLocations.find(l => l.barcode === val);
                               if (loc) {
                                 isLocalEditingMissionsRef.current = true;
                                 setLocalMissions(prev => prev.map((m, mIdx) => {
@@ -1432,8 +1552,8 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                                     ...st,
                                     expectedBarcode: loc.barcode,
                                     targetLabel: loc.label,
-                                    lrCode: loc.lr,
-                                    crLabel: loc.cr,
+                                    lrCode: loc.lrCode,
+                                    crLabel: loc.crLabel || loc.label.toUpperCase(),
                                     barcodeType: 'location' as const,
                                     instruction: `Rendez-vous à l'emplacement ${loc.label.split('(')[0].trim()} et scannez l'étiquette.`,
                                     hint: `Visez l'étiquette code-barres ${loc.barcode}.`
@@ -1465,8 +1585,8 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                             className="bg-slate-900 border border-sky-500/50 text-[11px] text-sky-300 font-mono px-2 py-1 rounded-lg focus:outline-none cursor-pointer"
                           >
                             <option value="">⚡ Remplir depuis Stock / Emplacements...</option>
-                            <optgroup label="📍 Emplacements Standard">
-                              {STANDARD_LOCATIONS.map(l => (
+                            <optgroup label="📍 Emplacements de l'Entrepôt">
+                              {localLocations.map(l => (
                                 <option key={l.barcode} value={l.barcode}>📍 {l.label} ({l.barcode})</option>
                               ))}
                             </optgroup>
@@ -1680,9 +1800,8 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                         value={item.lrCode || ''}
                         placeholder="Réf"
                         onChange={(e) => {
-                          const updated = [...localInventory];
-                          updated[idx].lrCode = e.target.value.trim().toUpperCase();
-                          setLocalInventory(updated);
+                          const val = e.target.value;
+                          setLocalInventory(prev => prev.map((it, i) => i === idx ? { ...it, lrCode: val } : it));
                         }}
                         className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-amber-400 font-mono font-bold w-28"
                       />
@@ -1695,9 +1814,8 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                         value={item.sku}
                         placeholder="REF191000..."
                         onChange={(e) => {
-                          const updated = [...localInventory];
-                          updated[idx].sku = e.target.value.trim().toUpperCase();
-                          setLocalInventory(updated);
+                          const val = e.target.value;
+                          setLocalInventory(prev => prev.map((it, i) => i === idx ? { ...it, sku: val } : it));
                         }}
                         className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-sky-400 font-mono font-bold w-36"
                       />
@@ -1709,10 +1827,8 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                         type="text"
                         value={item.name}
                         onChange={(e) => {
-                          const updated = [...localInventory];
-                          updated[idx].name = e.target.value;
-                          updated[idx].crLabel = e.target.value.toUpperCase();
-                          setLocalInventory(updated);
+                          const val = e.target.value;
+                          setLocalInventory(prev => prev.map((it, i) => i === idx ? { ...it, name: val, crLabel: val.toUpperCase() } : it));
                         }}
                         className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-white font-semibold w-full min-w-[200px]"
                       />
@@ -1725,9 +1841,8 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                           type="number"
                           value={item.quantity}
                           onChange={(e) => {
-                            const updated = [...localInventory];
-                            updated[idx].quantity = parseInt(e.target.value) || 0;
-                            setLocalInventory(updated);
+                            const val = parseInt(e.target.value) || 0;
+                            setLocalInventory(prev => prev.map((it, i) => i === idx ? { ...it, quantity: val } : it));
                           }}
                           className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-emerald-400 font-mono w-16"
                         />
@@ -1735,9 +1850,8 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                           type="text"
                           value={item.unit}
                           onChange={(e) => {
-                            const updated = [...localInventory];
-                            updated[idx].unit = e.target.value;
-                            setLocalInventory(updated);
+                            const val = e.target.value;
+                            setLocalInventory(prev => prev.map((it, i) => i === idx ? { ...it, unit: val } : it));
                           }}
                           className="bg-slate-950 border border-slate-700 px-1.5 py-1 rounded text-slate-400 font-mono w-12 text-center"
                         />
@@ -1751,9 +1865,8 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                         value={item.location}
                         placeholder="ZONE_... ou LOC-..."
                         onChange={(e) => {
-                          const updated = [...localInventory];
-                          updated[idx].location = e.target.value.trim().toUpperCase();
-                          setLocalInventory(updated);
+                          const val = e.target.value;
+                          setLocalInventory(prev => prev.map((it, i) => i === idx ? { ...it, location: val } : it));
                         }}
                         className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-sky-300 font-mono w-36"
                       />
@@ -1839,7 +1952,163 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         </div>
       )}
 
-      {/* TAB 4: STATIONS & MULTIPLAYER SETUP */}
+      {/* TAB 4: WAREHOUSE LOCATIONS BUILDER (ALL PHYSICAL STAND & DOCK LOCATIONS) */}
+      {activeTab === 'locations' && (
+        <div className="bg-[#0c1e3a]/95 rounded-3xl p-6 border border-slate-700/80 shadow-2xl space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-700">
+            <div>
+              <div className="flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-amber-400" />
+                <h3 className="text-base font-black text-white uppercase tracking-wide">
+                  Emplacements & Zones de l'Entrepôt ({localLocations.length})
+                </h3>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Créez et personnalisez toutes les armoires, tiroirs, étagères, zones de pompe et quais de votre stand physique.
+                Ces emplacements alimentent automatiquement le stock, les missions et la planche d'étiquettes à imprimer.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleAddNewLocation}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-sky-600/30 cursor-pointer"
+              >
+                <Plus className="w-4 h-4 text-white" />
+                <span>+ Nouvel Emplacement</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetLocations}
+                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold text-xs border border-slate-700 cursor-pointer"
+                title="Rétablir la liste standard GT Logistics"
+              >
+                Réinitialiser Standards
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveLocations}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs flex items-center space-x-1.5 shadow-lg shadow-emerald-500/30 cursor-pointer"
+              >
+                <Save className="w-4 h-4" />
+                <span>Enregistrer les Emplacements</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-slate-200">
+              <thead className="bg-[#08152c] text-slate-300 font-mono uppercase text-[10px] sm:text-[11px] border-b border-slate-700">
+                <tr>
+                  <th className="p-2.5">Code-barres Emplacement</th>
+                  <th className="p-2.5">Libellé Emplacement</th>
+                  <th className="p-2.5">Réf Courte (Ticket L/R)</th>
+                  <th className="p-2.5">Désignation (Ticket C/R)</th>
+                  <th className="p-2.5">Zone / Secteur</th>
+                  <th className="p-2.5 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800 font-sans">
+                {localLocations.map((loc) => (
+                  <tr key={loc.id} className="hover:bg-slate-800/40 transition-colors">
+                    {/* 1. Code-barres */}
+                    <td className="p-2 whitespace-nowrap">
+                      <input
+                        type="text"
+                        value={loc.barcode}
+                        onChange={(e) => handleUpdateLocationField(loc.id, 'barcode', e.target.value)}
+                        placeholder="LOC-B01-T03"
+                        className="bg-[#071224] border border-slate-700 focus:border-sky-400 px-2 py-1 rounded-lg text-sky-400 font-mono font-bold w-44 text-xs focus:outline-none"
+                      />
+                    </td>
+
+                    {/* 2. Libellé Emplacement */}
+                    <td className="p-2 min-w-[200px]">
+                      <input
+                        type="text"
+                        value={loc.label}
+                        onChange={(e) => handleUpdateLocationField(loc.id, 'label', e.target.value)}
+                        placeholder="Nom de l'étagère ou du tiroir..."
+                        className="bg-[#071224] border border-slate-700 focus:border-slate-400 px-2 py-1 rounded-lg text-white font-semibold w-full text-xs focus:outline-none"
+                      />
+                    </td>
+
+                    {/* 3. Réf Courte L/R */}
+                    <td className="p-2 whitespace-nowrap">
+                      <input
+                        type="text"
+                        value={loc.lrCode || ''}
+                        onChange={(e) => handleUpdateLocationField(loc.id, 'lrCode', e.target.value)}
+                        placeholder="LOC_B01"
+                        className="bg-[#071224] border border-slate-700 focus:border-amber-400 px-2 py-1 rounded-lg text-amber-300 font-mono font-bold w-32 text-xs focus:outline-none"
+                      />
+                    </td>
+
+                    {/* 4. Désignation C/R */}
+                    <td className="p-2 min-w-[180px]">
+                      <input
+                        type="text"
+                        value={loc.crLabel || ''}
+                        onChange={(e) => handleUpdateLocationField(loc.id, 'crLabel', e.target.value)}
+                        placeholder="ARMOIRE B01 TIROIR T03"
+                        className="bg-[#071224] border border-slate-700 focus:border-slate-400 px-2 py-1 rounded-lg text-slate-300 font-mono text-[11px] w-full focus:outline-none"
+                      />
+                    </td>
+
+                    {/* 5. Zone / Secteur */}
+                    <td className="p-2 whitespace-nowrap">
+                      <input
+                        type="text"
+                        value={loc.zone || ''}
+                        onChange={(e) => handleUpdateLocationField(loc.id, 'zone', e.target.value)}
+                        placeholder="Magasin Central"
+                        className="bg-[#071224] border border-slate-700 focus:border-slate-400 px-2 py-1 rounded-lg text-slate-300 text-xs w-36 focus:outline-none"
+                      />
+                    </td>
+
+                    {/* 6. Actions */}
+                    <td className="p-2 text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center space-x-1">
+                        <button
+                          type="button"
+                          onClick={() => handleDuplicateLocation(loc)}
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-sky-950 text-slate-400 hover:text-sky-300 transition-colors cursor-pointer"
+                          title="Dupliquer cet emplacement"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteLocation(loc.id, loc.label)}
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-950 text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
+                          title="Supprimer cet emplacement"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="pt-3 border-t border-slate-700 flex flex-wrap items-center justify-between text-xs font-mono text-slate-400">
+            <span>{localLocations.length} emplacement(s) configuré(s)</span>
+            <button
+              type="button"
+              onClick={handleSaveLocations}
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-black flex items-center space-x-2 shadow-lg shadow-emerald-500/25 cursor-pointer transition-all"
+            >
+              <Save className="w-4 h-4" />
+              <span>Enregistrer & Synchroniser les Emplacements</span>
+            </button>
+          </div>
+        </div>
+      )}
       {activeTab === 'stations' && (
         <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-4">
           <div className="flex items-center justify-between">

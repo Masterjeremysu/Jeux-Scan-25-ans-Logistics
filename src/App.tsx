@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ViewMode, InventoryItem, Mission, ScanLog, OperatorProfile, AppConfig, DuoStation, Distraction, LiveHazard } from './types';
-import { INITIAL_INVENTORY } from './data/initialData';
+import { INITIAL_INVENTORY, INITIAL_LOCATIONS } from './data/initialData';
 import { MISSIONS } from './data/missions';
 import { Header } from './components/Header';
 import { PosteOperateurView } from './components/PosteOperateurView';
@@ -134,7 +134,8 @@ export const App: React.FC = () => {
       { id: 'poste-1', name: 'Poste 1 (Scannette A)' },
       { id: 'poste-2', name: 'Poste 2 (Scannette B)' },
       { id: 'poste-3', name: 'Poste 3 (Zebra Scan)' }
-    ]
+    ],
+    locations: INITIAL_LOCATIONS
   });
   const [currentMissionIndex, setCurrentMissionIndex] = useState<number>(0);
   const [logs, setLogs] = useState<ScanLog[]>([]);
@@ -1425,14 +1426,17 @@ export const App: React.FC = () => {
         {currentView === 'erp' && (
           <StockERPView
             inventory={inventory}
+            locations={appConfig.locations || INITIAL_LOCATIONS}
             onUpdateQuantity={handleUpdateQuantity}
             onUpdateInventory={handleUpdateInventory}
+            onNavigateToAdminLocations={() => handleSelectView('admin')}
           />
         )}
 
         {currentView === 'print' && (
           <PlancheEtiquettesView
             inventory={inventory}
+            locations={appConfig.locations || INITIAL_LOCATIONS}
             missions={missions}
             distractions={distractions}
           />

@@ -1,4 +1,21 @@
-import { InventoryItem } from '../types';
+import { InventoryItem, WarehouseLocation } from '../types';
+
+export const INITIAL_LOCATIONS: WarehouseLocation[] = [
+  { id: 'loc-1', barcode: 'LOC-B01-T03', label: 'Armoire B01 (Allée B - Tiroir T03)', lrCode: 'LOC_B01_T03', crLabel: 'ARMOIRE ALLEE B TIROIR T03', zone: 'Magasin Central' },
+  { id: 'loc-2', barcode: 'LOC-B01-T04', label: 'Armoire B01 (Allée B - Tiroir T04)', lrCode: 'LOC_B01_T04', crLabel: 'ARMOIRE ALLEE B TIROIR T04', zone: 'Magasin Central' },
+  { id: 'loc-3', barcode: 'ZONE_POMPE_GRILLE_41', label: 'Zone Pompe Grille 41 (Stock Central)', lrCode: 'ZONE_PMP_41', crLabel: 'ZONE POMPE GRILLE 41', zone: 'Magasin Central' },
+  { id: 'loc-4', barcode: 'LOC-ETAGERE-COLLECTE', label: 'Étagère de Collecte & Retours Clients', lrCode: 'ETA_COLLECT', crLabel: 'ETAGERE DE COLLECTE CLIENTS', zone: 'Quai Réception' },
+  { id: 'loc-5', barcode: 'LOC-ETAGERE-LIVRAISON', label: 'Étagère de Livraison & Dépôt Client', lrCode: 'ETA_LIVR', crLabel: 'ETAGERE LIVRAISON CLIENT', zone: 'Quai Livraison' },
+  { id: 'loc-6', barcode: 'LOC-ETA1-NIV1', label: 'Étagère 1 • Niveau 1 (Prise Colis)', lrCode: 'ETA_1_N1', crLabel: 'ETAGERE 1 NIVEAU BAS', zone: 'Poste 1' },
+  { id: 'loc-7', barcode: 'LOC-ETA1-NIV2', label: 'Étagère 1 • Niveau 2 (Milieu)', lrCode: 'ETA_1_N2', crLabel: 'ETAGERE 1 NIVEAU MILIEU', zone: 'Poste 1' },
+  { id: 'loc-8', barcode: 'LOC-ETA1-NIV3', label: 'Étagère 1 • Niveau 3 (Haut)', lrCode: 'ETA_1_N3', crLabel: 'ETAGERE 1 NIVEAU HAUT', zone: 'Poste 1' },
+  { id: 'loc-9', barcode: 'LOC-ETA2-NIV1', label: 'Étagère 2 • Niveau 1 (Prise Colis)', lrCode: 'ETA_2_N1', crLabel: 'ETAGERE 2 NIVEAU BAS', zone: 'Poste 2' },
+  { id: 'loc-10', barcode: 'LOC-ETA2-NIV2', label: 'Étagère 2 • Niveau 2 (Milieu)', lrCode: 'ETA_2_N2', crLabel: 'ETAGERE 2 NIVEAU MILIEU', zone: 'Poste 2' },
+  { id: 'loc-11', barcode: 'LOC-ETA2-NIV3', label: 'Étagère 2 • Niveau 3 (Haut)', lrCode: 'ETA_2_N3', crLabel: 'ETAGERE 2 NIVEAU HAUT', zone: 'Poste 2' },
+  { id: 'loc-12', barcode: 'ZONE_RECEPTION_CENTRALE', label: 'La Réception Centrale (Départs Étranger)', lrCode: 'REC_CENT', crLabel: 'LA RECEPTION CENTRALE DEPARTS', zone: 'Expédition' },
+  { id: 'loc-13', barcode: 'DOCK-EXPED-01', label: 'Quai Expédition A (Poste 1)', lrCode: 'QAI_EXP_A', crLabel: 'QUAI EXPEDITION POSTE 1', zone: 'Quais' },
+  { id: 'loc-14', barcode: 'DOCK-EXPED-02', label: 'Quai Expédition B (Poste 2)', lrCode: 'QAI_EXP_B', crLabel: 'QUAI EXPEDITION POSTE 2', zone: 'Quais' }
+];
 
 export const INITIAL_INVENTORY: InventoryItem[] = [
   {

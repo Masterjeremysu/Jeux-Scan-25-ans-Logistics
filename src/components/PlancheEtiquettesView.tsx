@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { InventoryItem, Mission, Distraction } from '../types';
-import { BARCODE_CATALOG, BarcodeItemCatalog } from '../data/initialData';
+import { InventoryItem, Mission, Distraction, WarehouseLocation } from '../types';
+import { BARCODE_CATALOG, BarcodeItemCatalog, INITIAL_LOCATIONS } from '../data/initialData';
 import { Printer, Filter, X, Tag } from 'lucide-react';
 import { GtStockLabel } from './GtStockLabel';
 
 interface PlancheEtiquettesViewProps {
   inventory?: InventoryItem[];
+  locations?: WarehouseLocation[];
   missions?: Mission[];
   distractions?: Distraction[];
 }
@@ -20,6 +21,7 @@ export interface BarcodeItem {
 
 export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
   inventory,
+  locations = INITIAL_LOCATIONS,
   missions,
   distractions
 }) => {
@@ -34,19 +36,34 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
     };
   }, []);
 
-  // Dynamically compute all barcodes needed from inventory, missions and distractions
+  // Dynamically compute all barcodes needed from inventory, locations, missions and distractions
   const allItems = useMemo<BarcodeItem[]>(() => {
     const map = new Map<string, BarcodeItem>();
 
+    // 0. Emplacements configurés par l'utilisateur en priorité
+    if (locations) {
+      locations.forEach((loc) => {
+        map.set(loc.barcode, {
+          code: loc.barcode,
+          label: loc.label,
+          type: 'location',
+          lrCode: loc.lrCode || loc.barcode.replace('LOC-', 'LOC_').replace(/-/g, '_'),
+          crLabel: loc.crLabel || loc.label.toUpperCase()
+        });
+      });
+    }
+
     // 1. Base catalog first (with official GT reference lines L/R & C/R)
     BARCODE_CATALOG.forEach((bc: BarcodeItemCatalog) => {
-      map.set(bc.code, {
-        code: bc.code,
-        label: bc.label,
-        type: bc.type,
-        lrCode: bc.lrCode || bc.code.replace(/^(ART|LOC)-/, '').replace(/-/g, '_'),
-        crLabel: bc.crLabel || bc.label.toUpperCase()
-      });
+      if (!map.has(bc.code)) {
+        map.set(bc.code, {
+          code: bc.code,
+          label: bc.label,
+          type: bc.type,
+          lrCode: bc.lrCode || bc.code.replace(/^(ART|LOC)-/, '').replace(/-/g, '_'),
+          crLabel: bc.crLabel || bc.label.toUpperCase()
+        });
+      }
     });
 
     // 2. Locations and articles from active inventory

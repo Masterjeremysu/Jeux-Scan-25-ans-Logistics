@@ -9,6 +9,7 @@ import {
   resetAllLiveStations,
   RemoteScore,
   subscribeToLiveActivity,
+  getRecentLiveActivities,
   updateStationLive,
   LiveActivityEvent
 } from '../services/supabaseClient';
@@ -236,51 +237,74 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
     let isMounted = true;
 
     async function loadData() {
-      const liveStations = await getStationsLive();
-      if (isMounted && liveStations.length > 0) {
-        setStations(liveStations);
-        const s1 = liveStations.find((s) => s.station_id === 'poste-1');
-        const s2 = liveStations.find((s) => s.station_id === 'poste-2');
-        if (s1?.operator_cea) setD1Cea(s1.operator_cea);
-        if (s1?.client_guest) setD1Guest(s1.client_guest);
-        if (s2?.operator_cea) setD2Cea(s2.operator_cea);
-        if (s2?.client_guest) setD2Guest(s2.client_guest);
-      } else if (isMounted) {
-        setStations([
-          {
-            station_id: 'poste-1',
-            station_name: 'Poste 1 (Scannette A)',
-            operator_cea: d1Cea,
-            client_guest: d1Guest,
-            team_name: `Duo ${d1Guest}`,
-            current_mission_title: 'En attente...',
-            progress_percent: 0,
-            current_step_index: 0,
-            total_steps: 5,
-            score: 0,
-            combo: 0,
-            status: 'idle'
-          },
-          {
-            station_id: 'poste-2',
-            station_name: 'Poste 2 (Scannette B)',
-            operator_cea: d2Cea,
-            client_guest: d2Guest,
-            team_name: `Duo ${d2Guest}`,
-            current_mission_title: 'En attente...',
-            progress_percent: 0,
-            current_step_index: 0,
-            total_steps: 5,
-            score: 0,
-            combo: 0,
-            status: 'idle'
-          }
+      try {
+        const [liveStations, rawScores, recentActs] = await Promise.all([
+          getStationsLive(),
+          getRemoteLeaderboard(),
+          getRecentLiveActivities(8)
         ]);
-      }
 
-      const scores = await getRemoteLeaderboard();
-      if (isMounted) {
-        setTopScores(scores.slice(0, 5));
+        if (!isMounted) return;
+
+        if (liveStations && liveStations.length > 0) {
+          setStations(liveStations);
+          const s1 = liveStations.find((s) => s.station_id === 'poste-1');
+          const s2 = liveStations.find((s) => s.station_id === 'poste-2');
+          if (s1?.operator_cea) setD1Cea(s1.operator_cea);
+          if (s1?.client_guest) setD1Guest(s1.client_guest);
+          if (s2?.operator_cea) setD2Cea(s2.operator_cea);
+          if (s2?.client_guest) setD2Guest(s2.client_guest);
+        } else {
+          setStations([
+            {
+              station_id: 'poste-1',
+              station_name: 'Poste 1 (Scannette A)',
+              operator_cea: d1Cea,
+              client_guest: d1Guest,
+              team_name: `Duo ${d1Guest}`,
+              current_mission_title: 'En attente...',
+              progress_percent: 0,
+              current_step_index: 0,
+              total_steps: 5,
+              score: 0,
+              combo: 0,
+              status: 'idle'
+            },
+            {
+              station_id: 'poste-2',
+              station_name: 'Poste 2 (Scannette B)',
+              operator_cea: d2Cea,
+              client_guest: d2Guest,
+              team_name: `Duo ${d2Guest}`,
+              current_mission_title: 'En attente...',
+              progress_percent: 0,
+              current_step_index: 0,
+              total_steps: 5,
+              score: 0,
+              combo: 0,
+              status: 'idle'
+            }
+          ]);
+        }
+
+        // Leaderboard sans doublons : uniquement le meilleur score par binôme
+        const seenNames = new Set<string>();
+        const uniqueScores: RemoteScore[] = [];
+        for (const sc of rawScores) {
+          const cleanKey = (sc.name || '').trim().toLowerCase();
+          if (!cleanKey || seenNames.has(cleanKey)) continue;
+          seenNames.add(cleanKey);
+          uniqueScores.push(sc);
+        }
+        setTopScores(uniqueScores.slice(0, 5));
+
+        // Chargement immédiat des derniers scans laser réels
+        if (recentActs && recentActs.length > 0) {
+          setLiveActivities(recentActs);
+          setLastEventMsg(`${recentActs[0].station_name} • ${recentActs[0].message}`);
+        }
+      } catch (err) {
+        console.warn('[ArenaTv] Erreur chargement initial:', err);
       }
     }
 
@@ -316,7 +340,15 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
     const unsubScores = subscribeToScores(async () => {
       const scores = await getRemoteLeaderboard();
       if (isMounted) {
-        setTopScores(scores.slice(0, 5));
+        const seenNames = new Set<string>();
+        const uniqueScores: RemoteScore[] = [];
+        for (const sc of scores) {
+          const cleanKey = (sc.name || '').trim().toLowerCase();
+          if (!cleanKey || seenNames.has(cleanKey)) continue;
+          seenNames.add(cleanKey);
+          uniqueScores.push(sc);
+        }
+        setTopScores(uniqueScores.slice(0, 5));
       }
     });
 
@@ -454,11 +486,14 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
   const isStation2Finished = (station2?.progress_percent ?? 0) >= 100 || station2?.status === 'completed';
 
   const missionsPool = (propMissions && propMissions.length > 0) ? propMissions : MISSIONS;
+  const station1Missions = missionsPool;
+  // Poste 2 exécute les missions dans l'ordre inversé pour éviter que les deux binômes soient sur la même étagère
+  const station2Missions = missionsPool.slice().reverse();
 
-  const getStationMissionIndex = (station?: DuoStation): number => {
+  const getStationMissionIndex = (station?: DuoStation, missionsList: Mission[] = missionsPool): number => {
     if (!station) return 0;
     const title = (station.current_mission_title || '').toLowerCase().trim();
-    const idx = missionsPool.findIndex(m => 
+    const idx = missionsList.findIndex(m => 
       title.includes(m.title.toLowerCase().substring(0, 15)) ||
       m.title.toLowerCase().includes(title.substring(0, 15)) ||
       m.code.toLowerCase() === title
@@ -467,29 +502,33 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
   };
 
   const getMissionShortTitle = (m: Mission, idx: number): string => {
-    if (m.code.includes('601') || m.title.toLowerCase().includes('multi-articles')) return '1. Cde Multi-Articles';
-    if (m.code.includes('COL') || m.title.toLowerCase().includes('collecte')) return '2. Retour en Stock';
-    if (m.code.includes('REA') || m.title.toLowerCase().includes('reacteur')) return '3. Réappro Réacteur';
-    if (m.code.includes('INT') || m.title.toLowerCase().includes('internationale')) return '4. Expéd. Inter.';
-    return `${idx + 1}. ${m.title.split('(')[0].trim().slice(0, 20)}`;
+    let clean = m.title.split('(')[0].trim();
+    if (m.code.includes('601') || m.title.toLowerCase().includes('multi-articles')) clean = 'Cde Multi-Articles';
+    else if (m.code.includes('COL') || m.title.toLowerCase().includes('collecte')) clean = 'Retour en Stock';
+    else if (m.code.includes('REA') || m.title.toLowerCase().includes('reacteur')) clean = 'Réappro Réacteur';
+    else if (m.code.includes('INT') || m.title.toLowerCase().includes('internationale')) clean = 'Expéd. Inter.';
+    return `${idx + 1}. ${clean}`;
   };
 
-  const activeIdx1 = getStationMissionIndex(station1);
-  const activeIdx2 = getStationMissionIndex(station2);
+  const activeIdx1 = getStationMissionIndex(station1, station1Missions);
+  const activeIdx2 = getStationMissionIndex(station2, station2Missions);
   const completedCount1 = activeIdx1 + (isStation1Finished ? 1 : 0);
   const completedCount2 = activeIdx2 + (isStation2Finished ? 1 : 0);
 
   return (
-    <div className="w-full min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-3 sm:p-5 lg:p-7 select-none relative overflow-hidden font-sans">
-      {/* Dynamic Ambient Background Glows */}
-      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-sky-600/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-amber-600/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-0 left-1/3 w-[600px] h-[300px] bg-indigo-600/10 rounded-full blur-[160px] pointer-events-none" />
+    <div className="w-full min-h-screen bg-gradient-to-b from-[#08152c] via-[#071224] to-[#050d1a] text-slate-100 flex flex-col justify-between p-3 sm:p-5 lg:p-7 select-none relative overflow-hidden font-sans border-t-4 border-t-red-600">
+      {/* Dynamic Ambient Background Glows GT Logistics (Navy & Red accents) */}
+      <div className="absolute top-0 left-0 w-[550px] h-[550px] bg-blue-600/10 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[550px] h-[550px] bg-red-600/10 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-0 left-1/3 w-[650px] h-[350px] bg-indigo-900/15 rounded-full blur-[170px] pointer-events-none" />
 
       {/* ========================================================================= */}
-      {/* 1. TOP BROADCAST BAR (Style Régie TV Professionnelle)                      */}
+      {/* 1. TOP BROADCAST BAR (Style Régie GT Logistics Officielle)                */}
       {/* ========================================================================= */}
-      <header className="z-10 bg-slate-900/90 backdrop-blur-xl border border-slate-800/80 rounded-3xl px-5 sm:px-6 py-3.5 shadow-2xl flex flex-wrap items-center justify-between gap-3">
+      <header className="z-10 bg-[#0c1e3a]/95 backdrop-blur-xl border border-slate-700/70 rounded-3xl px-5 sm:px-6 py-3.5 shadow-2xl flex flex-wrap items-center justify-between gap-3 relative overflow-hidden">
+        {/* Subtle top GT red stripe */}
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-80" />
+
         {/* Left: Brand & Event Title */}
         <div className="flex items-center gap-3">
           <GameLogo
@@ -497,19 +536,21 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
             size="md"
             showSubtitle={false}
           />
-          <div className="h-8 w-px bg-slate-800 hidden sm:block" />
+          <div className="h-8 w-px bg-slate-700/80 hidden sm:block" />
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-display font-black text-base sm:text-xl text-white tracking-wide uppercase">
+              <span className="font-sans font-black text-base sm:text-xl text-white tracking-wide uppercase">
                 GRANDE ARÈNE DUEL
               </span>
-              <span className="flex items-center gap-1 text-[10px] font-black uppercase font-mono px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse">
-                <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+              <span className="flex items-center gap-1.5 text-[10px] font-black uppercase font-mono px-2.5 py-0.5 rounded-full bg-red-600 text-white shadow-md shadow-red-600/30">
+                <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
                 <span>DIRECT 55"</span>
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 font-mono">
-              CEA Grenoble 25 Ans • Challenge Logistique Grand Format
+            <p className="text-[11px] text-slate-300 font-sans flex items-center gap-1.5">
+              <span>CEA Grenoble 25 Ans</span>
+              <span className="text-red-500 font-bold">•</span>
+              <span className="italic text-slate-400">« Vous êtes unique, nos prestations <strong className="text-red-400 not-italic">aussi.</strong> »</span>
             </p>
           </div>
         </div>
@@ -517,18 +558,18 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
         {/* Center: GIANT ARENA CHRONOMETER (With Money Time styling) */}
         <div className={`flex items-center gap-3 px-5 py-2 rounded-2xl border transition-all duration-300 shadow-inner ${
           matchSeconds <= 30 && matchSeconds > 0 && isMatchRunning
-            ? 'bg-gradient-to-r from-slate-950 via-rose-950/40 to-slate-950 border-rose-500/80 shadow-[0_0_30px_rgba(244,63,94,0.3)] animate-pulse'
-            : 'bg-slate-950 border-slate-800'
+            ? 'bg-gradient-to-r from-slate-950 via-red-950/50 to-slate-950 border-red-500 shadow-[0_0_30px_rgba(239,35,60,0.4)] animate-pulse'
+            : 'bg-[#071224] border-slate-700/80'
         }`}>
           <div className="text-center">
             <span className={`text-[9px] uppercase font-mono tracking-widest font-bold block ${
-              matchSeconds <= 30 && matchSeconds > 0 && isMatchRunning ? 'text-rose-400 font-black' : 'text-slate-500'
+              matchSeconds <= 30 && matchSeconds > 0 && isMatchRunning ? 'text-red-400 font-black' : 'text-slate-400'
             }`}>
               {matchSeconds <= 30 && matchSeconds > 0 && isMatchRunning ? '🔥 SPRINT FINAL (MONEY TIME)' : 'CHRONO DUEL (3 MIN)'}
             </span>
             <div className={`font-display font-black text-3xl sm:text-5xl tracking-wider ${
               matchSeconds <= 30 && matchSeconds > 0 && isMatchRunning
-                ? 'text-rose-400 drop-shadow-[0_0_20px_rgba(244,63,94,0.6)]'
+                ? 'text-red-400 drop-shadow-[0_0_20px_rgba(239,35,60,0.6)]'
                 : 'text-amber-300 drop-shadow-[0_0_20px_rgba(251,191,36,0.4)]'
             }`}>
               {formatMatchTime(matchSeconds)}
@@ -677,8 +718,8 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
         {/* DUO 1 • POSTE BLEU (Lg: 5 Cols) */}
         <div className={`lg:col-span-5 rounded-3xl p-5 sm:p-7 border-2 transition-all duration-500 relative overflow-hidden flex flex-col justify-between ${
           station1?.status === 'completed'
-            ? 'bg-gradient-to-b from-emerald-950/40 via-slate-900 to-slate-950 border-emerald-400 shadow-[0_0_50px_rgba(16,185,129,0.2)]'
-            : 'bg-gradient-to-b from-sky-950/40 via-slate-900 to-slate-950 border-sky-500/50 shadow-[0_0_50px_rgba(14,165,233,0.15)]'
+            ? 'bg-gradient-to-b from-emerald-950/60 via-[#0a1f3d] to-[#071324] border-emerald-400 shadow-[0_0_50px_rgba(16,185,129,0.3)]'
+            : 'bg-gradient-to-b from-[#0c234b]/90 via-[#0a1a36] to-[#071224] border-sky-400/60 shadow-[0_0_50px_rgba(14,165,233,0.2)]'
         }`}>
           <div>
             <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-sky-500/20">
@@ -724,7 +765,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 font-mono text-[9px]">
-                {missionsPool.slice(0, 3).map((m, mIdx) => {
+                {station1Missions.slice(0, 3).map((m, mIdx) => {
                   const isPast = mIdx < activeIdx1;
                   const isCurrent = mIdx === activeIdx1;
                   const isDone = isPast || (isCurrent && isStation1Finished);
@@ -734,10 +775,10 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
                       key={m.id || mIdx}
                       className={`p-2 rounded-xl border transition-all flex flex-col justify-between ${
                         isDone
-                          ? 'bg-emerald-950/60 border-emerald-500/60 text-emerald-300'
+                          ? 'bg-emerald-950/70 border-emerald-500/70 text-emerald-300 shadow-sm'
                           : isCurrent
-                          ? 'bg-sky-950/80 border-sky-400 text-sky-200 shadow-md shadow-sky-500/20 animate-pulse'
-                          : 'bg-slate-900/60 border-slate-800/80 text-slate-500'
+                          ? 'bg-sky-950/90 border-sky-400 text-sky-100 shadow-lg shadow-sky-500/30 ring-1 ring-sky-400/50 animate-pulse'
+                          : 'bg-[#09172e]/80 border-slate-700/70 text-slate-400'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-1 font-bold">
@@ -747,14 +788,14 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
                         ) : isCurrent ? (
                           <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping shrink-0" />
                         ) : (
-                          <Clock className="w-2.5 h-2.5 text-slate-600 shrink-0" />
+                          <Clock className="w-2.5 h-2.5 text-slate-500 shrink-0" />
                         )}
                       </div>
-                      <div className="text-[8px] mt-1 flex justify-between items-center opacity-80">
-                        <span>
+                      <div className="text-[8px] mt-1 flex justify-between items-center opacity-85">
+                        <span className="font-semibold">
                           {isDone ? 'Validée (100%)' : isCurrent ? `${station1?.progress_percent || 0}%` : 'À venir'}
                         </span>
-                        <span className="font-bold">+{m.basePoints} pts</span>
+                        <span className="font-bold text-sky-300">+{m.basePoints} pts</span>
                       </div>
                     </div>
                   );
@@ -838,7 +879,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
             </div>
 
             <div 
-              className="grid gap-1 text-center text-[9px] font-mono"
+              className="grid gap-1.5 text-center text-[10px] font-mono"
               style={{ gridTemplateColumns: `repeat(${steps1.length}, minmax(0, 1fr))` }}
             >
               {steps1.map((step, idx) => {
@@ -849,17 +890,18 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
                 return (
                   <div
                     key={idx}
-                    className={`py-1 px-1 rounded-lg border transition-all truncate flex items-center justify-center gap-1 ${
+                    className={`py-1.5 px-1.5 rounded-xl border transition-all truncate flex items-center justify-center gap-1 ${
                       isStation1Finished
                         ? 'bg-emerald-950/80 border-emerald-500/80 text-emerald-300 font-bold'
                         : isPassed
-                        ? 'bg-sky-950/80 border-sky-500/60 text-sky-300 font-bold'
+                        ? 'bg-sky-950/90 border-sky-500/60 text-sky-200 font-bold'
                         : isCurrent
-                        ? 'bg-sky-500 text-slate-950 font-black shadow-md shadow-sky-500/30'
-                        : 'bg-slate-950 border-slate-800/60 text-slate-600'
+                        ? 'bg-gradient-to-r from-sky-500 to-cyan-400 text-slate-950 font-black shadow-lg shadow-sky-500/40 ring-2 ring-sky-300 animate-pulse'
+                        : 'bg-[#0a1830] border-slate-700/80 text-slate-200 font-semibold shadow-inner'
                     }`}
                   >
-                    {(isStation1Finished || isPassed) && <Check className="w-2.5 h-2.5 shrink-0" />}
+                    {(isStation1Finished || isPassed) && <Check className="w-3 h-3 shrink-0 text-emerald-400" />}
+                    {isCurrent && <span className="w-2 h-2 rounded-full bg-slate-950 animate-ping shrink-0" />}
                     <span className="truncate">{step}</span>
                   </div>
                 );
@@ -927,8 +969,8 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
         {/* DUO 2 • POSTE ORANGE (Lg: 5 Cols) */}
         <div className={`lg:col-span-5 rounded-3xl p-5 sm:p-7 border-2 transition-all duration-500 relative overflow-hidden flex flex-col justify-between ${
           station2?.status === 'completed'
-            ? 'bg-gradient-to-b from-emerald-950/40 via-slate-900 to-slate-950 border-emerald-400 shadow-[0_0_50px_rgba(16,185,129,0.2)]'
-            : 'bg-gradient-to-b from-amber-950/40 via-slate-900 to-slate-950 border-amber-500/50 shadow-[0_0_50px_rgba(245,158,11,0.15)]'
+            ? 'bg-gradient-to-b from-emerald-950/60 via-[#1f170b] to-[#071324] border-emerald-400 shadow-[0_0_50px_rgba(16,185,129,0.3)]'
+            : 'bg-gradient-to-b from-[#2a1708]/90 via-[#1a1209] to-[#071224] border-amber-500/60 shadow-[0_0_50px_rgba(245,158,11,0.2)]'
         }`}>
           <div>
             <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-amber-500/20">
@@ -974,7 +1016,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 font-mono text-[9px]">
-                {missionsPool.slice(0, 3).map((m, mIdx) => {
+                {station2Missions.slice(0, 3).map((m, mIdx) => {
                   const isPast = mIdx < activeIdx2;
                   const isCurrent = mIdx === activeIdx2;
                   const isDone = isPast || (isCurrent && isStation2Finished);
@@ -984,10 +1026,10 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
                       key={m.id || mIdx}
                       className={`p-2 rounded-xl border transition-all flex flex-col justify-between ${
                         isDone
-                          ? 'bg-emerald-950/60 border-emerald-500/60 text-emerald-300'
+                          ? 'bg-emerald-950/70 border-emerald-500/70 text-emerald-300 shadow-sm'
                           : isCurrent
-                          ? 'bg-amber-950/80 border-amber-400 text-amber-200 shadow-md shadow-amber-500/20 animate-pulse'
-                          : 'bg-slate-900/60 border-slate-800/80 text-slate-500'
+                          ? 'bg-amber-950/90 border-amber-400 text-amber-100 shadow-lg shadow-amber-500/30 ring-1 ring-amber-400/50 animate-pulse'
+                          : 'bg-[#1a1208]/80 border-slate-700/70 text-slate-400'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-1 font-bold">
@@ -997,14 +1039,14 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
                         ) : isCurrent ? (
                           <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
                         ) : (
-                          <Clock className="w-2.5 h-2.5 text-slate-600 shrink-0" />
+                          <Clock className="w-2.5 h-2.5 text-slate-500 shrink-0" />
                         )}
                       </div>
-                      <div className="text-[8px] mt-1 flex justify-between items-center opacity-80">
-                        <span>
+                      <div className="text-[8px] mt-1 flex justify-between items-center opacity-85">
+                        <span className="font-semibold">
                           {isDone ? 'Validée (100%)' : isCurrent ? `${station2?.progress_percent || 0}%` : 'À venir'}
                         </span>
-                        <span className="font-bold">+{m.basePoints} pts</span>
+                        <span className="font-bold text-amber-300">+{m.basePoints} pts</span>
                       </div>
                     </div>
                   );
@@ -1088,7 +1130,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
             </div>
 
             <div 
-              className="grid gap-1 text-center text-[9px] font-mono"
+              className="grid gap-1.5 text-center text-[10px] font-mono"
               style={{ gridTemplateColumns: `repeat(${steps2.length}, minmax(0, 1fr))` }}
             >
               {steps2.map((step, idx) => {
@@ -1099,17 +1141,18 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
                 return (
                   <div
                     key={idx}
-                    className={`py-1 px-1 rounded-lg border transition-all truncate flex items-center justify-center gap-1 ${
+                    className={`py-1.5 px-1.5 rounded-xl border transition-all truncate flex items-center justify-center gap-1 ${
                       isStation2Finished
                         ? 'bg-emerald-950/80 border-emerald-500/80 text-emerald-300 font-bold'
                         : isPassed
-                        ? 'bg-amber-950/80 border-amber-500/60 text-amber-300 font-bold'
+                        ? 'bg-amber-950/90 border-amber-500/60 text-amber-200 font-bold'
                         : isCurrent
-                        ? 'bg-amber-400 text-slate-950 font-black shadow-md shadow-amber-400/30'
-                        : 'bg-slate-950 border-slate-800/60 text-slate-600'
+                        ? 'bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 font-black shadow-lg shadow-amber-400/40 ring-2 ring-amber-300 animate-pulse'
+                        : 'bg-[#18130a] border-slate-700/80 text-slate-200 font-semibold shadow-inner'
                     }`}
                   >
-                    {(isStation2Finished || isPassed) && <Check className="w-2.5 h-2.5 shrink-0" />}
+                    {(isStation2Finished || isPassed) && <Check className="w-3 h-3 shrink-0 text-emerald-400" />}
+                    {isCurrent && <span className="w-2 h-2 rounded-full bg-slate-950 animate-ping shrink-0" />}
                     <span className="truncate">{step}</span>
                   </div>
                 );
@@ -1122,9 +1165,9 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
       {/* ========================================================================= */}
       {/* 2.5 LIVE SPEAKER / GALA COMMENTARY TICKER (Axe 3: Régie Micro Animateur)  */}
       {/* ========================================================================= */}
-      <div className="z-10 my-1 bg-slate-900/90 border border-amber-500/30 rounded-2xl px-4 py-2.5 shadow-lg flex items-center gap-3">
-        <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/20 text-amber-300 rounded-xl border border-amber-500/30 font-mono text-xs font-bold shrink-0">
-          <Mic className="w-4 h-4 text-amber-400 animate-pulse" />
+      <div className="z-10 my-1 bg-[#0c1e3a]/90 border border-slate-700/80 rounded-2xl px-4 py-2.5 shadow-lg flex items-center gap-3">
+        <div className="flex items-center gap-1.5 px-3 py-1 bg-red-600/20 text-red-300 rounded-xl border border-red-500/30 font-mono text-xs font-bold shrink-0">
+          <Mic className="w-4 h-4 text-red-400 animate-pulse" />
           <span>SUGGESTION MICRO :</span>
         </div>
         <p className="font-sans text-xs sm:text-sm font-semibold text-slate-200 tracking-wide truncate">
@@ -1135,15 +1178,15 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
       {/* ========================================================================= */}
       {/* 3. LIVE SCANS MONITOR TICKER (Ce que les joueurs font en temps réel)       */}
       {/* ========================================================================= */}
-      <div className="z-10 my-2 bg-slate-900/95 border border-indigo-500/30 rounded-2xl p-2.5 shadow-xl flex items-center gap-3 overflow-hidden">
-        <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-950 rounded-xl border border-slate-800 font-mono text-xs font-bold text-amber-300 shrink-0">
+      <div className="z-10 my-2 bg-[#08152c]/95 border border-slate-700/70 rounded-2xl p-2.5 shadow-xl flex items-center gap-3 overflow-hidden">
+        <div className="flex items-center gap-1.5 px-3 py-1 bg-[#061022] rounded-xl border border-slate-700 font-mono text-xs font-bold text-amber-300 shrink-0">
           <Activity className="w-4 h-4 text-emerald-400 animate-pulse" />
           <span>LIVE SCAN FEED :</span>
         </div>
 
         <div className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar font-mono text-xs">
           {liveActivities.length === 0 ? (
-            <span className="text-slate-500 text-xs italic">
+            <span className="text-slate-400 text-xs italic">
               En attente des premiers scans laser des binômes sur leurs scannettes...
             </span>
           ) : (
@@ -1152,13 +1195,13 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
                 key={act.id || i}
                 className={`px-3 py-1 rounded-xl border shrink-0 flex items-center gap-2 ${
                   act.status === 'valid'
-                    ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
+                    ? 'bg-emerald-950/70 border-emerald-500/60 text-emerald-300 shadow-sm'
                     : act.status === 'invalid'
-                    ? 'bg-rose-950/60 border-rose-500/40 text-rose-300'
-                    : 'bg-amber-950/60 border-amber-500/40 text-amber-300'
+                    ? 'bg-red-950/70 border-red-500/60 text-red-300'
+                    : 'bg-amber-950/70 border-amber-500/60 text-amber-300'
                 }`}
               >
-                <span className="font-bold">{act.station_name.split(' ')[0]} :</span>
+                <span className="font-bold text-white">{act.station_name.split(' ')[0]} :</span>
                 <span>{act.message}</span>
               </div>
             ))
@@ -1167,14 +1210,16 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
       </div>
 
       {/* ========================================================================= */}
-      {/* 4. BOTTOM HALL OF FAME • TOP DUOS PODIUM                                  */}
+      {/* 4. BOTTOM HALL OF FAME • TOP DUOS PODIUM (GT Logistics 25 Ans)             */}
       {/* ========================================================================= */}
-      <footer className="z-10 bg-slate-900/90 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-4 sm:p-5 shadow-2xl">
-        <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-800/80">
+      <footer className="z-10 bg-[#0c1e3a]/95 backdrop-blur-xl border border-slate-700/80 rounded-3xl p-4 sm:p-5 shadow-2xl relative overflow-hidden">
+        <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-700/70">
           <div className="flex items-center gap-2">
             <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
-            <h3 className="font-display font-black text-xs sm:text-base text-white uppercase tracking-wider">
-              TABLEAU D'HONNEUR • TOP 5 DES DUOS 25 ANS
+            <h3 className="font-sans font-black text-xs sm:text-base text-white uppercase tracking-wider flex items-center gap-2">
+              <span>TABLEAU D'HONNEUR</span>
+              <span className="text-red-500">•</span>
+              <span>TOP 5 DES DUOS 25 ANS</span>
             </h3>
           </div>
           <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
@@ -1194,22 +1239,22 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
                 key={sc.id || idx}
                 className={`p-2.5 rounded-2xl border flex items-center justify-between transition-all ${
                   idx === 0
-                    ? 'bg-gradient-to-r from-amber-950/40 to-slate-950 border-amber-400/60 shadow-lg shadow-amber-500/10'
+                    ? 'bg-gradient-to-r from-amber-950/50 via-[#142646] to-[#0c1e3a] border-amber-400/80 shadow-lg shadow-amber-500/20'
                     : idx === 1
-                    ? 'bg-slate-950 border-slate-400/40 text-slate-200'
+                    ? 'bg-[#0f2444] border-slate-400/60 text-slate-100 shadow-sm'
                     : idx === 2
-                    ? 'bg-slate-950 border-amber-700/40 text-amber-200'
-                    : 'bg-slate-950 border-slate-800/80 text-slate-400'
+                    ? 'bg-[#0e213d] border-amber-700/60 text-amber-100'
+                    : 'bg-[#091830] border-slate-700/70 text-slate-300'
                 }`}
               >
                 <div className="flex items-center gap-2 truncate">
-                  <span className={`w-6 h-6 rounded-lg font-display font-black text-[11px] flex items-center justify-center shrink-0 ${
+                  <span className={`w-6 h-6 rounded-lg font-sans font-black text-[11px] flex items-center justify-center shrink-0 shadow-sm ${
                     idx === 0
-                      ? 'bg-amber-400 text-slate-950 shadow-md'
+                      ? 'bg-gradient-to-tr from-amber-500 to-yellow-300 text-slate-950'
                       : idx === 1
-                      ? 'bg-slate-300 text-slate-950'
+                      ? 'bg-slate-300 text-slate-950 font-bold'
                       : idx === 2
-                      ? 'bg-amber-700 text-white'
+                      ? 'bg-amber-700 text-white font-bold'
                       : 'bg-slate-800 text-slate-300'
                   }`}>
                     #{idx + 1}
@@ -1224,7 +1269,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
                   <span className="font-display font-black text-xs sm:text-sm text-emerald-400 font-mono block">
                     {sc.score} pts
                   </span>
-                  <span className="text-[9px] text-slate-500 font-mono">
+                  <span className="text-[9px] text-slate-400 font-mono">
                     {sc.time_spent || '02:00'}
                   </span>
                 </div>

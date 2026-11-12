@@ -92,28 +92,51 @@ export const GameLogo: React.FC<GameLogoProps> = ({
           />
         </div>
       ) : (
-        /* Fallback: Ultra-sleek vector arcade badge */
-        <div className="flex items-center gap-3.5">
-          <div className={`${sizeClasses.icon} rounded-2xl bg-gradient-to-tr from-sky-600 via-blue-600 to-indigo-600 p-0.5 shadow-xl shadow-sky-600/30 flex items-center justify-center relative overflow-hidden group-hover:scale-105 transition-transform duration-300`}>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
-            <div className="w-full h-full bg-slate-950/80 rounded-[14px] flex items-center justify-center">
-              <ShieldCheck className="w-3/5 h-3/5 text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]" />
-            </div>
+        /* Official GT Logistics Vector Brand Identity */
+        <div className="flex items-center gap-3">
+          {/* Official GT Logistics Chevron & Monogram Badge */}
+          <div className="flex items-center">
+            <svg
+              className={`${sizeClasses.icon} shrink-0`}
+              viewBox="0 0 120 70"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              {/* GT Logistics Signature Speed Stripes (Red & Navy/White) */}
+              <path d="M12 58L26 12H34L20 58H12Z" fill="#d71920" />
+              <path d="M24 58L38 12H44L30 58H24Z" fill="#ffffff" fillOpacity="0.9" />
+              <path d="M34 58L48 12H54L40 58H34Z" fill="#d71920" />
+
+              {/* Monogram "gt" dynamic italic cut */}
+              <g transform="skewX(-18)">
+                {/* Letter 'g' */}
+                <path
+                  d="M58 24C52 24 47 28 47 36C47 44 52 48 58 48C63 48 67 45 69 41V47C69 54 64 57 58 57C53 57 50 55 49 53L44 57C47 61 52 63 58 63C68 63 75 58 75 46V25H69V29C67 26 63 24 58 24ZM61 42C56 42 53 39 53 36C53 33 56 30 61 30C65 30 69 33 69 36C69 39 65 42 61 42Z"
+                  fill="#ffffff"
+                />
+                {/* Letter 't' */}
+                <path
+                  d="M80 18V24H74V30H80V44C80 47 82 49 86 49C88 49 90 48.5 91 48L91 42C90.5 42.2 89.5 42.5 88.5 42.5C87 42.5 86.5 41.8 86.5 40V30H92V24H86.5V18H80Z"
+                  fill="#d71920"
+                />
+              </g>
+            </svg>
           </div>
 
           <div>
             <div className="flex items-center gap-2">
-              <span className={`${sizeClasses.title} text-white tracking-wide uppercase bg-gradient-to-r from-white via-slate-100 to-sky-200 bg-clip-text text-transparent`}>
-                GT LOGISTICS
+              <span className="font-sans font-black italic tracking-tight text-white flex items-center text-lg sm:text-xl">
+                <span>gt</span>
+                <span className="ml-1 not-italic font-bold text-slate-100 font-sans tracking-normal lowercase">logistics</span>
               </span>
-              <span className="text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md shadow-amber-500/30 shrink-0 font-mono">
+              <span className="text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-md bg-gradient-to-r from-red-600 to-rose-700 text-white border border-red-400/40 shadow-md shadow-red-600/30 shrink-0 font-mono italic">
                 25 ANS
               </span>
             </div>
             {showSubtitle && (
-              <p className={`${sizeClasses.subtitle} text-sky-400 font-semibold tracking-wider font-mono flex items-center gap-1.5`}>
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>CEA GRENOBLE • WMS ARCADE</span>
+              <p className={`${sizeClasses.subtitle} text-slate-400 font-medium tracking-wide flex items-center gap-1.5`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>CEA GRENOBLE • Challenge Logistique</span>
               </p>
             )}
           </div>
