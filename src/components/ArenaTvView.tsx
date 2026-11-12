@@ -45,7 +45,8 @@ import {
   Volume2,
   VolumeX,
   Mic,
-  FileText
+  FileText,
+  Shuffle
 } from 'lucide-react';
 import { GameLogo } from './GameLogo';
 import { ConfirmModal } from './ConfirmModal';
@@ -75,6 +76,9 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
   const [d1Guest, setD1Guest] = useState(() => localStorage.getItem('gt_d1_guest') || 'Thomas (Invité)');
   const [d2Cea, setD2Cea] = useState(() => localStorage.getItem('gt_d2_collab') || 'Sarah (GT)');
   const [d2Guest, setD2Guest] = useState(() => localStorage.getItem('gt_d2_guest') || 'Alexandre (Invité)');
+  const [selectedM1Idx, setSelectedM1Idx] = useState(0);
+  const [selectedM2Idx, setSelectedM2Idx] = useState(1);
+  const [duoRoundNumber, setDuoRoundNumber] = useState(1);
 
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
@@ -399,6 +403,29 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
     soundService.setSoundEnabled(next);
   };
 
+  const handleRandomizeMissions = () => {
+    soundService.playSuccessJingle();
+    const count = missionsPool.length;
+    const rand1 = Math.floor(Math.random() * count);
+    let rand2 = Math.floor(Math.random() * count);
+    if (count > 1 && rand2 === rand1) {
+      rand2 = (rand1 + 1) % count;
+    }
+    setSelectedM1Idx(rand1);
+    setSelectedM2Idx(rand2);
+  };
+
+  const handleNextDuo = () => {
+    soundService.playScanBeep();
+    const nextRound = duoRoundNumber + 1;
+    setDuoRoundNumber(nextRound);
+    setD1Guest(`Invité Duo #${nextRound * 2 - 1}`);
+    setD2Guest(`Invité Duo #${nextRound * 2}`);
+    const count = missionsPool.length;
+    setSelectedM1Idx((nextRound * 2 - 2) % count);
+    setSelectedM2Idx((nextRound * 2 - 1) % count);
+  };
+
   const handleLaunchDuelFromTv = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     localStorage.setItem('gt_d1_collab', d1Cea);
@@ -408,6 +435,9 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
 
     const name1 = `Duo ${d1Guest.trim() || 'Invité 1'}`;
     const name2 = `Duo ${d2Guest.trim() || 'Invité 2'}`;
+
+    const m1Selected = missionsPool[selectedM1Idx % missionsPool.length] || missionsPool[0];
+    const m2Selected = missionsPool[selectedM2Idx % missionsPool.length] || missionsPool[1] || missionsPool[0];
 
     await updateStationLive({
       station_id: 'poste-1',
@@ -419,9 +449,9 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
       combo: 0,
       progress_percent: 0,
       current_step_index: 0,
-      total_steps: 5,
+      total_steps: m1Selected.steps.length,
       status: 'in_progress',
-      current_mission_title: 'Préparation Commande Multi-Articles'
+      current_mission_title: m1Selected.title
     });
 
     await updateStationLive({
@@ -434,9 +464,9 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
       combo: 0,
       progress_percent: 0,
       current_step_index: 0,
-      total_steps: 5,
+      total_steps: m2Selected.steps.length,
       status: 'in_progress',
-      current_mission_title: 'Rapprovisionnement Zone Réacteur'
+      current_mission_title: m2Selected.title
     });
 
     setMatchSeconds(appConfig.shiftDurationSeconds || 180);
@@ -463,15 +493,40 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
     if (foundMission && foundMission.steps.length > 0) {
       return foundMission.steps.map((step: any) => {
         if (step.expectedBarcode === 'LOC-B01-T03') return 'Armoire B01';
+        if (step.expectedBarcode === 'LOC-B01-T04') return 'Armoire T04';
         if (step.expectedBarcode === 'ART-KF40-INOX') return 'Bride KF40';
         if (step.expectedBarcode === 'REF191000007490') return 'Joint Kalrez';
         if (step.expectedBarcode === 'LOC-ETAGERE-LIVRAISON') return 'Livraison Client';
         if (step.expectedBarcode === 'LOC-ETAGERE-COLLECTE') return 'Étagère Collecte';
         if (step.expectedBarcode === 'ZONE_POMPE_GRILLE_41') return 'Zone Pompe 41';
         if (step.expectedBarcode === 'LOC-ETA1-NIV1') return 'Étagère 1';
+        if (step.expectedBarcode === 'LOC-ETA1-NIV2') return 'Étagère 1 N2';
+        if (step.expectedBarcode === 'LOC-ETA1-NIV3') return 'Étagère 1 N3';
+        if (step.expectedBarcode === 'LOC-ETA2-NIV1') return 'Étagère 2 N1';
+        if (step.expectedBarcode === 'LOC-ETA2-NIV2') return 'Étagère 2 N2';
+        if (step.expectedBarcode === 'LOC-ETA2-NIV3') return 'Étagère 2 N3';
         if (step.expectedBarcode === 'DOC-TRANSPORT-INTL') return 'Doc Transport';
         if (step.expectedBarcode === 'ART-CARTON-EXP') return 'Carton Double';
         if (step.expectedBarcode === 'ZONE_RECEPTION_CENTRALE') return 'Réception Cent.';
+        if (step.expectedBarcode === 'ART-WAFER-300MM') return 'Wafer 300mm';
+        if (step.expectedBarcode === 'ART-WAFER-200MM') return 'Wafer 200mm';
+        if (step.expectedBarcode === 'ART-CASSETTE-FOUP') return 'FOUP 300mm';
+        if (step.expectedBarcode === 'ART-PINCE-TEFLON') return 'Pince Téflon';
+        if (step.expectedBarcode === 'ART-CARRIER-QUARTZ') return 'Nacelle Quartz';
+        if (step.expectedBarcode === 'ART-TARGET-TITANE') return 'Cible Titane';
+        if (step.expectedBarcode === 'ART-RESINE-PHOTORESIST') return 'Résine Litho';
+        if (step.expectedBarcode === 'ART-GEL-PACK-MEMS') return 'Gel-Pak MEMS';
+        if (step.expectedBarcode === 'ART-SACHET-ESD') return 'Sachet ESD';
+        if (step.expectedBarcode === 'ART-BOITE-PETRI-SB') return 'Boîte Pétri';
+        if (step.expectedBarcode === 'ART-VITON-KF40') return 'Joint Viton';
+        if (step.expectedBarcode === 'ART-CLAMP-KF25') return 'Collier KF25';
+        if (step.expectedBarcode === 'ART-PUMP-EDWARDS') return 'Pompe Edwards';
+        if (step.expectedBarcode === 'ART-ELECTROVANNE-PNEU') return 'Vanne SMC';
+        if (step.expectedBarcode === 'ART-SCEL-SECURITE') return 'Scellé IATA';
+        if (step.expectedBarcode === 'DOCK-EXPED-01') return 'Quai A';
+        if (step.expectedBarcode === 'DOCK-EXPED-02') return 'Quai B';
+        if (step.expectedBarcode === 'LOC-SB-C01') return 'Sas SB C01';
+        if (step.expectedBarcode === 'LOC-PACK-ZONE') return 'Zone Emballage';
         return step.crLabel?.slice(0, 14) || step.targetLabel?.split('(')[0].trim() || 'Étape';
       });
     }
@@ -1311,6 +1366,37 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
               Inscrivez les binômes ci-dessous. Les joueurs peuvent flasher directement ces QR codes avec leur scannette Zebra ou leur smartphone pour ouvrir leur session synchronisée !
             </p>
 
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-950/60 p-3 rounded-2xl border border-slate-800 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="text-xs font-mono font-bold text-slate-200">
+                  Rotation Duos : <span className="text-amber-400">Manche #{duoRoundNumber}</span>
+                </span>
+                <span className="text-[10px] font-mono text-slate-400 hidden sm:inline">• 20 Pièces Wafers & Détachées</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleRandomizeMissions}
+                  className="px-3 py-1.5 rounded-xl bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-300 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                  title="Tirer 2 commandes différentes au sort"
+                >
+                  <Shuffle className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>🎲 Missions Aléatoires</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleNextDuo}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                  title="Préparer le passage au duo suivant"
+                >
+                  <span>⏩ Duo Suivant (+1)</span>
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-2">
               {/* DUO 1 FORM & QR */}
               <div className="bg-slate-950/80 p-5 rounded-2xl border-2 border-sky-500/50 space-y-4">
@@ -1349,6 +1435,32 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
                       placeholder="Ex: Thomas (Invité)"
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-amber-300 font-bold focus:outline-none focus:border-amber-400"
                     />
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800">
+                    <label className="block text-xs font-bold text-sky-300 mb-1 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-sky-400" />
+                        Demande / Mission Poste 1 :
+                      </span>
+                      <span className="text-[10px] font-mono text-sky-400 font-bold">
+                        {missionsPool[selectedM1Idx]?.steps?.length || 7} lignes
+                      </span>
+                    </label>
+                    <select
+                      value={selectedM1Idx}
+                      onChange={(e) => setSelectedM1Idx(Number(e.target.value))}
+                      className="w-full bg-slate-900 border border-sky-500/50 focus:border-sky-400 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none transition-colors"
+                    >
+                      {missionsPool.map((m, idx) => (
+                        <option key={m.id} value={idx}>
+                          #{idx + 1} • {m.title}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-slate-400 mt-1 truncate">
+                      {missionsPool[selectedM1Idx]?.client}
+                    </p>
                   </div>
                 </div>
 
@@ -1412,6 +1524,32 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
                       placeholder="Ex: Alexandre (Invité)"
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-amber-300 font-bold focus:outline-none focus:border-amber-400"
                     />
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800">
+                    <label className="block text-xs font-bold text-amber-300 mb-1 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-amber-400" />
+                        Demande / Mission Poste 2 :
+                      </span>
+                      <span className="text-[10px] font-mono text-amber-400 font-bold">
+                        {missionsPool[selectedM2Idx]?.steps?.length || 7} lignes
+                      </span>
+                    </label>
+                    <select
+                      value={selectedM2Idx}
+                      onChange={(e) => setSelectedM2Idx(Number(e.target.value))}
+                      className="w-full bg-slate-900 border border-amber-500/50 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none transition-colors"
+                    >
+                      {missionsPool.map((m, idx) => (
+                        <option key={m.id} value={idx}>
+                          #{idx + 1} • {m.title}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-slate-400 mt-1 truncate">
+                      {missionsPool[selectedM2Idx]?.client}
+                    </p>
                   </div>
                 </div>
 

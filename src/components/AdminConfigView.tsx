@@ -297,15 +297,15 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     setConfirmConfig({
       isOpen: true,
       title: 'Charger les modèles du CEA ?',
-      message: 'Voulez-vous charger les 3 missions standard et articles réels du site CEA ?',
+      message: 'Voulez-vous charger le catalogue officiel des 6 missions multi-lignes et 20 articles réels (Silicium, Wafers, Salle Blanche & Pièces Détachées) ?',
       confirmLabel: 'Charger le modèle',
       variant: 'info',
       action: () => {
         setLocalMissions(MISSIONS);
         setLocalInventory(INITIAL_INVENTORY);
         showToast({
-          title: 'Modèle CEA Chargé',
-          message: '3 missions standard et articles réels chargés dans l\'éditeur',
+          title: 'Modèle GT Logistics Chargé',
+          message: '6 missions multi-lignes et 20 articles réels chargés dans l\'éditeur',
           type: 'info'
         });
       }

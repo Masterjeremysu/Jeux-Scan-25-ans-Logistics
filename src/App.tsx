@@ -35,7 +35,11 @@ import {
 let logCounter = 0;
 const generateUniqueLogId = () => `log-${Date.now()}-${++logCounter}-${Math.random().toString(36).slice(2, 7)}`;
 
-const getStationMissions = (baseMissions: Mission[], stId: string): Mission[] => {
+const getStationMissions = (baseMissions: Mission[], stId: string, preferredMissionIndex?: number): Mission[] => {
+  if (typeof preferredMissionIndex === 'number' && preferredMissionIndex >= 0 && preferredMissionIndex < baseMissions.length) {
+    const chosen = baseMissions[preferredMissionIndex];
+    return [chosen, ...baseMissions.filter((m) => m.id !== chosen.id)];
+  }
   if (stId === 'poste-2') {
     // Reverse order for Poste 2 so both duos target different physical shelves during duel
     return baseMissions.slice().reverse();
@@ -70,16 +74,34 @@ const isBarcodeMatching = (scanned: string, expected: string, lrCode?: string): 
   if (cleanE.includes('RECEPTION') && (cleanS.includes('RECEPTION') || cleanS.includes('REC_CENT') || cleanS.includes('CENTRALE') || cleanS.includes('DEPART'))) return true;
   if (cleanE.includes('TRANSPORT') && (cleanS.includes('TRANSPORT') || cleanS.includes('DOC_TRP') || cleanS.includes('TRP') || cleanS.includes('BORDEREAU'))) return true;
   if (cleanE.includes('B01') && (cleanS.includes('B01_T03') || cleanS.includes('B01-T03') || cleanS.includes('B01_T04') || cleanS.includes('B01-T04') || cleanS.includes('ARMOIRE_B'))) return true;
+  if (cleanE.includes('SB-C01') && (cleanS.includes('SB-C01') || cleanS.includes('SBC1') || cleanS.includes('SALLE_BLANCHE') || cleanS.includes('CASIER'))) return true;
+  if (cleanE.includes('PACK-ZONE') && (cleanS.includes('PACK') || cleanS.includes('EMBALLAGE') || cleanS.includes('CONDITIONNEMENT'))) return true;
+  if (cleanE.includes('DOCK-EXPED') && (cleanS.includes('DOCK') || cleanS.includes('EXPED') || cleanS.includes('QAI_EXP') || cleanS.includes('QUAI'))) return true;
 
-  // Aliases d'articles et pièces
+  // Aliases d'articles et pièces (Famille Silicium & Salle Blanche)
+  if (cleanE.includes('WAFER-300') && (cleanS.includes('WAFER-300') || cleanS.includes('WFR_S300') || cleanS.includes('300MM') || cleanS.includes('FOSB'))) return true;
+  if (cleanE.includes('WAFER-200') && (cleanS.includes('WAFER-200') || cleanS.includes('WFR_P200') || cleanS.includes('200MM'))) return true;
+  if (cleanE.includes('CASSETTE-FOUP') && (cleanS.includes('FOUP') || cleanS.includes('FOU_300E') || cleanS.includes('ENTEGRIS'))) return true;
+  if (cleanE.includes('PINCE-TEFLON') && (cleanS.includes('PINCE') || cleanS.includes('TEFLON') || cleanS.includes('PNC_TEFL') || cleanS.includes('PTFE'))) return true;
+  if (cleanE.includes('CARRIER-QUARTZ') && (cleanS.includes('QUARTZ') || cleanS.includes('CARRIER') || cleanS.includes('NAC_QTZ') || cleanS.includes('NACELLE'))) return true;
+  if (cleanE.includes('TARGET-TITANE') && (cleanS.includes('TARGET') || cleanS.includes('TITANE') || cleanS.includes('CIB_TI') || cleanS.includes('PVD'))) return true;
+  if (cleanE.includes('RESINE') && (cleanS.includes('RESINE') || cleanS.includes('PHOTORESIST') || cleanS.includes('RES_ILIN') || cleanS.includes('ILINE'))) return true;
+  if (cleanE.includes('GEL-PACK') && (cleanS.includes('GEL') || cleanS.includes('MEMS') || cleanS.includes('GEL_PAKM') || cleanS.includes('GELPAK'))) return true;
+  if (cleanE.includes('SACHET') && (cleanS.includes('SACHET') || cleanS.includes('ESD') || cleanS.includes('SAC_ESD'))) return true;
+  if (cleanE.includes('BOITE-PETRI') && (cleanS.includes('PETRI') || cleanS.includes('BTE_PETR') || cleanS.includes('BOITE'))) return true;
+
+  // Aliases d'articles et pièces (Famille Pièces Détachées, Vide & Cryo)
   if (cleanE.includes('KF40') && (cleanS.includes('KF40') || cleanS.includes('BRD_KF40') || cleanS.includes('BRIDE'))) return true;
   if (cleanE.includes('7490') && (cleanS.includes('7490') || cleanS.includes('JNT_A001') || cleanS.includes('KALREZ') || cleanS.includes('JOINT'))) return true;
+  if (cleanE.includes('VITON') && (cleanS.includes('VITON') || cleanS.includes('JNT_VT40') || cleanS.includes('VT40'))) return true;
+  if (cleanE.includes('CLAMP') && (cleanS.includes('CLAMP') || cleanS.includes('KF25') || cleanS.includes('CLP_KF25') || cleanS.includes('COLLIER'))) return true;
+  if (cleanE.includes('PUMP-EDWARDS') && (cleanS.includes('EDWARDS') || cleanS.includes('PMP_EDW3') || cleanS.includes('TURBO') || cleanS.includes('POMPE'))) return true;
   if (cleanE.includes('POMPE') && (cleanS.includes('POMPE') || cleanS.includes('GRILLE_41') || cleanS.includes('PMP'))) return true;
-  if (cleanE.includes('VITON') && cleanS.includes('VITON')) return true;
-  if (cleanE.includes('WAFER') && cleanS.includes('WAFER')) return true;
-  if (cleanE.includes('SACHET') && cleanS.includes('SACHET')) return true;
+  if (cleanE.includes('PENNING') && (cleanS.includes('PENNING') || cleanS.includes('JGE_PENN') || cleanS.includes('JAUGE') || cleanS.includes('MANO'))) return true;
+  if (cleanE.includes('ELECTROVANNE') && (cleanS.includes('ELECTROVANNE') || cleanS.includes('SMC') || cleanS.includes('VAN_PNEU') || cleanS.includes('VANNE'))) return true;
+  if (cleanE.includes('FILTRE') && (cleanS.includes('FILTRE') || cleanS.includes('FLT_PMP1') || cleanS.includes('HUILE'))) return true;
   if (cleanE.includes('CARTON') && (cleanS.includes('CARTON') || cleanS.includes('CTN') || cleanS.includes('DOUBLE'))) return true;
-  if (cleanE.includes('SCEL') && cleanS.includes('SCEL')) return true;
+  if (cleanE.includes('SCEL') && (cleanS.includes('SCEL') || cleanS.includes('SCL_IATA') || cleanS.includes('IATA'))) return true;
 
   return false;
 };
@@ -1212,11 +1234,13 @@ export const App: React.FC = () => {
   // Launch Live 2-Duo Duel from the Home Launcher
   const handleStartDuel = async (
     duo1: { cea: string; client: string },
-    duo2: { cea: string; client: string }
+    duo2: { cea: string; client: string },
+    m1Index: number = 0,
+    m2Index: number = 1
   ) => {
     const activeMissionsPool = missionsRef.current && missionsRef.current.length > 0 ? missionsRef.current : MISSIONS;
-    const m1 = getStationMissions(activeMissionsPool, 'poste-1');
-    const m2 = getStationMissions(activeMissionsPool, 'poste-2');
+    const m1 = getStationMissions(activeMissionsPool, 'poste-1', m1Index);
+    const m2 = getStationMissions(activeMissionsPool, 'poste-2', m2Index);
 
     // 1. Update Supabase live stations state
     await updateStationLive({
@@ -1229,7 +1253,7 @@ export const App: React.FC = () => {
       combo: 0,
       progress_percent: 0,
       current_step_index: 0,
-      total_steps: m1[0]?.steps?.length || 4,
+      total_steps: m1[0]?.steps?.length || 7,
       current_mission_title: m1[0]?.title || 'Préparation Commande',
       status: 'in_progress'
     });
@@ -1244,7 +1268,7 @@ export const App: React.FC = () => {
       combo: 0,
       progress_percent: 0,
       current_step_index: 0,
-      total_steps: m2[0]?.steps?.length || 4,
+      total_steps: m2[0]?.steps?.length || 7,
       current_mission_title: m2[0]?.title || 'Collecte Client',
       status: 'in_progress'
     });
@@ -1252,6 +1276,7 @@ export const App: React.FC = () => {
     // 2. Local state initialization for this active machine
     const isP2 = stationId === 'poste-2';
     const activeDuo = isP2 ? duo2 : duo1;
+    const activeMissionList = isP2 ? m2 : m1;
     setOperatorCea(activeDuo.cea);
     setClientGuest(activeDuo.client);
     setShiftSecondsRemaining(appConfig.shiftDurationSeconds || 180);
@@ -1259,11 +1284,16 @@ export const App: React.FC = () => {
     setCurrentMissionIndex(0);
     setLogs([]);
 
+    // Reset smart scoring counters
+    validScansCountRef.current = 0;
+    errorScansCountRef.current = 0;
+    lastStepStartTimeRef.current = Date.now();
+
     // Reset all mission steps
-    setMissions((prev) =>
-      prev.map((m) => ({
+    setMissions(
+      activeMissionList.map((m) => ({
         ...m,
-        steps: m.steps.map((st) => ({ ...st, completed: false }))
+        steps: m.steps.map((st) => ({ ...st, completed: false, scannedCount: 0 }))
       }))
     );
 
@@ -1275,7 +1305,8 @@ export const App: React.FC = () => {
   const handleStartSolo = (
     targetStationId: string,
     targetStationName: string,
-    duo: { cea: string; client: string }
+    duo: { cea: string; client: string },
+    mIndex: number = 0
   ) => {
     handleSelectStation(targetStationId, targetStationName);
     setOperatorCea(duo.cea);
@@ -1290,8 +1321,11 @@ export const App: React.FC = () => {
     errorScansCountRef.current = 0;
     lastStepStartTimeRef.current = Date.now();
 
-    setMissions((prev) =>
-      prev.map((m) => ({
+    const activeMissionsPool = missionsRef.current && missionsRef.current.length > 0 ? missionsRef.current : MISSIONS;
+    const ordered = getStationMissions(activeMissionsPool, targetStationId, mIndex);
+
+    setMissions(
+      ordered.map((m) => ({
         ...m,
         steps: m.steps.map((st) => ({ ...st, completed: false, scannedCount: 0 }))
       }))
@@ -1404,6 +1438,7 @@ export const App: React.FC = () => {
           <HomeLauncherView
             appConfig={appConfig}
             liveStations={liveStations}
+            missions={missions}
             onStartDuel={handleStartDuel}
             onStartSolo={handleStartSolo}
             onOpenTv={() => handleSelectView('arena')}

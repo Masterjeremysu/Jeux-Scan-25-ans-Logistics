@@ -3,24 +3,203 @@ import { InventoryItem, WarehouseLocation } from '../types';
 export const INITIAL_LOCATIONS: WarehouseLocation[] = [
   { id: 'loc-1', barcode: 'LOC-B01-T03', label: 'Armoire B01 (Allée B - Tiroir T03)', lrCode: 'LOC_B01_T03', crLabel: 'ARMOIRE ALLEE B TIROIR T03', zone: 'Magasin Central' },
   { id: 'loc-2', barcode: 'LOC-B01-T04', label: 'Armoire B01 (Allée B - Tiroir T04)', lrCode: 'LOC_B01_T04', crLabel: 'ARMOIRE ALLEE B TIROIR T04', zone: 'Magasin Central' },
-  { id: 'loc-3', barcode: 'ZONE_POMPE_GRILLE_41', label: 'Zone Pompe Grille 41 (Stock Central)', lrCode: 'ZONE_PMP_41', crLabel: 'ZONE POMPE GRILLE 41', zone: 'Magasin Central' },
+  { id: 'loc-3', barcode: 'ZONE_POMPE_GRILLE_41', label: 'Zone Pompe Grille 41 (Stock Lourd)', lrCode: 'ZONE_PMP_41', crLabel: 'ZONE POMPE GRILLE 41', zone: 'Magasin Central' },
   { id: 'loc-4', barcode: 'LOC-ETAGERE-COLLECTE', label: 'Étagère de Collecte & Retours Clients', lrCode: 'ETA_COLLECT', crLabel: 'ETAGERE DE COLLECTE CLIENTS', zone: 'Quai Réception' },
   { id: 'loc-5', barcode: 'LOC-ETAGERE-LIVRAISON', label: 'Étagère de Livraison & Dépôt Client', lrCode: 'ETA_LIVR', crLabel: 'ETAGERE LIVRAISON CLIENT', zone: 'Quai Livraison' },
-  { id: 'loc-6', barcode: 'LOC-ETA1-NIV1', label: 'Étagère 1 • Niveau 1 (Prise Colis)', lrCode: 'ETA_1_N1', crLabel: 'ETAGERE 1 NIVEAU BAS', zone: 'Poste 1' },
-  { id: 'loc-7', barcode: 'LOC-ETA1-NIV2', label: 'Étagère 1 • Niveau 2 (Milieu)', lrCode: 'ETA_1_N2', crLabel: 'ETAGERE 1 NIVEAU MILIEU', zone: 'Poste 1' },
-  { id: 'loc-8', barcode: 'LOC-ETA1-NIV3', label: 'Étagère 1 • Niveau 3 (Haut)', lrCode: 'ETA_1_N3', crLabel: 'ETAGERE 1 NIVEAU HAUT', zone: 'Poste 1' },
-  { id: 'loc-9', barcode: 'LOC-ETA2-NIV1', label: 'Étagère 2 • Niveau 1 (Prise Colis)', lrCode: 'ETA_2_N1', crLabel: 'ETAGERE 2 NIVEAU BAS', zone: 'Poste 2' },
-  { id: 'loc-10', barcode: 'LOC-ETA2-NIV2', label: 'Étagère 2 • Niveau 2 (Milieu)', lrCode: 'ETA_2_N2', crLabel: 'ETAGERE 2 NIVEAU MILIEU', zone: 'Poste 2' },
-  { id: 'loc-11', barcode: 'LOC-ETA2-NIV3', label: 'Étagère 2 • Niveau 3 (Haut)', lrCode: 'ETA_2_N3', crLabel: 'ETAGERE 2 NIVEAU HAUT', zone: 'Poste 2' },
+  { id: 'loc-6', barcode: 'LOC-ETA1-NIV1', label: 'Étagère 1 • Niveau 1 (Poste 1 Bas)', lrCode: 'ETA_1_N1', crLabel: 'ETAGERE 1 NIVEAU BAS', zone: 'Poste 1' },
+  { id: 'loc-7', barcode: 'LOC-ETA1-NIV2', label: 'Étagère 1 • Niveau 2 (Poste 1 Milieu)', lrCode: 'ETA_1_N2', crLabel: 'ETAGERE 1 NIVEAU MILIEU', zone: 'Poste 1' },
+  { id: 'loc-8', barcode: 'LOC-ETA1-NIV3', label: 'Étagère 1 • Niveau 3 (Poste 1 Haut)', lrCode: 'ETA_1_N3', crLabel: 'ETAGERE 1 NIVEAU HAUT', zone: 'Poste 1' },
+  { id: 'loc-9', barcode: 'LOC-ETA2-NIV1', label: 'Étagère 2 • Niveau 1 (Poste 2 Bas)', lrCode: 'ETA_2_N1', crLabel: 'ETAGERE 2 NIVEAU BAS', zone: 'Poste 2' },
+  { id: 'loc-10', barcode: 'LOC-ETA2-NIV2', label: 'Étagère 2 • Niveau 2 (Poste 2 Milieu)', lrCode: 'ETA_2_N2', crLabel: 'ETAGERE 2 NIVEAU MILIEU', zone: 'Poste 2' },
+  { id: 'loc-11', barcode: 'LOC-ETA2-NIV3', label: 'Étagère 2 • Niveau 3 (Poste 2 Haut)', lrCode: 'ETA_2_N3', crLabel: 'ETAGERE 2 NIVEAU HAUT', zone: 'Poste 2' },
   { id: 'loc-12', barcode: 'ZONE_RECEPTION_CENTRALE', label: 'La Réception Centrale (Départs Étranger)', lrCode: 'REC_CENT', crLabel: 'LA RECEPTION CENTRALE DEPARTS', zone: 'Expédition' },
   { id: 'loc-13', barcode: 'DOCK-EXPED-01', label: 'Quai Expédition A (Poste 1)', lrCode: 'QAI_EXP_A', crLabel: 'QUAI EXPEDITION POSTE 1', zone: 'Quais' },
-  { id: 'loc-14', barcode: 'DOCK-EXPED-02', label: 'Quai Expédition B (Poste 2)', lrCode: 'QAI_EXP_B', crLabel: 'QUAI EXPEDITION POSTE 2', zone: 'Quais' }
+  { id: 'loc-14', barcode: 'DOCK-EXPED-02', label: 'Quai Expédition B (Poste 2)', lrCode: 'QAI_EXP_B', crLabel: 'QUAI EXPEDITION POSTE 2', zone: 'Quais' },
+  { id: 'loc-15', barcode: 'LOC-PACK-ZONE', label: 'Zone Emballage & Conditionnement CEA', lrCode: 'LOC_PACK', crLabel: 'ZONE EMBALLAGE CONDITIONNEMENT', zone: 'Expédition' },
+  { id: 'loc-16', barcode: 'LOC-SB-C01', label: 'Sas Salle Blanche (Casier Wafer C01)', lrCode: 'LOC_SBC1', crLabel: 'SAS SALLE BLANCHE C01', zone: 'Salle Blanche' }
 ];
 
 export const INITIAL_INVENTORY: InventoryItem[] = [
+  // =========================================================================
+  // FAMILLE 1 : SILICIUM, WAFERS & SALLE BLANCHE (10 PIÈCES HAUTE TECHNOLOGIE)
+  // =========================================================================
   {
     id: 'item-1',
-    sku: 'REF191000007490', // Article exact exemple GT Logistics
+    sku: 'ART-WAFER-300MM',
+    name: 'LOT WAFERS SILICIUM PUR 300MM (FOSB 25X)',
+    category: 'Silicium & Salle Blanche',
+    location: 'LOC-ETA1-NIV1',
+    quantity: 12,
+    unit: 'boîtes',
+    critical: true,
+    batch: 'LOT-SIL-MINATEC-99',
+    description: 'Plaquettes 300mm ultra-pures salle blanche ISO 5 LETI pour bancs de lithographie.',
+    lrCode: 'WFR_S300',
+    crLabel: 'LOT WAFERS SILICIUM PUR 300MM',
+    gestionnaire: 'CEA Minatec',
+    machinePdt: 'Salle Blanche ISO 5',
+    refEquipementier: 'MEMC-SIL-300-UHP'
+  },
+  {
+    id: 'item-2',
+    sku: 'ART-WAFER-200MM',
+    name: 'BOITE 25 WAFERS SILICIUM 200MM P-TYPE <100>',
+    category: 'Silicium & Salle Blanche',
+    location: 'LOC-ETA2-NIV1',
+    quantity: 16,
+    unit: 'boîtes',
+    critical: true,
+    batch: 'LOT-2026-WFR200',
+    description: 'Plaquettes de silicium 200mm dopées Bore pour banc R&D capteurs CMOS.',
+    lrCode: 'WFR_P200',
+    crLabel: 'BOITE 25 WAFERS SILICIUM 200MM',
+    gestionnaire: 'CEA LETI',
+    machinePdt: 'Plateforme Silicium Bât. 17',
+    refEquipementier: 'SILTRONIC-200-BORON'
+  },
+  {
+    id: 'item-3',
+    sku: 'ART-CASSETTE-FOUP',
+    name: 'CASSETTE FOUP 300MM ENTEGRIS HERMETIQUE',
+    category: 'Silicium & Salle Blanche',
+    location: 'LOC-ETA1-NIV2',
+    quantity: 6,
+    unit: 'unités',
+    critical: true,
+    batch: 'LOT-FOUP-2026',
+    description: 'Boîte de transfert sécurisée sous azote pour transport automatisé de wafers 300mm.',
+    lrCode: 'FOU_300E',
+    crLabel: 'CASSETTE FOUP 300MM ENTEGRIS',
+    gestionnaire: 'GT Logistics',
+    machinePdt: 'Liaison Inter-Salles Blanches',
+    refEquipementier: 'ENTEGRIS-FOUP-A300'
+  },
+  {
+    id: 'item-4',
+    sku: 'ART-PINCE-TEFLON',
+    name: 'PINCE A WAFER TEFLON PTFE ANTISTATIQUE',
+    category: 'Silicium & Salle Blanche',
+    location: 'LOC-ETA2-NIV2',
+    quantity: 24,
+    unit: 'pcs',
+    critical: false,
+    batch: 'LOT-TEF-2026',
+    description: 'Pince de préhension manuelle pour substrats silicium fragiles sans rayure ni particules.',
+    lrCode: 'PNC_TEFL',
+    crLabel: 'PINCE WAFER TEFLON PTFE',
+    gestionnaire: 'GT Logistics',
+    machinePdt: 'Poste Tri & Contrôle Wafer',
+    refEquipementier: 'FLUOROWARE-TW-08'
+  },
+  {
+    id: 'item-5',
+    sku: 'ART-CARRIER-QUARTZ',
+    name: 'NACELLE QUARTZ POUR FOUR D\'OXYDATION 1100°C',
+    category: 'Silicium & Salle Blanche',
+    location: 'LOC-ETA1-NIV3',
+    quantity: 8,
+    unit: 'unités',
+    critical: true,
+    batch: 'LOT-QTZ-2026',
+    description: 'Support de traitement thermique pour lot de 50 plaquettes en tube d\'oxydation haute température.',
+    lrCode: 'NAC_QTZ1',
+    crLabel: 'NACELLE QUARTZ FOUR OXYDATION',
+    gestionnaire: 'CEA LETI',
+    machinePdt: 'Four Thermique Bât. 17',
+    refEquipementier: 'HERAEUS-QTZ-BOAT-50'
+  },
+  {
+    id: 'item-6',
+    sku: 'ART-TARGET-TITANE',
+    name: 'CIBLE PULVERISATION TITANE PVD 99.999%',
+    category: 'Silicium & Salle Blanche',
+    location: 'LOC-ETA2-NIV3',
+    quantity: 5,
+    unit: 'disques',
+    critical: true,
+    batch: 'LOT-TI-PVD-04',
+    description: 'Disque de métallisation haute pureté pour bâti de pulvérisation cathodique couche mince.',
+    lrCode: 'CIB_TI99',
+    crLabel: 'CIBLE TITANE PVD 99.999%',
+    gestionnaire: 'CEA LETI',
+    machinePdt: 'Bâti PVD Sputtering 04',
+    refEquipementier: 'TOSOH-TI-5N-300'
+  },
+  {
+    id: 'item-7',
+    sku: 'ART-RESINE-PHOTORESIST',
+    name: 'FLACON RESINE PHOTORESIST UV I-LINE 1L',
+    category: 'Silicium & Salle Blanche',
+    location: 'LOC-B01-T04',
+    quantity: 14,
+    unit: 'flacons',
+    critical: true,
+    batch: 'LOT-RES-2026-IL',
+    description: 'Résine photosensible pour insolation photolithographique en salle blanche.',
+    lrCode: 'RES_ILIN',
+    crLabel: 'RESINE PHOTORESIST I-LINE 1L',
+    gestionnaire: 'CEA Minatec',
+    machinePdt: 'Enduiseuse Piste Litho',
+    refEquipementier: 'TOKYO-OHKA-THMR-iP'
+  },
+  {
+    id: 'item-8',
+    sku: 'ART-GEL-PACK-MEMS',
+    name: 'BOITE SOUS VIDE GEL-PAK POUR PUCES MEMS',
+    category: 'Silicium & Salle Blanche',
+    location: 'LOC-ETA1-NIV2',
+    quantity: 35,
+    unit: 'boîtes',
+    critical: false,
+    batch: 'LOT-GEL-2026',
+    description: 'Boîtier adhésif anti-vibration pour transport de puces nues et puces microélectroniques.',
+    lrCode: 'GEL_PAKM',
+    crLabel: 'BOITE GEL-PAK PUCES MEMS',
+    gestionnaire: 'GT Logistics',
+    machinePdt: 'Expédition Échantillons CEA',
+    refEquipementier: 'GELPAK-VR-44-CC'
+  },
+  {
+    id: 'item-9',
+    sku: 'ART-SACHET-ESD',
+    name: 'SACHET DOUBLE ENSACHAGE ANTISTATIQUE ESD',
+    category: 'Consommables',
+    location: 'LOC-PACK-ZONE',
+    quantity: 150,
+    unit: 'sacs',
+    critical: false,
+    batch: 'LOT-ESD-2026',
+    description: 'Protection métallisée multicouche contre les décharges électrostatiques.',
+    lrCode: 'SAC_ESD2',
+    crLabel: 'SACHET DOUBLE ENSACHAGE ESD',
+    gestionnaire: 'GT Logistics',
+    machinePdt: 'Poste Emballage Salle Blanche',
+    refEquipementier: 'ESD-SHIELD-PRO-M2'
+  },
+  {
+    id: 'item-10',
+    sku: 'ART-BOITE-PETRI-SB',
+    name: 'LOT 10 BOITES DE PETRI SALLE BLANCHE ISO 5',
+    category: 'Silicium & Salle Blanche',
+    location: 'LOC-SB-C01',
+    quantity: 40,
+    unit: 'lots',
+    critical: false,
+    batch: 'LOT-PETRI-2026',
+    description: 'Boîtes stériles étanches pour prélèvement et transfert d\'échantillons micro-capteurs.',
+    lrCode: 'BTE_PETR',
+    crLabel: 'BOITES PETRI SALLE BLANCHE',
+    gestionnaire: 'GT Logistics',
+    machinePdt: 'Laboratoire Salle Blanche',
+    refEquipementier: 'CORNING-SB-100-ISO5'
+  },
+
+  // =========================================================================
+  // FAMILLE 2 : PIÈCES DÉTACHÉES, VIDE, CRYO & MÉCANIQUE (10 PIÈCES INDUSTRIELLES)
+  // =========================================================================
+  {
+    id: 'item-11',
+    sku: 'REF191000007490',
     name: 'JOINT TORIQUE KALREZ (TUBE)',
     category: 'Vide & Cryo',
     location: 'LOC-B01-T04',
@@ -28,7 +207,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     unit: 'pcs',
     critical: false,
     batch: 'LOT-2026-KLZ-01',
-    description: 'Joint torique ultra-haute pureté résistant aux gaz corrosifs pour bâtis de dépôt.',
+    description: 'Joint torique ultra-haute pureté résistant aux gaz fluorés et corrosifs pour bâtis de dépôt.',
     lrCode: 'JNT_A001',
     crLabel: 'JOINT TORIQUE KALREZ (TUBE)',
     gestionnaire: 'GT Logistics',
@@ -36,7 +215,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     refEquipementier: 'DUPONT-KLZ-4079-USA'
   },
   {
-    id: 'item-2',
+    id: 'item-12',
     sku: 'ART-KF40-INOX',
     name: 'BRIDE A VIDE KF40 INOX 316L',
     category: 'Vide & Cryo',
@@ -53,7 +232,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     refEquipementier: 'EDW-KF40-316L'
   },
   {
-    id: 'item-3',
+    id: 'item-13',
     sku: 'ART-VITON-KF40',
     name: 'JOINT ELASTOMERE VITON KF40 AVEC BAGUE',
     category: 'Vide & Cryo',
@@ -62,7 +241,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     unit: 'pcs',
     critical: false,
     batch: 'LOT-2026-VIT22',
-    description: 'Joint torique résistant aux dégazages pour ultra-vide.',
+    description: 'Joint élastomère avec bague de centrage inox pour ligne de vide secondaire.',
     lrCode: 'JNT_VT40',
     crLabel: 'JOINT ELASTOMERE VITON KF40',
     gestionnaire: 'GT Logistics',
@@ -70,41 +249,24 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     refEquipementier: 'VIT-BA-40-ISO'
   },
   {
-    id: 'item-4',
-    sku: 'ART-WAFER-300MM',
-    name: 'LOT WAFERS SILICIUM PUR 300MM (FOSB 25X)',
-    category: 'Microélectronique',
-    location: 'LOC-SB-C01',
-    quantity: 8,
-    unit: 'boîtes',
-    critical: true,
-    batch: 'LOT-SIL-MINATEC-99',
-    description: 'Plaquettes 300mm ultra-pures salle blanche ISO 5 LETI.',
-    lrCode: 'WFR_S300',
-    crLabel: 'LOT WAFERS SILICIUM PUR 300MM',
-    gestionnaire: 'CEA Minatec',
-    machinePdt: 'Salle Blanche ISO 5',
-    refEquipementier: 'MEMC-SIL-300-UHP'
-  },
-  {
-    id: 'item-5',
-    sku: 'ART-SACHET-ESD',
-    name: 'SACHET DOUBLE ENSACHAGE ANTISTATIQUE ESD',
-    category: 'Consommables',
-    location: 'LOC-SB-C02',
-    quantity: 120,
-    unit: 'sacs',
+    id: 'item-14',
+    sku: 'ART-CLAMP-KF25',
+    name: 'COLLIER DE SERRAGE ALU KF25 RAPIDE',
+    category: 'Vide & Cryo',
+    location: 'LOC-B01-T03',
+    quantity: 50,
+    unit: 'pcs',
     critical: false,
-    batch: 'LOT-ESD-2026',
-    description: 'Protection contre les décharges électrostatiques classe 0.',
-    lrCode: 'SAC_ESD2',
-    crLabel: 'SACHET DOUBLE ENSACHAGE ESD',
+    batch: 'LOT-CLP-2026',
+    description: 'Collier papillon aluminium pour montage rapide des liaisons ISO-KF25.',
+    lrCode: 'CLP_KF25',
+    crLabel: 'COLLIER ALU KF25 RAPIDE',
     gestionnaire: 'GT Logistics',
-    machinePdt: 'Poste Emballage Salle Blanche',
-    refEquipementier: 'ESD-SHIELD-PRO'
+    machinePdt: 'Ligne Pompage Secondaire',
+    refEquipementier: 'PFEIFFER-KF25-ALU'
   },
   {
-    id: 'item-6',
+    id: 'item-15',
     sku: 'ART-PUMP-EDWARDS',
     name: 'POMPE TURBO-MOLECULAIRE EDWARDS 300KG',
     category: 'Vide & Cryo',
@@ -113,7 +275,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     unit: 'unités',
     critical: true,
     batch: 'LOT-CRYO-EDW-03',
-    description: 'Pompe pour bâtis épitaxie MBE, manipulation palan obligatoire.',
+    description: 'Groupe turbo-moléculaire lourd pour bâtis épitaxie MBE, manipulation au palan.',
     lrCode: 'PMP_EDW3',
     crLabel: 'POMPE TURBO-MOLECULAIRE EDWARDS',
     gestionnaire: 'Magasin Central CEA',
@@ -121,7 +283,58 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     refEquipementier: 'EDW-STP-iXA3306'
   },
   {
-    id: 'item-7',
+    id: 'item-16',
+    sku: 'ART-MANO-PENNING',
+    name: 'CAPTEUR JAUGE DE PRESSION PENNING VIDE',
+    category: 'Vide & Cryo',
+    location: 'LOC-B01-T03',
+    quantity: 9,
+    unit: 'unités',
+    critical: true,
+    batch: 'LOT-JGE-2026',
+    description: 'Jauge à cathode froide pour mesure du vide poussé de 10-3 à 10-9 mbar.',
+    lrCode: 'JGE_PENN',
+    crLabel: 'JAUGE PRESSION PENNING VIDE',
+    gestionnaire: 'CEA LETI',
+    machinePdt: 'Contrôle Vide Bât. 17',
+    refEquipementier: 'INFICON-CP300-PENN'
+  },
+  {
+    id: 'item-17',
+    sku: 'ART-ELECTROVANNE-PNEU',
+    name: 'ELECTROVANNE PNEUMATIQUE SMC AZOTE / ARGON',
+    category: 'Fluides & Gaz',
+    location: 'LOC-B01-T04',
+    quantity: 18,
+    unit: 'pcs',
+    critical: false,
+    batch: 'LOT-SMC-2026',
+    description: 'Vanne d\'isolement tout-ou-rien pour distribution des gaz purs d\'expérimentation.',
+    lrCode: 'VAN_PNEU',
+    crLabel: 'ELECTROVANNE PNEUMATIQUE SMC',
+    gestionnaire: 'GT Logistics',
+    machinePdt: 'Plenum Gaz Bât. 17',
+    refEquipementier: 'SMC-VPA3165-N2'
+  },
+  {
+    id: 'item-18',
+    sku: 'ART-FILTRE-HUILE-PMP',
+    name: 'CARTOUCHE FILTRE A HUILE DE POMPE PRIMAIRE',
+    category: 'Consommables',
+    location: 'LOC-PACK-ZONE',
+    quantity: 26,
+    unit: 'filtres',
+    critical: false,
+    batch: 'LOT-FLT-2026',
+    description: 'Cartouche filtrante de piégeage des hydrocarbures pour pompe à palettes.',
+    lrCode: 'FLT_PMP1',
+    crLabel: 'CARTOUCHE FILTRE HUILE POMPE',
+    gestionnaire: 'GT Logistics',
+    machinePdt: 'Atelier Maintenance Pompes',
+    refEquipementier: 'LEYBOLD-N62-FILTER'
+  },
+  {
+    id: 'item-19',
     sku: 'ART-CARTON-EXP',
     name: 'CARTON DOUBLE CANNELURE SECURISE CEA',
     category: 'Consommables',
@@ -130,7 +343,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     unit: 'cartons',
     critical: false,
     batch: 'LOT-CTN-CEA-12',
-    description: 'Carton renforcé agréé transport matériel scientifique fragile.',
+    description: 'Carton renforcé agréé pour transport de matériel scientifique de haute valeur.',
     lrCode: 'CTN_DBL1',
     crLabel: 'CARTON DOUBLE CANNELURE CEA',
     gestionnaire: 'GT Logistics',
@@ -138,16 +351,16 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     refEquipementier: 'CTN-CEA-HOMOLOGUE'
   },
   {
-    id: 'item-8',
+    id: 'item-20',
     sku: 'ART-SCEL-SECURITE',
-    name: 'SCELLE NUMEROTE INVIOLABLE IATA',
+    name: 'SCELLE NUMEROTE INVIOLABLE IATA FRET',
     category: 'Consommables',
-    location: 'LOC-PACK-SCELL',
+    location: 'LOC-PACK-ZONE',
     quantity: 200,
     unit: 'scellés',
     critical: true,
     batch: 'LOT-SCL-IATA-01',
-    description: 'Scellé inviolable pour fret aérien international.',
+    description: 'Scellé rouge numéroté pour traçabilité réglementaire fret aérien international.',
     lrCode: 'SCL_IATA',
     crLabel: 'SCELLE INVIOLABLE IATA SECURISE',
     gestionnaire: 'GT Logistics',
@@ -159,52 +372,35 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
 export interface BarcodeItemCatalog {
   code: string;
   label: string;
-  type: string;
+  type: 'article' | 'location' | 'package' | 'seal' | 'dock';
+  quantity?: number;
+  location?: string;
   lrCode?: string;
   crLabel?: string;
-  gestionnaire?: string;
-  machinePdt?: string;
-  refEquipementier?: string;
 }
 
 export const BARCODE_CATALOG: BarcodeItemCatalog[] = [
-  // Étagères Stand Physique (2 étagères x 3 niveaux)
-  { code: 'LOC-ETA1-NIV1', label: 'Étagère 1 • Niveau 1 (Bas)', type: 'location', lrCode: 'ETA_1_N1', crLabel: 'ETAGERE 1 NIVEAU BAS' },
-  { code: 'LOC-ETA1-NIV2', label: 'Étagère 1 • Niveau 2 (Milieu)', type: 'location', lrCode: 'ETA_1_N2', crLabel: 'ETAGERE 1 NIVEAU MILIEU' },
-  { code: 'LOC-ETA1-NIV3', label: 'Étagère 1 • Niveau 3 (Haut)', type: 'location', lrCode: 'ETA_1_N3', crLabel: 'ETAGERE 1 NIVEAU HAUT' },
-  { code: 'LOC-ETA2-NIV1', label: 'Étagère 2 • Niveau 1 (Bas)', type: 'location', lrCode: 'ETA_2_N1', crLabel: 'ETAGERE 2 NIVEAU BAS' },
-  { code: 'LOC-ETA2-NIV2', label: 'Étagère 2 • Niveau 2 (Milieu)', type: 'location', lrCode: 'ETA_2_N2', crLabel: 'ETAGERE 2 NIVEAU MILIEU' },
-  { code: 'LOC-ETA2-NIV3', label: 'Étagère 2 • Niveau 3 (Haut)', type: 'location', lrCode: 'ETA_2_N3', crLabel: 'ETAGERE 2 NIVEAU HAUT' },
-
-  // Quais d'Expédition du stand & Réception Centrale
-  { code: 'ZONE_RECEPTION_CENTRALE', label: 'La Réception Centrale (Départs Étranger)', type: 'dock', lrCode: 'REC_CENT', crLabel: 'LA RECEPTION CENTRALE DEPARTS' },
-  { code: 'LOC-ETAGERE-COLLECTE', label: 'Étagère de Collecte & Retours Clients', type: 'location', lrCode: 'ETA_COLLECT', crLabel: 'ETAGERE DE COLLECTE CLIENTS' },
-  { code: 'LOC-ETAGERE-LIVRAISON', label: 'Étagère de Livraison & Dépôt Client', type: 'location', lrCode: 'ETA_LIVR', crLabel: 'ETAGERE LIVRAISON CLIENT' },
-  { code: 'DOCK-EXPED-01', label: 'Quai Expédition A (Poste 1)', type: 'dock', lrCode: 'QAI_EXP_A', crLabel: 'QUAI EXPEDITION POSTE 1' },
-  { code: 'DOCK-EXPED-02', label: 'Quai Expédition B (Poste 2)', type: 'dock', lrCode: 'QAI_EXP_B', crLabel: 'QUAI EXPEDITION POSTE 2' },
-  { code: 'DOCK-LETI-17', label: 'Quai Expédition Bâtiment 17 - LETI', type: 'dock', lrCode: 'QAI_BAT17', crLabel: 'QUAI EXPEDITION BATIMENT 17' },
-  { code: 'DOCK-INTL-FRET', label: 'Quai Expédition Fret International', type: 'dock', lrCode: 'QAI_INTL', crLabel: 'QUAI FRET INTERNATIONAL' },
-
-  // Emplacements physiques classiques & Exemple Image PJ
-  { code: 'ZONE_POMPE_GRILLE_41', label: 'Zone Pompe Grille 41', type: 'location', lrCode: 'ZONE_PMP_41', crLabel: 'ZONE POMPE GRILLE 41' },
-  { code: 'LOC-B01-T03', label: 'Emplacement Allée B - Tiroir T03', type: 'location', lrCode: 'LOC_B01_T03', crLabel: 'ARMOIRE ALLEE B TIROIR T03' },
-  { code: 'LOC-B01-T04', label: 'Emplacement Allée B - Tiroir T04', type: 'location', lrCode: 'LOC_B01_T04', crLabel: 'ARMOIRE ALLEE B TIROIR T04' },
-  { code: 'LOC-SB-C01', label: 'Emplacement Salle Blanche - Armoire C01', type: 'location', lrCode: 'LOC_SB_C01', crLabel: 'SALLE BLANCHE ARMOIRE C01' },
-  { code: 'LOC-SB-C02', label: 'Emplacement Salle Blanche - Armoire C02', type: 'location', lrCode: 'LOC_SB_C02', crLabel: 'SALLE BLANCHE ARMOIRE C02' },
-  { code: 'LOC-PACK-ZONE', label: 'Emplacement Table Emballage & Conditionnement', type: 'location', lrCode: 'LOC_PACK_Z', crLabel: 'ZONE CONDITIONNEMENT CARTON' },
-  { code: 'LOC-PACK-SCELL', label: 'Emplacement Casiers Scellés Sécurité', type: 'location', lrCode: 'LOC_SCELL', crLabel: 'ZONE SCELLES DE SECURITE' },
-
-  // Articles & Pièces sur étagères avec exemple exact demandé
-  { code: 'REF191000007490', label: 'Joint Torique Kalrez (Tube)', type: 'article', lrCode: 'JNT_A001', crLabel: 'JOINT TORIQUE KALREZ (TUBE)' },
-  { code: 'ART-KF40-INOX', label: 'Bride à Vide KF40 Inox 316L', type: 'article', lrCode: 'BRD_KF40', crLabel: 'BRIDE A VIDE KF40 INOX 316L' },
-  { code: 'ART-VITON-KF40', label: 'Joint Viton KF40 avec Bague', type: 'article', lrCode: 'JNT_VT40', crLabel: 'JOINT ELASTOMERE VITON KF40' },
-  { code: 'ART-WAFER-300MM', label: 'Boîte : Wafers Silicium 300mm FOSB', type: 'article', lrCode: 'WFR_S300', crLabel: 'LOT WAFERS SILICIUM PUR 300MM' },
-  { code: 'ART-SACHET-ESD', label: 'Consommable : Sachet Antistatique ESD', type: 'article', lrCode: 'SAC_ESD2', crLabel: 'SACHET DOUBLE ENSACHAGE ESD' },
-  { code: 'ART-PUMP-EDWARDS', label: 'Pompe Turbo-Moléculaire Edwards 300kg', type: 'article', lrCode: 'PMP_EDW3', crLabel: 'POMPE TURBO-MOLECULAIRE EDWARDS' },
-  { code: 'ART-CARTON-EXP', label: 'Colis : Carton Expédition Sécurisé', type: 'package', lrCode: 'CTN_DBL1', crLabel: 'CARTON DOUBLE CANNELURE CEA' },
-  { code: 'ART-SCEL-SECURITE', label: 'Sécurité : Scellé Numéroté Inviolable', type: 'seal', lrCode: 'SCL_IATA', crLabel: 'SCELLE INVIOLABLE IATA SECURISE' },
-
-  // Bons de réception / Transporteur & Manutention
-  { code: 'DOC-TRANSPORT-INTL', label: 'Document de Transport International (Bordereau Colis)', type: 'package', lrCode: 'DOC_TRP', crLabel: 'DOCUMENT TRANSPORT EXPEDITION' },
-  { code: 'BL-EDWARDS-9941', label: 'Bon de Livraison Fournisseur Edwards n°9941', type: 'package', lrCode: 'BL_EDW41', crLabel: 'BON DE LIVRAISON FOURNISSEUR' }
+  ...INITIAL_LOCATIONS.map((loc) => ({
+    code: loc.barcode,
+    label: loc.label,
+    type: 'location' as const,
+    lrCode: loc.lrCode,
+    crLabel: loc.crLabel
+  })),
+  ...INITIAL_INVENTORY.map((it) => ({
+    code: it.sku,
+    label: it.name,
+    type: 'article' as const,
+    quantity: it.quantity,
+    location: it.location,
+    lrCode: it.lrCode,
+    crLabel: it.crLabel
+  })),
+  {
+    code: 'DOC-TRANSPORT-INTL',
+    label: 'Document de Transport International',
+    type: 'package',
+    lrCode: 'DOC_TRP',
+    crLabel: 'DOCUMENT TRANSPORT EXPEDITION'
+  }
 ];

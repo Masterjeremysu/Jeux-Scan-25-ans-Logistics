@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { InventoryItem, WarehouseLocation } from '../types';
-import { INITIAL_LOCATIONS } from '../data/initialData';
+import { INITIAL_LOCATIONS, INITIAL_INVENTORY } from '../data/initialData';
 import { 
   Search, 
   MapPin, 
@@ -208,6 +208,22 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
     }
   };
 
+  // Réinitialisation du stock physique nominal après qu'un ou plusieurs duos ont manipulé les bacs
+  const handleResetPhysicalStockNominal = () => {
+    if (window.confirm("🔄 Remise à Niveau Physique du Stock (Fin de Shift) :\n\nRéinitialiser l'ensemble des 20 références (Silicium, Wafers, Salle Blanche & Pièces Détachées) à leurs quantités nominales et bacs d'origine ?")) {
+      setLocalItems(INITIAL_INVENTORY);
+      setHasChanges(true);
+      if (onUpdateInventory) {
+        onUpdateInventory(INITIAL_INVENTORY);
+      }
+      showToast({
+        title: 'Stock Physique Réinitialisé',
+        message: 'Les 20 références sont remises à niveau pour les prochains duos !',
+        type: 'success'
+      });
+    }
+  };
+
   return (
     <div className="min-h-[calc(100vh-65px)] p-3 sm:p-5 flex flex-col gap-4 font-sans bg-[#071224] text-slate-100">
       {/* Datalist invisible pour les suggestions d'emplacements rapides */}
@@ -271,6 +287,17 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
               <span>Gérer les Emplacements</span>
             </button>
           )}
+
+          {/* Remise à Niveau Physique Fin de Shift */}
+          <button
+            type="button"
+            onClick={handleResetPhysicalStockNominal}
+            className="px-3 py-2 rounded-xl bg-amber-950/70 hover:bg-amber-900/90 text-amber-300 hover:text-white border border-amber-500/50 font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-amber-900/20 cursor-pointer transition-all"
+            title="Remettre les 20 pièces à leurs quantités et bacs nominaux après le passage des duos"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+            <span>🔄 Remise à Niveau Physique (Fin de Shift)</span>
+          </button>
 
           {/* Annuler si modifications */}
           {hasChanges && (

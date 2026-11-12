@@ -15,17 +15,21 @@ import {
   CheckCircle2,
   ExternalLink,
   X,
-  Clock
+  Clock,
+  Shuffle,
+  FileText
 } from 'lucide-react';
-import { AppConfig, DuoStation } from '../types';
+import { AppConfig, DuoStation, Mission } from '../types';
+import { MISSIONS } from '../data/missions';
 import { GameLogo } from './GameLogo';
 import { soundService } from '../services/soundService';
 
 interface HomeLauncherViewProps {
   appConfig: AppConfig;
   liveStations: DuoStation[];
-  onStartDuel: (duo1: { cea: string; client: string }, duo2: { cea: string; client: string }) => void;
-  onStartSolo: (stationId: string, stationName: string, duo: { cea: string; client: string }) => void;
+  missions?: Mission[];
+  onStartDuel: (duo1: { cea: string; client: string }, duo2: { cea: string; client: string }, m1Idx?: number, m2Idx?: number) => void;
+  onStartSolo: (stationId: string, stationName: string, duo: { cea: string; client: string }, mIdx?: number) => void;
   onOpenTv: () => void;
   onOpenPodium: () => void;
   onOpenAdmin: () => void;
@@ -36,6 +40,7 @@ interface HomeLauncherViewProps {
 export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
   appConfig,
   liveStations,
+  missions,
   onStartDuel,
   onStartSolo,
   onOpenTv,
@@ -45,23 +50,54 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
   onUpdateLogo
 }) => {
   const [gameMode, setGameMode] = useState<'duel' | 'solo'>('duel');
+  const missionsPool = (missions && missions.length > 0) ? missions : MISSIONS;
   
   // Duo 1 state
   const [d1Cea, setD1Cea] = useState(() => localStorage.getItem('gt_d1_collab') || 'Jeremy (GT)');
   const [d1Client, setD1Client] = useState(() => localStorage.getItem('gt_d1_guest') || 'Thomas (Invité)');
+  const [m1Index, setM1Index] = useState(0);
 
   // Duo 2 state
   const [d2Cea, setD2Cea] = useState(() => localStorage.getItem('gt_d2_collab') || 'Sarah (GT)');
   const [d2Client, setD2Client] = useState(() => localStorage.getItem('gt_d2_guest') || 'Alexandre (Invité)');
+  const [m2Index, setM2Index] = useState(1);
 
   // Solo station selection
   const [soloStation, setSoloStation] = useState('poste-1');
+  const [soloSavedIndex, setSoloSavedIndex] = useState(0);
+  const [duoRoundNumber, setDuoRoundNumber] = useState(1);
   const [showQrModal, setShowQrModal] = useState(false);
   const [customServerUrl, setCustomServerUrl] = useState(() => appConfig.publicUrl || (typeof window !== 'undefined' ? window.location.origin : ''));
 
   const activeBaseUrl = customServerUrl.trim() || appConfig.publicUrl || (typeof window !== 'undefined' ? window.location.origin : '');
   const zebra1Url = `${activeBaseUrl}/#play?station=poste-1`;
   const zebra2Url = `${activeBaseUrl}/#play?station=poste-2`;
+
+  // Randomiser les missions entre les deux postes pour une variété maximale (10 à 20 duos)
+  const handleRandomizeMissions = () => {
+    soundService.playSuccessJingle();
+    const count = missionsPool.length;
+    const rand1 = Math.floor(Math.random() * count);
+    let rand2 = Math.floor(Math.random() * count);
+    if (count > 1 && rand2 === rand1) {
+      rand2 = (rand1 + 1) % count;
+    }
+    setM1Index(rand1);
+    setM2Index(rand2);
+  };
+
+  // Préparer automatiquement le passage au binôme suivant (Duo #2, Duo #3...)
+  const handleNextDuo = () => {
+    soundService.playScanBeep();
+    const nextRound = duoRoundNumber + 1;
+    setDuoRoundNumber(nextRound);
+    setD1Client(`Invité Duo #${nextRound * 2 - 1}`);
+    setD2Client(`Invité Duo #${nextRound * 2}`);
+    // Rotation automatique des commandes
+    const count = missionsPool.length;
+    setM1Index((nextRound * 2 - 2) % count);
+    setM2Index((nextRound * 2 - 1) % count);
+  };
 
   const handleLaunchDuel = (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +109,9 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
 
     onStartDuel(
       { cea: d1Cea.trim() || 'Collaborateur GT 1', client: d1Client.trim() || 'Invité 1' },
-      { cea: d2Cea.trim() || 'Collaborateur GT 2', client: d2Client.trim() || 'Invité 2' }
+      { cea: d2Cea.trim() || 'Collaborateur GT 2', client: d2Client.trim() || 'Invité 2' },
+      m1Index,
+      m2Index
     );
   };
 
@@ -84,7 +122,8 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
     onStartSolo(
       soloStation,
       stName,
-      { cea: d1Cea.trim() || 'Collaborateur GT', client: d1Client.trim() || 'Invité' }
+      { cea: d1Cea.trim() || 'Collaborateur GT', client: d1Client.trim() || 'Invité' },
+      soloSavedIndex
     );
   };
 
@@ -164,6 +203,38 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
               </p>
             </div>
 
+            {/* Rapid Dispatch Toolbar for 10-20 Duos */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-950/60 p-3 rounded-2xl border border-slate-800 mb-5">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="text-xs font-mono font-bold text-slate-200">
+                  Rotation Duos : <span className="text-amber-400">Manche #{duoRoundNumber}</span>
+                </span>
+                <span className="text-[10px] font-mono text-slate-400 hidden sm:inline">• 20 Références Wafers & Pièces en Stock</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleRandomizeMissions}
+                  className="px-3 py-1.5 rounded-xl bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-300 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                  title="Tirer 2 commandes différentes au sort"
+                >
+                  <Shuffle className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>🎲 Missions Aléatoires</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleNextDuo}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                  title="Préparer le passage au duo suivant"
+                >
+                  <span>⏩ Duo Suivant (+1)</span>
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6">
               {/* DUO 1 (BLEU) */}
               <div className="bg-slate-950/80 rounded-2xl p-4 sm:p-5 border-2 border-sky-500/40 shadow-lg relative">
@@ -206,6 +277,32 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
                       className="w-full bg-slate-900 border border-slate-700 focus:border-sky-400 rounded-xl px-3.5 py-2.5 text-sm text-amber-300 font-semibold focus:outline-none transition-colors"
                       required
                     />
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800">
+                    <label className="block text-xs font-bold text-sky-300 mb-1 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-sky-400" />
+                        Demande / Mission Poste 1 :
+                      </span>
+                      <span className="text-[10px] font-mono text-sky-400 font-bold">
+                        {missionsPool[m1Index]?.steps?.length || 7} lignes
+                      </span>
+                    </label>
+                    <select
+                      value={m1Index}
+                      onChange={(e) => setM1Index(Number(e.target.value))}
+                      className="w-full bg-slate-900 border border-sky-500/50 focus:border-sky-400 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none transition-colors"
+                    >
+                      {missionsPool.map((m, idx) => (
+                        <option key={m.id} value={idx}>
+                          #{idx + 1} • {m.title}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-slate-400 mt-1 truncate">
+                      {missionsPool[m1Index]?.client}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -251,6 +348,32 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
                       className="w-full bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-xl px-3.5 py-2.5 text-sm text-amber-300 font-semibold focus:outline-none transition-colors"
                       required
                     />
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800">
+                    <label className="block text-xs font-bold text-amber-300 mb-1 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-amber-400" />
+                        Demande / Mission Poste 2 :
+                      </span>
+                      <span className="text-[10px] font-mono text-amber-400 font-bold">
+                        {missionsPool[m2Index]?.steps?.length || 7} lignes
+                      </span>
+                    </label>
+                    <select
+                      value={m2Index}
+                      onChange={(e) => setM2Index(Number(e.target.value))}
+                      className="w-full bg-slate-900 border border-amber-500/50 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none transition-colors"
+                    >
+                      {missionsPool.map((m, idx) => (
+                        <option key={m.id} value={idx}>
+                          #{idx + 1} • {m.title}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-slate-400 mt-1 truncate">
+                      {missionsPool[m2Index]?.client}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -372,6 +495,28 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
                       <span className="block font-black text-white text-sm mb-0.5">Poste 2 (Scannette B)</span>
                       <span className="text-[10px] text-amber-300 block">Allée D • Étagère 2</span>
                     </button>
+                  </div>
+                  <div className="mt-3">
+                    <label className="block text-xs font-bold text-emerald-300 mb-1 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                        Commande / Mission Sélectionnée :
+                      </span>
+                      <span className="text-[10px] font-mono text-emerald-400 font-bold">
+                        {missionsPool[soloSavedIndex]?.steps?.length || 7} lignes
+                      </span>
+                    </label>
+                    <select
+                      value={soloSavedIndex}
+                      onChange={(e) => setSoloSavedIndex(Number(e.target.value))}
+                      className="w-full bg-slate-900 border border-emerald-500/50 focus:border-emerald-400 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none transition-colors"
+                    >
+                      {missionsPool.map((m, idx) => (
+                        <option key={m.id} value={idx}>
+                          #{idx + 1} • {m.title}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
