@@ -175,18 +175,18 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
   return (
     <div className="min-h-[calc(100vh-65px)] p-4 flex flex-col gap-4 print:min-h-0 print:p-0 print:m-0 print:block print:w-full">
       {/* Top Controls Banner (hidden on print) */}
-      <div className="no-print bg-slate-900 rounded-2xl p-5 border border-slate-800 flex flex-col gap-4 shadow-xl shrink-0">
+      <div className="no-print bg-white rounded-2xl p-5 border border-slate-200 flex flex-col gap-4 shadow-sm shrink-0">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="flex items-center space-x-2">
-              <h2 className="text-xl font-extrabold text-white tracking-tight">
+              <h2 className="text-xl font-black text-slate-900 tracking-tight">
                 ÉTIQUETTES DE STOCK OFFICIELLES GT LOGISTICS
               </h2>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                 {items.length} étiquettes au format officiel GT
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               Modèle conforme à vos étiquettes de stock réelles : Logo GT officiel rouge & bleu, Code-128, lignes <strong>L/R</strong> (référence abrégée) et <strong>C/R</strong> (désignation industrielle).
             </p>
           </div>
@@ -195,7 +195,7 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
           <div className="flex items-center gap-3">
             <button
               onClick={() => handlePrintSheet()}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs sm:text-sm shadow-lg shadow-amber-500/25 transition-all flex items-center space-x-2 cursor-pointer"
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm shadow-md shadow-amber-500/20 transition-all flex items-center space-x-2 cursor-pointer"
             >
               <Printer className="w-4 h-4" />
               <span>Imprimer cette sélection ({items.length} étiquettes)</span>
@@ -204,10 +204,10 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
         </div>
 
         {/* Categories / Type Filters */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-800/80">
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-200">
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
-            <span className="text-slate-400 font-bold uppercase text-[10px] mr-2 flex items-center font-mono">
-              <Filter className="w-3 h-3 mr-1 text-amber-500" />
+            <span className="text-slate-600 font-bold uppercase text-[11px] mr-2 flex items-center font-mono">
+              <Filter className="w-3.5 h-3.5 mr-1 text-blue-600" />
               Filtrer par type :
             </span>
 
@@ -215,8 +215,8 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
               onClick={() => setFilterType('all')}
               className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                 filterType === 'all'
-                  ? 'bg-amber-500 text-slate-950 shadow'
-                  : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
+                  ? 'bg-[#0c1e3a] text-white shadow-sm'
+                  : 'bg-slate-100 text-slate-700 hover:text-slate-950 hover:bg-slate-200 border border-slate-200'
               }`}
             >
               Tous ({counts.all})
@@ -226,8 +226,8 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
               onClick={() => setFilterType('article')}
               className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                 filterType === 'article'
-                  ? 'bg-amber-500 text-slate-950 shadow'
-                  : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
+                  ? 'bg-[#0c1e3a] text-white shadow-sm'
+                  : 'bg-slate-100 text-slate-700 hover:text-slate-950 hover:bg-slate-200 border border-slate-200'
               }`}
             >
               📦 Articles & Stock ({counts.article})
@@ -237,8 +237,8 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
               onClick={() => setFilterType('location')}
               className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                 filterType === 'location'
-                  ? 'bg-amber-500 text-slate-950 shadow'
-                  : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
+                  ? 'bg-[#0c1e3a] text-white shadow-sm'
+                  : 'bg-slate-100 text-slate-700 hover:text-slate-950 hover:bg-slate-200 border border-slate-200'
               }`}
             >
               📍 Emplacements & Tiroirs ({counts.location})
@@ -248,8 +248,8 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
               onClick={() => setFilterType('package_dock')}
               className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                 filterType === 'package_dock'
-                  ? 'bg-amber-500 text-slate-950 shadow'
-                  : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
+                  ? 'bg-[#0c1e3a] text-white shadow-sm'
+                  : 'bg-slate-100 text-slate-700 hover:text-slate-950 hover:bg-slate-200 border border-slate-200'
               }`}
             >
               📫 Colis & Quais ({counts.package_dock})
@@ -260,8 +260,8 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
                 onClick={() => setFilterType('seal')}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                   filterType === 'seal'
-                    ? 'bg-amber-500 text-slate-950 shadow'
-                    : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
+                    ? 'bg-[#0c1e3a] text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-700 hover:text-slate-950 hover:bg-slate-200 border border-slate-200'
                 }`}
               >
                 ⚡ Aléas & Scellés ({counts.seal})
@@ -269,7 +269,7 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
             )}
           </div>
 
-          <div className="text-[11px] text-slate-400 italic">
+          <div className="text-[11px] text-slate-500 italic">
             Astuce : Chaque étiquette reproduit fidèlement le modèle thermique GT Logistics.
           </div>
         </div>
@@ -348,22 +348,22 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
           SINGLE LABEL PRINT MODAL & ISOLATED PRINT CARD
           ======================================================== */}
       {singleItemToPrint && (
-        <div className="single-label-modal-wrapper fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 print:static print:inset-auto print:bg-white print:p-0 print:m-0 print:block print:w-full">
-          <div className="single-label-modal-box bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative text-center print:bg-white print:border-none print:p-0 print:m-0 print:shadow-none print:max-w-none print:w-full print:block">
+        <div className="single-label-modal-wrapper fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 print:static print:inset-auto print:bg-white print:p-0 print:m-0 print:block print:w-full">
+          <div className="single-label-modal-box bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative text-center print:bg-white print:border-none print:p-0 print:m-0 print:shadow-none print:max-w-none print:w-full print:block">
             {/* Close Button */}
             <button
               onClick={closeSinglePrint}
-              className="no-print absolute top-4 right-4 p-2 rounded-full bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              className="no-print absolute top-4 right-4 p-2 rounded-full bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div className="no-print mb-4 text-left">
-              <div className="flex items-center space-x-2 text-amber-400">
+              <div className="flex items-center space-x-2 text-blue-700">
                 <Tag className="w-5 h-5" />
-                <h3 className="text-base font-bold text-white">Impression d'Étiquette Unitaire GT Logistics</h3>
+                <h3 className="text-base font-black text-slate-900">Impression d'Étiquette Unitaire GT Logistics</h3>
               </div>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 Aperçu de l'étiquette au format standard thermique ou feuille centrée :
               </p>
             </div>

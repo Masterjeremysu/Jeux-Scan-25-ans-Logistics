@@ -1130,33 +1130,33 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         {/* Duo Inputs Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Duo 1 (Poste 1 - Bleu) */}
-          <div className="bg-slate-950/80 p-4 rounded-2xl border-2 border-sky-500/40 space-y-3">
+          <div className="bg-sky-50/80 p-4 rounded-2xl border-2 border-sky-300 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black font-mono text-sky-400 uppercase flex items-center space-x-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block"></span>
+              <span className="text-xs font-black font-mono text-blue-900 uppercase flex items-center space-x-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block"></span>
                 <span>Duo 1 • Poste 1 (Scannette A - Bleu)</span>
               </span>
-              <span className="text-[10px] font-mono text-slate-400">Étagère 1 / Quai A</span>
+              <span className="text-[10px] font-mono text-slate-600 font-bold">Étagère 1 / Quai A</span>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">Collaborateur GT :</label>
+                <label className="text-[10px] uppercase font-mono text-slate-700 block mb-1 font-bold">Collaborateur GT :</label>
                 <input
                   type="text"
                   value={duo1Cea}
                   onChange={(e) => setDuo1Cea(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-white"
+                  className="w-full bg-white border border-slate-300 focus:border-blue-600 px-3 py-2 rounded-xl text-xs text-slate-900 font-semibold shadow-sm focus:outline-none"
                   placeholder="Ex: Jeremy (GT)"
                 />
               </div>
               <div>
-                <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">Invité :</label>
+                <label className="text-[10px] uppercase font-mono text-slate-700 block mb-1 font-bold">Invité :</label>
                 <input
                   type="text"
                   value={duo1Client}
                   onChange={(e) => setDuo1Client(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-amber-300 font-bold"
+                  className="w-full bg-white border border-slate-300 focus:border-blue-600 px-3 py-2 rounded-xl text-xs text-blue-950 font-black shadow-sm focus:outline-none"
                   placeholder="Ex: Thomas"
                 />
               </div>
@@ -1164,33 +1164,33 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
           </div>
 
           {/* Duo 2 (Poste 2 - Orange) */}
-          <div className="bg-slate-950/80 p-4 rounded-2xl border-2 border-amber-500/40 space-y-3">
+          <div className="bg-amber-50/80 p-4 rounded-2xl border-2 border-amber-300 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black font-mono text-amber-400 uppercase flex items-center space-x-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
+              <span className="text-xs font-black font-mono text-amber-950 uppercase flex items-center space-x-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
                 <span>Duo 2 • Poste 2 (Scannette B - Orange)</span>
               </span>
-              <span className="text-[10px] font-mono text-slate-400">Étagère 2 / Quai B</span>
+              <span className="text-[10px] font-mono text-slate-600 font-bold">Étagère 2 / Quai B</span>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">Collaborateur GT :</label>
+                <label className="text-[10px] uppercase font-mono text-slate-700 block mb-1 font-bold">Collaborateur GT :</label>
                 <input
                   type="text"
                   value={duo2Cea}
                   onChange={(e) => setDuo2Cea(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-white"
+                  className="w-full bg-white border border-slate-300 focus:border-amber-600 px-3 py-2 rounded-xl text-xs text-slate-900 font-semibold shadow-sm focus:outline-none"
                   placeholder="Ex: Sarah (GT)"
                 />
               </div>
               <div>
-                <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">Invité :</label>
+                <label className="text-[10px] uppercase font-mono text-slate-700 block mb-1 font-bold">Invité :</label>
                 <input
                   type="text"
                   value={duo2Client}
                   onChange={(e) => setDuo2Client(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-amber-300 font-bold"
+                  className="w-full bg-white border border-slate-300 focus:border-amber-600 px-3 py-2 rounded-xl text-xs text-amber-950 font-black shadow-sm focus:outline-none"
                   placeholder="Ex: Alexandre"
                 />
               </div>
@@ -1201,7 +1201,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         {/* Action Button: Create Match */}
         <button
           onClick={handleLaunchMatch}
-          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm flex items-center justify-center space-x-2 shadow-xl shadow-emerald-500/30 transition-transform active:scale-[0.99] cursor-pointer"
+          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm flex items-center justify-center space-x-2 shadow-lg shadow-emerald-600/20 transition-transform active:scale-[0.99] cursor-pointer"
         >
           <Sparkles className="w-4 h-4" />
           <span>⚡ CRÉER LE MATCH & GÉNÉRER LES QR CODES ZEBRA</span>
@@ -1209,53 +1209,53 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
         {/* Generated QR Codes Display */}
         {showMatchQRs && (
-          <div className="bg-slate-950/90 p-5 rounded-2xl border border-indigo-500/50 space-y-3 animate-fadeIn">
+          <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3 animate-fadeIn">
             <div className="text-center">
-              <span className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider block">
+              <span className="text-xs font-mono font-bold text-emerald-700 uppercase tracking-wider block">
                 ✓ ACCÈS ZEBRA ACTIVÉS • FAITES SCANNER CHAQUE TERMINAL :
               </span>
-              <p className="text-[11px] text-slate-300">
+              <p className="text-[11px] text-slate-600">
                 Ces QR Codes ouvrent directement l'écran de jeu pur (sans barre d'outils ni paramètres) avec les missions assignées.
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto">
               {/* QR Duo 1 */}
-              <div className="bg-slate-900 p-4 rounded-2xl border-2 border-sky-500/50 flex flex-col items-center text-center space-y-2">
-                <span className="text-xs font-black font-mono text-sky-400 uppercase">
+              <div className="bg-white p-4 rounded-2xl border-2 border-sky-400 shadow-md flex flex-col items-center text-center space-y-2">
+                <span className="text-xs font-black font-mono text-blue-900 uppercase">
                   📱 ZEBRA 1 (BLEU)
                 </span>
-                <span className="text-[11px] font-bold text-white">
+                <span className="text-[11px] font-bold text-slate-900">
                   Duo {duo1Client}
                 </span>
-                <div className="bg-white p-2.5 rounded-2xl shadow-xl">
+                <div className="bg-white p-2.5 rounded-2xl border border-slate-200 shadow-sm">
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(`${baseUrl}/#play?station=poste-1&seed=${matchSeed}`)}`}
                     alt="QR Zebra 1"
                     className="w-32 h-32"
                   />
                 </div>
-                <span className="text-[9px] text-slate-400 font-mono">
+                <span className="text-[9px] text-slate-500 font-mono font-bold">
                   Mission : Étagère 1 • Quai A
                 </span>
               </div>
 
               {/* QR Duo 2 */}
-              <div className="bg-slate-900 p-4 rounded-2xl border-2 border-amber-500/50 flex flex-col items-center text-center space-y-2">
-                <span className="text-xs font-black font-mono text-amber-400 uppercase">
+              <div className="bg-white p-4 rounded-2xl border-2 border-amber-400 shadow-md flex flex-col items-center text-center space-y-2">
+                <span className="text-xs font-black font-mono text-amber-900 uppercase">
                   📱 ZEBRA 2 (ORANGE)
                 </span>
-                <span className="text-[11px] font-bold text-white">
+                <span className="text-[11px] font-bold text-slate-900">
                   Duo {duo2Client}
                 </span>
-                <div className="bg-white p-2.5 rounded-2xl shadow-xl">
+                <div className="bg-white p-2.5 rounded-2xl border border-slate-200 shadow-sm">
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(`${baseUrl}/#play?station=poste-2&seed=${matchSeed}`)}`}
                     alt="QR Zebra 2"
                     className="w-32 h-32"
                   />
                 </div>
-                <span className="text-[9px] text-slate-400 font-mono">
+                <span className="text-[9px] text-slate-500 font-mono font-bold">
                   Mission : Étagère 2 • Quai B
                 </span>
               </div>
@@ -1265,11 +1265,11 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
       </div>
 
       {/* Navigation Tabs (Fully Responsive) */}
-      <div className="flex space-x-1.5 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm overflow-x-auto scrollbar-none shrink-0">
+      <div className="flex space-x-1.5 bg-slate-200/80 p-1.5 rounded-2xl border border-slate-300 shadow-inner overflow-x-auto scrollbar-none shrink-0">
         <button
           onClick={() => setActiveTab('branding')}
-          className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'branding' ? 'bg-[#0c1e3a] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          className={`flex items-center space-x-1.5 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            activeTab === 'branding' ? 'bg-white text-[#0c1e3a] font-black shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white/60'
           }`}
         >
           <Globe className="w-3.5 h-3.5" />
@@ -1278,8 +1278,8 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
         <button
           onClick={() => setActiveTab('missions')}
-          className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'missions' ? 'bg-[#0c1e3a] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          className={`flex items-center space-x-1.5 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            activeTab === 'missions' ? 'bg-white text-[#0c1e3a] font-black shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white/60'
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
@@ -1288,8 +1288,8 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
         <button
           onClick={() => setActiveTab('inventory')}
-          className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'inventory' ? 'bg-[#0c1e3a] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          className={`flex items-center space-x-1.5 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            activeTab === 'inventory' ? 'bg-white text-[#0c1e3a] font-black shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white/60'
           }`}
         >
           <Boxes className="w-3.5 h-3.5" />
@@ -1298,8 +1298,8 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
         <button
           onClick={() => setActiveTab('locations')}
-          className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'locations' ? 'bg-[#0c1e3a] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          className={`flex items-center space-x-1.5 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            activeTab === 'locations' ? 'bg-white text-[#0c1e3a] font-black shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white/60'
           }`}
         >
           <MapPin className="w-3.5 h-3.5 text-amber-500" />
@@ -1308,8 +1308,8 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
         <button
           onClick={() => setActiveTab('stations')}
-          className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'stations' ? 'bg-[#0c1e3a] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          className={`flex items-center space-x-1.5 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            activeTab === 'stations' ? 'bg-white text-[#0c1e3a] font-black shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white/60'
           }`}
         >
           <Monitor className="w-3.5 h-3.5" />
@@ -1318,8 +1318,8 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
         <button
           onClick={() => setActiveTab('rules')}
-          className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'rules' ? 'bg-[#0c1e3a] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          className={`flex items-center space-x-1.5 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            activeTab === 'rules' ? 'bg-white text-[#0c1e3a] font-black shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white/60'
           }`}
         >
           <Award className="w-3.5 h-3.5" />
@@ -1328,8 +1328,8 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
         <button
           onClick={() => setActiveTab('hazards')}
-          className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'hazards' ? 'bg-amber-500 text-slate-950 font-black shadow-sm' : 'text-amber-700 hover:text-slate-900 hover:bg-slate-100'
+          className={`flex items-center space-x-1.5 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            activeTab === 'hazards' ? 'bg-amber-400 text-amber-950 font-black shadow-sm' : 'text-amber-800 hover:text-amber-950 hover:bg-white/60'
           }`}
         >
           <Zap className="w-3.5 h-3.5" />
@@ -1338,8 +1338,8 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
         <button
           onClick={() => setActiveTab('database')}
-          className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'database' ? 'bg-red-600 text-white shadow-sm' : 'text-red-700 hover:text-red-900 hover:bg-slate-100'
+          className={`flex items-center space-x-1.5 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            activeTab === 'database' ? 'bg-rose-600 text-white font-black shadow-sm' : 'text-rose-700 hover:text-rose-950 hover:bg-white/60'
           }`}
         >
           <AlertTriangle className="w-3.5 h-3.5" />
@@ -1349,53 +1349,56 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
       {/* TAB 1: BRANDING & TITLES */}
       {activeTab === 'branding' && (
-        <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-4">
-          <h3 className="text-sm font-bold font-mono text-slate-300 uppercase">
-            Identité Visuelle & Textes de l'Événement :
-          </h3>
+        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-5 text-slate-900">
+          <div className="border-b border-slate-200 pb-3">
+            <h3 className="text-sm font-bold font-mono text-slate-800 uppercase">
+              Identité Visuelle & Textes de l'Événement :
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">Personnalisez le titre, les badges et l'URL de votre événement GT Logistics.</p>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Titre de l'Événement (Haut Gauche) :</label>
+              <label className="text-xs font-bold text-slate-700 uppercase font-mono block mb-1.5">Titre de l'Événement (Haut Gauche) :</label>
               <input
                 type="text"
                 value={localConfig.eventTitle}
                 onChange={(e) => setLocalConfig({ ...localConfig, eventTitle: e.target.value })}
                 placeholder="Ex: CEA GRENOBLE"
-                className="w-full bg-slate-950 border border-slate-700 px-3.5 py-2.5 rounded-xl text-sm text-white font-bold"
+                className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 px-3.5 py-2.5 rounded-xl text-sm text-slate-900 font-bold transition-all shadow-sm focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Badge Thématique (Pastille Dorée) :</label>
+              <label className="text-xs font-bold text-slate-700 uppercase font-mono block mb-1.5">Badge Thématique (Pastille Dorée) :</label>
               <input
                 type="text"
                 value={localConfig.badgeLabel}
                 onChange={(e) => setLocalConfig({ ...localConfig, badgeLabel: e.target.value })}
                 placeholder="Ex: ÉDITION 25 ANS"
-                className="w-full bg-slate-950 border border-slate-700 px-3.5 py-2.5 rounded-xl text-sm text-white font-bold text-amber-300"
+                className="w-full bg-amber-50/50 border border-amber-300 focus:bg-white focus:border-amber-600 focus:ring-2 focus:ring-amber-100 px-3.5 py-2.5 rounded-xl text-sm text-amber-950 font-black transition-all shadow-sm focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Sous-titre / Thème de l'Animation :</label>
+              <label className="text-xs font-bold text-slate-700 uppercase font-mono block mb-1.5">Sous-titre / Thème de l'Animation :</label>
               <input
                 type="text"
                 value={localConfig.eventSubtitle}
                 onChange={(e) => setLocalConfig({ ...localConfig, eventSubtitle: e.target.value })}
                 placeholder="Ex: WMS Industrial Terminal • Shift Challenge"
-                className="w-full bg-slate-950 border border-slate-700 px-3.5 py-2.5 rounded-xl text-sm text-white font-mono"
+                className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 px-3.5 py-2.5 rounded-xl text-sm text-slate-900 font-mono transition-all shadow-sm focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="text-xs text-slate-400 block mb-1">URL Publique de l'Application (pour le QR Code TV) :</label>
+              <label className="text-xs font-bold text-slate-700 uppercase font-mono block mb-1.5">URL Publique de l'Application (pour le QR Code TV) :</label>
               <input
                 type="text"
                 value={localConfig.publicUrl || 'https://jeux-scan-25-ans-logistics.vercel.app'}
                 onChange={(e) => setLocalConfig({ ...localConfig, publicUrl: e.target.value })}
                 placeholder="https://..."
-                className="w-full bg-slate-950 border border-slate-700 px-3.5 py-2.5 rounded-xl text-sm text-sky-400 font-mono"
+                className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 px-3.5 py-2.5 rounded-xl text-sm text-blue-700 font-mono font-bold transition-all shadow-sm focus:outline-none"
               />
             </div>
           </div>
@@ -1404,14 +1407,14 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
       {/* TAB 2: MISSIONS BUILDER (THE CORE SCENARIO BUILDER) */}
       {activeTab === 'missions' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-slate-900">
           {/* Mission List Sidebar */}
-          <div className="bg-slate-900 rounded-3xl p-4 border border-slate-800 shadow-xl space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <span className="text-xs font-bold font-mono text-slate-400 uppercase">Missions ({localMissions.length})</span>
+          <div className="bg-white rounded-3xl p-4 border border-slate-200 shadow-sm space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+              <span className="text-xs font-bold font-mono text-slate-700 uppercase">Missions ({localMissions.length})</span>
               <button
                 onClick={handleAddMission}
-                className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center space-x-1"
+                className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center space-x-1 shadow-sm transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Créer</span>
@@ -1424,13 +1427,13 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                 <div className="flex flex-col gap-2">
                   <button
                     onClick={handleAddMission}
-                    className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold"
+                    className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold cursor-pointer"
                   >
                     + Créer une Mission
                   </button>
                   <button
                     onClick={handleLoadCeaTemplate}
-                    className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold"
+                    className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold border border-slate-300 cursor-pointer"
                   >
                     Charger Modèle CEA
                   </button>
@@ -1444,15 +1447,15 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                     onClick={() => setSelectedMissionIndex(idx)}
                     className={`p-3 rounded-2xl cursor-pointer border transition-all text-left ${
                       selectedMissionIndex === idx
-                        ? 'bg-indigo-950/50 border-indigo-500 text-white shadow-md'
-                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white'
+                        ? 'bg-blue-50 border-2 border-blue-500 text-blue-950 font-bold shadow-sm'
+                        : 'bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-800 text-slate-300">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white border border-slate-300 text-slate-700 font-bold">
                         {m.code || `M-${idx + 1}`}
                       </span>
-                      <span className="text-[10px] text-emerald-400 font-mono font-bold">
+                      <span className="text-[10px] text-emerald-700 font-mono font-black">
                         +{m.basePoints} pts
                       </span>
                     </div>
@@ -1466,17 +1469,17 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
             )}
 
             {/* Quick Actions */}
-            <div className="pt-2 border-t border-slate-800 flex gap-2">
+            <div className="pt-2 border-t border-slate-200 flex gap-2">
               <button
                 onClick={handleLoadCeaTemplate}
-                className="flex-1 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold"
+                className="flex-1 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold border border-slate-300 cursor-pointer transition-colors"
                 title="Rétablir les scénarios CEA de référence"
               >
                 Template CEA
               </button>
               <button
                 onClick={handleClearAllMissions}
-                className="p-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-300 text-[11px]"
+                className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-[11px] cursor-pointer transition-colors"
                 title="Tout vider"
               >
                 <Trash2 className="w-4 h-4" />
@@ -1486,14 +1489,14 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
           {/* Mission Details & Step Sequence Editor */}
           {localMissions[selectedMissionIndex] ? (
-            <div className="md:col-span-2 bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-xl space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+            <div className="md:col-span-2 bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
                 <div>
-                  <h3 className="text-sm font-bold text-white flex items-center space-x-2">
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
                     <span>Mission #{selectedMissionIndex + 1} :</span>
-                    <span className="text-indigo-400 font-extrabold">{localMissions[selectedMissionIndex].title}</span>
+                    <span className="text-blue-700 font-black">{localMissions[selectedMissionIndex].title}</span>
                   </h3>
-                  <span className="text-[11px] font-mono text-slate-400">
+                  <span className="text-[11px] font-mono text-slate-500 font-bold">
                     ID : {localMissions[selectedMissionIndex].id} • {localMissions[selectedMissionIndex].steps.length} étape(s)
                   </span>
                 </div>
@@ -1501,7 +1504,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={handleSaveMissions}
-                    className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black flex items-center space-x-1.5 shadow-md shadow-emerald-500/20 cursor-pointer transition-all hover:scale-105 active:scale-95"
+                    className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center space-x-1.5 shadow-md shadow-emerald-600/20 cursor-pointer transition-all hover:scale-105 active:scale-95"
                     title="Enregistrer toutes les modifications de missions dans le Cloud"
                   >
                     <Save className="w-3.5 h-3.5" />
@@ -1509,11 +1512,11 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                   </button>
                   <button
                     onClick={() => handleDuplicateMission(selectedMissionIndex)}
-                    className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center space-x-1 cursor-pointer"
+                    className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs flex items-center space-x-1 cursor-pointer border border-slate-300"
                     title="Dupliquer cette mission"
                   >
-                    <Copy className="w-3.5 h-3.5 text-sky-400" />
-                    <span className="hidden sm:inline">Dupliquer</span>
+                    <Copy className="w-3.5 h-3.5 text-blue-600" />
+                    <span className="hidden sm:inline font-bold">Dupliquer</span>
                   </button>
                   <button
                     onClick={() => {
@@ -1536,7 +1539,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                         }
                       });
                     }}
-                    className="p-2 rounded-xl bg-rose-900/40 hover:bg-rose-800 text-rose-300 text-xs flex items-center space-x-1 cursor-pointer"
+                    className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 text-xs flex items-center space-x-1 cursor-pointer"
                     title="Supprimer cette mission"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -1547,42 +1550,42 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
               {/* General Mission Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1 font-bold">Titre de la Mission :</label>
+                  <label className="text-xs text-slate-700 block mb-1 font-bold">Titre de la Mission :</label>
                   <input
                     type="text"
                     value={localMissions[selectedMissionIndex].title}
                     onChange={(e) => updateMissionField('title', e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 px-3 py-2 rounded-xl text-xs text-white font-bold"
+                    className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 px-3 py-2 rounded-xl text-xs text-slate-900 font-bold focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1 font-bold">Code Référence :</label>
+                  <label className="text-xs text-slate-700 block mb-1 font-bold">Code Référence :</label>
                   <input
                     type="text"
                     value={localMissions[selectedMissionIndex].code}
                     onChange={(e) => updateMissionField('code', e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 px-3 py-2 rounded-xl text-xs text-white font-mono"
+                    className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 px-3 py-2 rounded-xl text-xs text-slate-900 font-mono font-bold focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1 font-bold">Client / Destinataire :</label>
+                  <label className="text-xs text-slate-700 block mb-1 font-bold">Client / Destinataire :</label>
                   <input
                     type="text"
                     value={localMissions[selectedMissionIndex].client}
                     onChange={(e) => updateMissionField('client', e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 px-3 py-2 rounded-xl text-xs text-white"
+                    className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 px-3 py-2 rounded-xl text-xs text-slate-900 font-semibold focus:outline-none"
                   />
                 </div>
 
                 <div className="flex gap-2">
                   <div className="flex-1">
-                    <label className="text-xs text-slate-400 block mb-1 font-bold">Priorité :</label>
+                    <label className="text-xs text-slate-700 block mb-1 font-bold">Priorité :</label>
                     <select
                       value={localMissions[selectedMissionIndex].priority}
                       onChange={(e) => updateMissionField('priority', e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white focus:outline-none"
+                      className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-3 py-2 rounded-xl text-xs text-slate-900 font-semibold focus:outline-none"
                     >
                       <option value="STANDARD">STANDARD</option>
                       <option value="URGENCE CRITIQUE">URGENCE CRITIQUE</option>
@@ -1590,45 +1593,45 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                     </select>
                   </div>
                   <div className="w-24">
-                    <label className="text-xs text-slate-400 block mb-1 font-bold">Points :</label>
+                    <label className="text-xs text-slate-700 block mb-1 font-bold">Points :</label>
                     <input
                       type="number"
                       value={localMissions[selectedMissionIndex].basePoints}
                       onChange={(e) => updateMissionField('basePoints', parseInt(e.target.value) || 0)}
-                      className="w-full bg-slate-950 border border-slate-700 px-2 py-2 rounded-xl text-xs text-emerald-400 font-mono font-bold"
+                      className="w-full bg-slate-50 border border-slate-300 px-2 py-2 rounded-xl text-xs text-emerald-700 font-mono font-black focus:bg-white focus:outline-none"
                     />
                   </div>
                   <div className="w-24">
-                    <label className="text-xs text-slate-400 block mb-1 font-bold">Temps (s) :</label>
+                    <label className="text-xs text-slate-700 block mb-1 font-bold">Temps (s) :</label>
                     <input
                       type="number"
                       value={localMissions[selectedMissionIndex].timeLimitSeconds}
                       onChange={(e) => updateMissionField('timeLimitSeconds', parseInt(e.target.value) || 0)}
-                      className="w-full bg-slate-950 border border-slate-700 px-2 py-2 rounded-xl text-xs text-amber-400 font-mono font-bold"
+                      className="w-full bg-slate-50 border border-slate-300 px-2 py-2 rounded-xl text-xs text-amber-800 font-mono font-black focus:bg-white focus:outline-none"
                     />
                   </div>
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="text-xs text-slate-400 block mb-1 font-bold">Description du scénario :</label>
+                  <label className="text-xs text-slate-700 block mb-1 font-bold">Description du scénario :</label>
                   <textarea
                     rows={2}
                     value={localMissions[selectedMissionIndex].description}
                     onChange={(e) => updateMissionField('description', e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-slate-200"
+                    className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-3 py-1.5 rounded-xl text-xs text-slate-800 font-medium focus:outline-none"
                   />
                 </div>
               </div>
 
               {/* Steps Sequence List */}
-              <div className="pt-4 border-t border-slate-800 space-y-3">
+              <div className="pt-4 border-t border-slate-200 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
-                    <h4 className="text-xs font-bold font-mono text-slate-200 uppercase flex items-center gap-1.5">
-                      <Layers className="w-4 h-4 text-sky-400" />
+                    <h4 className="text-xs font-bold font-mono text-slate-800 uppercase flex items-center gap-1.5">
+                      <Layers className="w-4 h-4 text-blue-600" />
                       <span>Étapes de Scan ({localMissions[selectedMissionIndex].steps.length})</span>
                     </h4>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-[11px] text-slate-500 font-medium">
                       Les codes-barres doivent être scannés dans cet ordre par les scannettes Zebra.
                     </span>
                   </div>
@@ -1646,10 +1649,10 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                           }, 50);
                         }
                       }}
-                      className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-300 text-xs font-semibold flex items-center space-x-1 cursor-pointer border border-slate-700"
+                      className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-blue-700 text-xs font-bold flex items-center space-x-1 cursor-pointer border border-slate-300 transition-colors"
                       title="Ajouter une étape ciblant un emplacement d'entrepôt"
                     >
-                      <MapPin className="w-3.5 h-3.5 text-sky-400" />
+                      <MapPin className="w-3.5 h-3.5 text-blue-600" />
                       <span>+ Emplacement</span>
                     </button>
 
@@ -1663,16 +1666,16 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                           handleAddStep(selectedMissionIndex);
                         }
                       }}
-                      className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-semibold flex items-center space-x-1 cursor-pointer border border-slate-700"
+                      className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-amber-800 text-xs font-bold flex items-center space-x-1 cursor-pointer border border-slate-300 transition-colors"
                       title="Ajouter une étape ciblant un article du stock ERP"
                     >
-                      <Boxes className="w-3.5 h-3.5 text-amber-400" />
+                      <Boxes className="w-3.5 h-3.5 text-amber-600" />
                       <span>+ Article</span>
                     </button>
 
                     <button
                       onClick={() => handleAddStep(selectedMissionIndex)}
-                      className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center space-x-1 cursor-pointer shadow-md shadow-sky-600/20"
+                      className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center space-x-1 cursor-pointer shadow-sm transition-colors"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Ajouter une Étape</span>
@@ -1682,14 +1685,14 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
                 <div className="space-y-3">
                   {localMissions[selectedMissionIndex].steps.map((step, sIdx) => (
-                    <div key={step.id || sIdx} className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800 hover:border-slate-700 transition-all space-y-3 shadow-inner">
-                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
+                    <div key={step.id || sIdx} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 hover:border-blue-300 transition-all space-y-3 shadow-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200">
                         <div className="flex items-center space-x-2">
-                          <span className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 font-bold text-xs flex items-center justify-center font-mono border border-sky-500/40">
+                          <span className="w-6 h-6 rounded-lg bg-blue-100 text-blue-800 font-bold text-xs flex items-center justify-center font-mono border border-blue-300">
                             {sIdx + 1}
                           </span>
-                          <span className="text-xs font-black text-white">Étape #{sIdx + 1}</span>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-slate-400">
+                          <span className="text-xs font-black text-slate-900">Étape #{sIdx + 1}</span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white border border-slate-300 text-slate-700 font-bold">
                             {step.barcodeType === 'location' ? '📍 Emplacement' : step.barcodeType === 'dock' ? '⚓ Quai' : '📦 Article'}
                           </span>
                         </div>
@@ -1699,7 +1702,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                           <select
                             value={step.expectedBarcode}
                             onChange={(e) => handleSelectStepPreset(selectedMissionIndex, sIdx, e.target.value)}
-                            className="bg-slate-900 border border-sky-500/50 text-[11px] text-sky-300 font-mono px-2 py-1 rounded-lg focus:outline-none cursor-pointer max-w-[220px] truncate"
+                            className="bg-white border border-slate-300 text-[11px] text-blue-800 font-mono px-2 py-1 rounded-lg focus:outline-none cursor-pointer max-w-[220px] truncate shadow-sm font-bold"
                           >
                             <option value="">⚡ Remplir depuis Stock / Emplacements...</option>
                             <optgroup label="📍 Emplacements de l'Entrepôt">
@@ -1722,15 +1725,15 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                           {/* Step Actions: Duplicate, Move Up, Move Down, Delete */}
                           <button
                             onClick={() => handleDuplicateStep(selectedMissionIndex, sIdx)}
-                            className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white"
+                            className="p-1.5 rounded-lg bg-white border border-slate-300 text-slate-600 hover:text-blue-700 shadow-sm cursor-pointer"
                             title="Dupliquer cette étape"
                           >
-                            <Copy className="w-3.5 h-3.5 text-sky-400" />
+                            <Copy className="w-3.5 h-3.5 text-blue-600" />
                           </button>
                           <button
                             onClick={() => handleMoveStep(selectedMissionIndex, sIdx, 'up')}
                             disabled={sIdx === 0}
-                            className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white disabled:opacity-30"
+                            className="p-1.5 rounded-lg bg-white border border-slate-300 text-slate-600 hover:text-slate-900 disabled:opacity-30 shadow-sm cursor-pointer"
                             title="Monter"
                           >
                             <ArrowUp className="w-3.5 h-3.5" />
@@ -1738,14 +1741,14 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                           <button
                             onClick={() => handleMoveStep(selectedMissionIndex, sIdx, 'down')}
                             disabled={sIdx === localMissions[selectedMissionIndex].steps.length - 1}
-                            className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white disabled:opacity-30"
+                            className="p-1.5 rounded-lg bg-white border border-slate-300 text-slate-600 hover:text-slate-900 disabled:opacity-30 shadow-sm cursor-pointer"
                             title="Descendre"
                           >
                             <ArrowDown className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleRemoveStep(selectedMissionIndex, sIdx)}
-                            className="p-1.5 rounded-lg bg-rose-950 text-rose-300 hover:text-white"
+                            className="p-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 shadow-sm cursor-pointer"
                             title="Supprimer cette étape"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1755,17 +1758,17 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5">
                         <div className="md:col-span-3">
-                          <label className="text-[10px] text-slate-400 block font-bold">Consigne / Instruction affichée au joueur :</label>
+                          <label className="text-[10px] text-slate-700 block font-bold">Consigne / Instruction affichée au joueur :</label>
                           <input
                             type="text"
                             value={step.instruction}
                             onChange={(e) => updateStepField(sIdx, 'instruction', e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white"
+                            className="w-full bg-white border border-slate-300 focus:border-blue-600 px-3 py-2 rounded-xl text-xs text-slate-900 font-semibold focus:outline-none"
                           />
                         </div>
 
                         <div>
-                          <label className="text-[10px] text-amber-400 font-bold block">Quantité requise :</label>
+                          <label className="text-[10px] text-amber-800 font-bold block">Quantité requise :</label>
                           <input
                             type="number"
                             min="1"
@@ -1780,20 +1783,20 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                                 updateStepField(sIdx, 'hint', qty > 1 ? `Scannez chaque pièce prélevée (${qty} pcs attendues).` : `Scannez le code-barres ${step.expectedBarcode}.`);
                               }
                             }}
-                            className="w-full bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs text-amber-400 font-mono font-bold"
+                            className="w-full bg-white border border-slate-300 focus:border-amber-600 px-3 py-2 rounded-xl text-xs text-amber-950 font-mono font-black focus:outline-none"
                           />
                         </div>
 
                         {/* Sélecteur de Code-Barres Attendu (Liste Déroulante avec Option Saisie Libre) */}
                         <div className="md:col-span-2">
                           <div className="flex items-center justify-between mb-1">
-                            <label className="text-[10px] text-amber-400 font-bold flex items-center gap-1.5">
+                            <label className="text-[10px] text-amber-900 font-bold flex items-center gap-1.5">
                               <span>Code-Barres Attendu :</span>
                             </label>
                             <button
                               type="button"
                               onClick={() => setManualBarcodeSteps(prev => ({ ...prev, [sIdx]: !prev[sIdx] }))}
-                              className="text-[9px] text-sky-400 hover:text-sky-300 hover:underline flex items-center gap-1 cursor-pointer font-sans"
+                              className="text-[9px] text-blue-700 hover:text-blue-900 hover:underline flex items-center gap-1 cursor-pointer font-sans font-bold"
                             >
                               {manualBarcodeSteps[sIdx] ? '📋 Choisir dans la liste déroulante' : '✏️ Taper manuellement'}
                             </button>
@@ -1810,7 +1813,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                                   handleSelectStepPreset(selectedMissionIndex, sIdx, val);
                                 }
                               }}
-                              className="w-full bg-slate-900 border-2 border-amber-500/70 focus:border-amber-400 px-3 py-2 rounded-xl text-xs text-amber-300 font-mono font-bold focus:outline-none transition-all cursor-pointer shadow-sm"
+                              className="w-full bg-white border-2 border-amber-400 focus:border-amber-600 px-3 py-2 rounded-xl text-xs text-amber-950 font-mono font-black focus:outline-none transition-all cursor-pointer shadow-sm"
                             >
                               <option value="">-- Sélectionnez l'emplacement ou l'article à scanner --</option>
                               <optgroup label="📍 Emplacements & Casiers de l'Entrepôt">
@@ -1851,7 +1854,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                                 value={step.expectedBarcode}
                                 onChange={(e) => updateStepField(sIdx, 'expectedBarcode', e.target.value.trim().toUpperCase())}
                                 placeholder="Tapez le code (ex: LOC-B01-T03 ou REF...)"
-                                className="flex-1 bg-slate-900 border-2 border-amber-500/70 focus:border-amber-400 px-3 py-2 rounded-xl text-xs text-amber-300 font-mono font-bold focus:outline-none"
+                                className="flex-1 bg-white border-2 border-amber-400 focus:border-amber-600 px-3 py-2 rounded-xl text-xs text-amber-950 font-mono font-black focus:outline-none shadow-sm"
                                 autoFocus
                               />
                               <datalist id={`step-datalist-${sIdx}`}>
@@ -1863,21 +1866,21 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                         </div>
 
                         <div>
-                          <label className="text-[10px] text-slate-400 block font-bold">Désignation Cible :</label>
+                          <label className="text-[10px] text-slate-700 block font-bold">Désignation Cible :</label>
                           <input
                             type="text"
                             value={step.targetLabel}
                             onChange={(e) => updateStepField(sIdx, 'targetLabel', e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white"
+                            className="w-full bg-white border border-slate-300 focus:border-blue-600 px-3 py-2 rounded-xl text-xs text-slate-900 font-semibold focus:outline-none"
                           />
                         </div>
 
                         <div>
-                          <label className="text-[10px] text-slate-400 block font-bold">Type d'Élément :</label>
+                          <label className="text-[10px] text-slate-700 block font-bold">Type d'Élément :</label>
                           <select
                             value={step.barcodeType}
                             onChange={(e) => updateStepField(sIdx, 'barcodeType', e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 px-2 py-2 rounded-xl text-xs text-white"
+                            className="w-full bg-white border border-slate-300 focus:border-blue-600 px-2 py-2 rounded-xl text-xs text-slate-900 font-semibold focus:outline-none"
                           >
                             <option value="article">📦 Article / Pièce</option>
                             <option value="location">📍 Emplacement / Casier</option>
@@ -1888,12 +1891,12 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                         </div>
 
                         <div>
-                          <label className="text-[10px] text-slate-400 block font-bold">Astuce / Conseil :</label>
+                          <label className="text-[10px] text-slate-700 block font-bold">Astuce / Conseil :</label>
                           <input
                             type="text"
                             value={step.hint}
                             onChange={(e) => updateStepField(sIdx, 'hint', e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs text-slate-300"
+                            className="w-full bg-white border border-slate-300 focus:border-blue-600 px-3 py-2 rounded-xl text-xs text-slate-700 font-medium focus:outline-none"
                           />
                         </div>
                       </div>
@@ -1903,7 +1906,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
               </div>
             </div>
           ) : (
-            <div className="md:col-span-2 bg-slate-900 rounded-3xl p-8 border border-slate-800 text-center text-slate-500">
+            <div className="md:col-span-2 bg-white rounded-3xl p-8 border border-slate-200 text-center text-slate-500 shadow-sm font-medium">
               Sélectionnez ou créez une mission pour commencer à l'éditer.
             </div>
           )}
@@ -1912,13 +1915,13 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
       {/* TAB 3: INVENTORY BUILDER (ERP ITEMS & STOCK) */}
       {activeTab === 'inventory' && (
-        <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200">
             <div>
-              <h3 className="text-sm font-bold font-mono text-slate-200 uppercase">
+              <h3 className="text-base font-black font-mono text-slate-900 uppercase tracking-wide">
                 Catalogue Matériel & Stocks ERP ({localInventory.length})
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Définissez les pièces, cartons et emplacements physiques. La planche d'impression s'adaptera automatiquement.
               </p>
             </div>
@@ -1926,20 +1929,20 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={handleSaveInventory}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-black flex items-center space-x-1.5 shadow-lg shadow-emerald-500/25 cursor-pointer transition-all"
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black flex items-center space-x-1.5 shadow-md shadow-emerald-600/20 cursor-pointer transition-all"
               >
                 <Save className="w-4 h-4" />
                 <span>Enregistrer le Stock</span>
               </button>
               <button
                 onClick={handleLoadCeaTemplate}
-                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+                className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-bold transition-colors cursor-pointer"
               >
                 Template CEA
               </button>
               <button
                 onClick={handleClearAllInventory}
-                className="p-1.5 rounded-xl bg-rose-950 hover:bg-rose-900 text-rose-300 text-xs"
+                className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs transition-colors cursor-pointer"
                 title="Vider le stock"
               >
                 <Trash2 className="w-4 h-4" />
@@ -1965,7 +1968,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                   };
                   setLocalInventory([...localInventory, newItem]);
                 }}
-                className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center space-x-1"
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center space-x-1.5 shadow-md shadow-blue-600/20 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Ajouter un Article</span>
@@ -1973,26 +1976,26 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-300">
-              <thead className="bg-slate-950/80 text-slate-400 font-mono uppercase text-[10px] border-b border-slate-800">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200">
+            <table className="w-full text-left text-xs text-slate-800">
+              <thead className="bg-slate-100 text-slate-700 font-mono font-bold uppercase text-[11px] border-b border-slate-200">
                 <tr>
-                  <th className="p-2.5">Réf</th>
-                  <th className="p-2.5">Code SKU (Code-Barres)</th>
-                  <th className="p-2.5">Désignation</th>
-                  <th className="p-2.5">Qté en stock</th>
-                  <th className="p-2.5">Emplacement</th>
-                  <th className="p-2.5">Gestionnaire</th>
-                  <th className="p-2.5">Machine PDT</th>
-                  <th className="p-2.5">Réf Équipementier</th>
-                  <th className="p-2.5 text-center">Actions</th>
+                  <th className="p-3">Réf</th>
+                  <th className="p-3">Code SKU (Code-Barres)</th>
+                  <th className="p-3">Désignation</th>
+                  <th className="p-3">Qté en stock</th>
+                  <th className="p-3">Emplacement</th>
+                  <th className="p-3">Gestionnaire</th>
+                  <th className="p-3">Machine PDT</th>
+                  <th className="p-3">Réf Équipementier</th>
+                  <th className="p-3 text-center">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 font-sans">
+              <tbody className="divide-y divide-slate-200 font-sans bg-white">
                 {localInventory.map((item, idx) => (
-                  <tr key={item.id || idx} className="hover:bg-slate-800/30">
+                  <tr key={item.id || idx} className="hover:bg-slate-50/80 transition-colors">
                     {/* 1. Réf */}
-                    <td className="p-2">
+                    <td className="p-2.5">
                       <input
                         type="text"
                         value={item.lrCode || ''}
@@ -2001,12 +2004,12 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                           const val = e.target.value;
                           setLocalInventory(prev => prev.map((it, i) => i === idx ? { ...it, lrCode: val } : it));
                         }}
-                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-amber-400 font-mono font-bold w-28"
+                        className="bg-slate-50 border border-slate-300 focus:bg-white focus:border-amber-500 px-2.5 py-1.5 rounded-lg text-amber-700 font-mono font-bold w-28 text-xs focus:outline-none"
                       />
                     </td>
 
                     {/* 2. Code SKU (Code-Barres) */}
-                    <td className="p-2">
+                    <td className="p-2.5">
                       <input
                         type="text"
                         value={item.sku}
@@ -2015,12 +2018,12 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                           const val = e.target.value;
                           setLocalInventory(prev => prev.map((it, i) => i === idx ? { ...it, sku: val } : it));
                         }}
-                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-sky-400 font-mono font-bold w-36"
+                        className="bg-slate-50 border border-slate-300 focus:bg-white focus:border-sky-600 px-2.5 py-1.5 rounded-lg text-sky-700 font-mono font-bold w-36 text-xs focus:outline-none"
                       />
                     </td>
 
                     {/* 3. Désignation */}
-                    <td className="p-2">
+                    <td className="p-2.5">
                       <input
                         type="text"
                         value={item.name}
@@ -2028,13 +2031,13 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                           const val = e.target.value;
                           setLocalInventory(prev => prev.map((it, i) => i === idx ? { ...it, name: val, crLabel: val.toUpperCase() } : it));
                         }}
-                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-white font-semibold w-full min-w-[200px]"
+                        className="bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-2.5 py-1.5 rounded-lg text-slate-900 font-semibold w-full min-w-[200px] text-xs focus:outline-none"
                       />
                     </td>
 
                     {/* 4. Qté en stock */}
-                    <td className="p-2 whitespace-nowrap">
-                      <div className="flex items-center space-x-1">
+                    <td className="p-2.5 whitespace-nowrap">
+                      <div className="flex items-center space-x-1.5">
                         <input
                           type="number"
                           value={item.quantity}
@@ -2042,7 +2045,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                             const val = parseInt(e.target.value) || 0;
                             setLocalInventory(prev => prev.map((it, i) => i === idx ? { ...it, quantity: val } : it));
                           }}
-                          className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-emerald-400 font-mono w-16"
+                          className="bg-slate-50 border border-slate-300 focus:bg-white focus:border-emerald-600 px-2 py-1.5 rounded-lg text-emerald-700 font-mono font-bold w-16 text-xs text-center focus:outline-none"
                         />
                         <input
                           type="text"
@@ -2051,13 +2054,13 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                             const val = e.target.value;
                             setLocalInventory(prev => prev.map((it, i) => i === idx ? { ...it, unit: val } : it));
                           }}
-                          className="bg-slate-950 border border-slate-700 px-1.5 py-1 rounded text-slate-400 font-mono w-12 text-center"
+                          className="bg-slate-50 border border-slate-300 focus:bg-white px-1.5 py-1.5 rounded-lg text-slate-600 font-mono w-14 text-center text-xs focus:outline-none"
                         />
                       </div>
                     </td>
 
                     {/* 5. Emplacement */}
-                    <td className="p-2">
+                    <td className="p-2.5">
                       <input
                         type="text"
                         value={item.location}
@@ -2066,12 +2069,12 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                           const val = e.target.value;
                           setLocalInventory(prev => prev.map((it, i) => i === idx ? { ...it, location: val } : it));
                         }}
-                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-sky-300 font-mono w-36"
+                        className="bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-2.5 py-1.5 rounded-lg text-blue-800 font-mono font-semibold w-36 text-xs focus:outline-none"
                       />
                     </td>
 
                     {/* 6. Gestionnaire */}
-                    <td className="p-2">
+                    <td className="p-2.5">
                       <input
                         type="text"
                         value={item.gestionnaire || ''}
@@ -2081,12 +2084,12 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                           updated[idx].gestionnaire = e.target.value;
                           setLocalInventory(updated);
                         }}
-                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-slate-200 text-xs w-28"
+                        className="bg-slate-50 border border-slate-300 focus:bg-white px-2.5 py-1.5 rounded-lg text-slate-800 text-xs w-28 focus:outline-none"
                       />
                     </td>
 
                     {/* 7. Machine PDT */}
-                    <td className="p-2">
+                    <td className="p-2.5">
                       <input
                         type="text"
                         value={item.machinePdt || ''}
@@ -2096,12 +2099,12 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                           updated[idx].machinePdt = e.target.value;
                           setLocalInventory(updated);
                         }}
-                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-slate-300 font-mono text-xs w-32"
+                        className="bg-slate-50 border border-slate-300 focus:bg-white px-2.5 py-1.5 rounded-lg text-slate-800 font-mono text-xs w-32 focus:outline-none"
                       />
                     </td>
 
                     {/* 8. Réf Équipementier */}
-                    <td className="p-2">
+                    <td className="p-2.5">
                       <input
                         type="text"
                         value={item.refEquipementier || ''}
@@ -2111,18 +2114,18 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                           updated[idx].refEquipementier = e.target.value;
                           setLocalInventory(updated);
                         }}
-                        className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-slate-400 font-mono text-xs w-32"
+                        className="bg-slate-50 border border-slate-300 focus:bg-white px-2.5 py-1.5 rounded-lg text-slate-600 font-mono text-xs w-32 focus:outline-none"
                       />
                     </td>
 
                     {/* 9. Actions */}
-                    <td className="p-2 text-center">
+                    <td className="p-2.5 text-center">
                       <button
                         onClick={() => {
                           const updated = localInventory.filter((_, i) => i !== idx);
                           setLocalInventory(updated);
                         }}
-                        className="text-rose-400 hover:text-rose-300 p-1.5 rounded hover:bg-rose-950/40"
+                        className="text-rose-600 hover:text-rose-800 p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
                         title="Supprimer"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -2135,13 +2138,13 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
           </div>
 
           {/* Bottom Action Bar for Stock Save */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800">
-            <span className="text-xs text-slate-400 font-mono">
-              Total : <strong className="text-white">{localInventory.length}</strong> articles enregistrés dans le catalogue
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200">
+            <span className="text-xs text-slate-600 font-mono">
+              Total : <strong className="text-slate-900 font-bold">{localInventory.length}</strong> articles enregistrés dans le catalogue
             </span>
             <button
               onClick={handleSaveInventory}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-black flex items-center space-x-2 shadow-lg shadow-emerald-500/25 cursor-pointer transition-all"
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black flex items-center space-x-2 shadow-md shadow-emerald-600/20 cursor-pointer transition-all"
             >
               <Save className="w-4 h-4" />
               <span>Enregistrer & Synchroniser le Stock dans Supabase</span>
@@ -2152,16 +2155,16 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
       {/* TAB 4: WAREHOUSE LOCATIONS BUILDER (ALL PHYSICAL STAND & DOCK LOCATIONS) */}
       {activeTab === 'locations' && (
-        <div className="bg-[#0c1e3a]/95 rounded-3xl p-6 border border-slate-700/80 shadow-2xl space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-700">
+        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200">
             <div>
               <div className="flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-amber-400" />
-                <h3 className="text-base font-black text-white uppercase tracking-wide">
+                <MapPin className="w-5 h-5 text-amber-500" />
+                <h3 className="text-base font-black text-slate-900 uppercase tracking-wide">
                   Emplacements & Zones de l'Entrepôt ({localLocations.length})
                 </h3>
               </div>
-              <p className="text-xs text-slate-300 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Créez et personnalisez toutes les armoires, tiroirs, étagères, zones de pompe et quais de votre stand physique.
                 Ces emplacements alimentent automatiquement le stock, les missions et la planche d'étiquettes à imprimer.
               </p>
@@ -2171,7 +2174,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
               <button
                 type="button"
                 onClick={handleAddNewLocation}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-sky-600/30 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-blue-600/20 cursor-pointer"
               >
                 <Plus className="w-4 h-4 text-white" />
                 <span>+ Nouvel Emplacement</span>
@@ -2180,7 +2183,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
               <button
                 type="button"
                 onClick={handleResetLocations}
-                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold text-xs border border-slate-700 cursor-pointer"
+                className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-300 transition-colors cursor-pointer"
                 title="Rétablir la liste standard GT Logistics"
               >
                 Réinitialiser Standards
@@ -2189,7 +2192,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
               <button
                 type="button"
                 onClick={handleSaveLocations}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs flex items-center space-x-1.5 shadow-lg shadow-emerald-500/30 cursor-pointer"
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs flex items-center space-x-1.5 shadow-md shadow-emerald-600/20 cursor-pointer"
               >
                 <Save className="w-4 h-4" />
                 <span>Enregistrer les Emplacements</span>
@@ -2197,83 +2200,83 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-200">
-              <thead className="bg-[#08152c] text-slate-300 font-mono uppercase text-[10px] sm:text-[11px] border-b border-slate-700">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200">
+            <table className="w-full text-left text-xs text-slate-800">
+              <thead className="bg-slate-100 text-slate-700 font-mono font-bold uppercase text-[11px] border-b border-slate-200">
                 <tr>
-                  <th className="p-2.5">Code-barres Emplacement</th>
-                  <th className="p-2.5">Libellé Emplacement</th>
-                  <th className="p-2.5">Réf Courte (Ticket L/R)</th>
-                  <th className="p-2.5">Désignation (Ticket C/R)</th>
-                  <th className="p-2.5">Zone / Secteur</th>
-                  <th className="p-2.5 text-center">Actions</th>
+                  <th className="p-3">Code-barres Emplacement</th>
+                  <th className="p-3">Libellé Emplacement</th>
+                  <th className="p-3">Réf Courte (Ticket L/R)</th>
+                  <th className="p-3">Désignation (Ticket C/R)</th>
+                  <th className="p-3">Zone / Secteur</th>
+                  <th className="p-3 text-center">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800 font-sans">
+              <tbody className="divide-y divide-slate-200 font-sans bg-white">
                 {localLocations.map((loc) => (
-                  <tr key={loc.id} className="hover:bg-slate-800/40 transition-colors">
+                  <tr key={loc.id} className="hover:bg-slate-50/80 transition-colors">
                     {/* 1. Code-barres */}
-                    <td className="p-2 whitespace-nowrap">
+                    <td className="p-2.5 whitespace-nowrap">
                       <input
                         type="text"
                         value={loc.barcode}
                         onChange={(e) => handleUpdateLocationField(loc.id, 'barcode', e.target.value)}
                         placeholder="LOC-B01-T03"
-                        className="bg-[#071224] border border-slate-700 focus:border-sky-400 px-2 py-1 rounded-lg text-sky-400 font-mono font-bold w-44 text-xs focus:outline-none"
+                        className="bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-2.5 py-1.5 rounded-lg text-blue-700 font-mono font-bold w-44 text-xs focus:outline-none"
                       />
                     </td>
 
                     {/* 2. Libellé Emplacement */}
-                    <td className="p-2 min-w-[200px]">
+                    <td className="p-2.5 min-w-[200px]">
                       <input
                         type="text"
                         value={loc.label}
                         onChange={(e) => handleUpdateLocationField(loc.id, 'label', e.target.value)}
                         placeholder="Nom de l'étagère ou du tiroir..."
-                        className="bg-[#071224] border border-slate-700 focus:border-slate-400 px-2 py-1 rounded-lg text-white font-semibold w-full text-xs focus:outline-none"
+                        className="bg-slate-50 border border-slate-300 focus:bg-white focus:border-slate-500 px-2.5 py-1.5 rounded-lg text-slate-900 font-bold w-full text-xs focus:outline-none"
                       />
                     </td>
 
                     {/* 3. Réf Courte L/R */}
-                    <td className="p-2 whitespace-nowrap">
+                    <td className="p-2.5 whitespace-nowrap">
                       <input
                         type="text"
                         value={loc.lrCode || ''}
                         onChange={(e) => handleUpdateLocationField(loc.id, 'lrCode', e.target.value)}
                         placeholder="LOC_B01"
-                        className="bg-[#071224] border border-slate-700 focus:border-amber-400 px-2 py-1 rounded-lg text-amber-300 font-mono font-bold w-32 text-xs focus:outline-none"
+                        className="bg-slate-50 border border-slate-300 focus:bg-white focus:border-amber-500 px-2.5 py-1.5 rounded-lg text-amber-700 font-mono font-bold w-32 text-xs focus:outline-none"
                       />
                     </td>
 
                     {/* 4. Désignation C/R */}
-                    <td className="p-2 min-w-[180px]">
+                    <td className="p-2.5 min-w-[180px]">
                       <input
                         type="text"
                         value={loc.crLabel || ''}
                         onChange={(e) => handleUpdateLocationField(loc.id, 'crLabel', e.target.value)}
                         placeholder="ARMOIRE B01 TIROIR T03"
-                        className="bg-[#071224] border border-slate-700 focus:border-slate-400 px-2 py-1 rounded-lg text-slate-300 font-mono text-[11px] w-full focus:outline-none"
+                        className="bg-slate-50 border border-slate-300 focus:bg-white focus:border-slate-500 px-2.5 py-1.5 rounded-lg text-slate-700 font-mono text-xs w-full focus:outline-none"
                       />
                     </td>
 
                     {/* 5. Zone / Secteur */}
-                    <td className="p-2 whitespace-nowrap">
+                    <td className="p-2.5 whitespace-nowrap">
                       <input
                         type="text"
                         value={loc.zone || ''}
                         onChange={(e) => handleUpdateLocationField(loc.id, 'zone', e.target.value)}
                         placeholder="Magasin Central"
-                        className="bg-[#071224] border border-slate-700 focus:border-slate-400 px-2 py-1 rounded-lg text-slate-300 text-xs w-36 focus:outline-none"
+                        className="bg-slate-50 border border-slate-300 focus:bg-white focus:border-slate-500 px-2.5 py-1.5 rounded-lg text-slate-700 text-xs w-36 focus:outline-none"
                       />
                     </td>
 
                     {/* 6. Actions */}
-                    <td className="p-2 text-center whitespace-nowrap">
-                      <div className="flex items-center justify-center space-x-1">
+                    <td className="p-2.5 text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center space-x-1.5">
                         <button
                           type="button"
                           onClick={() => handleDuplicateLocation(loc)}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-sky-950 text-slate-400 hover:text-sky-300 transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 transition-colors cursor-pointer"
                           title="Dupliquer cet emplacement"
                         >
                           <Copy className="w-3.5 h-3.5" />
@@ -2281,7 +2284,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                         <button
                           type="button"
                           onClick={() => handleDeleteLocation(loc.id, loc.label)}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-950 text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-colors cursor-pointer"
                           title="Supprimer cet emplacement"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -2294,12 +2297,12 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
             </table>
           </div>
 
-          <div className="pt-3 border-t border-slate-700 flex flex-wrap items-center justify-between text-xs font-mono text-slate-400">
+          <div className="pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between text-xs font-mono text-slate-600">
             <span>{localLocations.length} emplacement(s) configuré(s)</span>
             <button
               type="button"
               onClick={handleSaveLocations}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-black flex items-center space-x-2 shadow-lg shadow-emerald-500/25 cursor-pointer transition-all"
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black flex items-center space-x-2 shadow-md shadow-emerald-600/20 cursor-pointer transition-all"
             >
               <Save className="w-4 h-4" />
               <span>Enregistrer & Synchroniser les Emplacements</span>
@@ -2307,20 +2310,21 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
           </div>
         </div>
       )}
+      {/* TAB 5: STATIONS & SCANNERS CONFIG */}
       {activeTab === 'stations' && (
-        <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200">
             <div>
-              <h3 className="text-sm font-bold font-mono text-slate-200 uppercase">
+              <h3 className="text-base font-black font-mono text-slate-900 uppercase tracking-wide">
                 Postes de Jeu & Scannettes Connectées
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Chaque poste physique (PC / Scannette USB ou Zebra) sélectionne son identifiant pour participer au duel.
               </p>
             </div>
             <button
               onClick={handleAddStation}
-              className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center space-x-1"
+              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center space-x-1.5 shadow-md shadow-blue-600/20 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Ajouter un Poste</span>
@@ -2329,22 +2333,22 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {(localConfig.availableStations || []).map((st, idx) => (
-              <div key={st.id || idx} className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-2">
+              <div key={st.id || idx} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 hover:border-blue-300 transition-colors space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-mono font-bold text-sky-400 uppercase">
+                  <span className="text-xs font-mono font-bold text-blue-700 uppercase bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
                     ID : {st.id}
                   </span>
                   {(localConfig.availableStations || []).length > 1 && (
                     <button
                       onClick={() => handleRemoveStation(st.id)}
-                      className="text-rose-400 hover:text-rose-300 p-1"
+                      className="text-rose-500 hover:text-rose-700 p-1 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-400 block mb-1">Nom affiché sur l'écran et la TV :</label>
+                  <label className="text-[11px] font-bold text-slate-600 block mb-1">Nom affiché sur l'écran et la TV :</label>
                   <input
                     type="text"
                     value={st.name}
@@ -2354,7 +2358,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                       );
                       setLocalConfig({ ...localConfig, availableStations: updated });
                     }}
-                    className="w-full bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-white font-bold"
+                    className="w-full bg-white border border-slate-300 focus:border-blue-500 px-3 py-2 rounded-xl text-xs text-slate-900 font-bold focus:outline-none"
                   />
                 </div>
               </div>
@@ -2363,45 +2367,50 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         </div>
       )}
 
-      {/* TAB 5: RULES & DIPLOMA CONFIG */}
+      {/* TAB 6: RULES & DIPLOMA CONFIG */}
       {activeTab === 'rules' && (
-        <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-4">
-          <h3 className="text-sm font-bold font-mono text-slate-300 uppercase">
-            Règles du Shift & Diplôme Souvenir :
-          </h3>
+        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+          <div className="pb-3 border-b border-slate-200">
+            <h3 className="text-base font-black font-mono text-slate-900 uppercase tracking-wide">
+              Règles du Shift & Diplôme Souvenir
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Définissez le rythme du jeu, les pénalités et les textes du diplôme remis aux participants.
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Durée du Chrono de Shift (secondes) :</label>
+              <label className="text-xs font-bold text-slate-700 uppercase font-mono block mb-1">Durée du Chrono de Shift (secondes) :</label>
               <input
                 type="number"
                 value={localConfig.shiftDurationSeconds}
                 onChange={(e) => setLocalConfig({ ...localConfig, shiftDurationSeconds: parseInt(e.target.value) || 300 })}
-                className="w-full bg-slate-950 border border-slate-700 px-3.5 py-2.5 rounded-xl text-sm text-white font-mono"
+                className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-3.5 py-2.5 rounded-xl text-sm text-slate-900 font-mono font-bold focus:outline-none"
               />
               <span className="text-[11px] text-slate-500 mt-1 block">300s = 5 min • 180s = 3 min • 120s = 2 min</span>
             </div>
 
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Points Bonus par Niveau de Combo (+pts) :</label>
+              <label className="text-xs font-bold text-slate-700 uppercase font-mono block mb-1">Points Bonus par Niveau de Combo (+pts) :</label>
               <input
                 type="number"
                 value={localConfig.comboBonusPoints ?? 50}
                 onChange={(e) => setLocalConfig({ ...localConfig, comboBonusPoints: parseInt(e.target.value) || 50 })}
-                className="w-full bg-slate-950 border border-slate-700 px-3.5 py-2.5 rounded-xl text-sm text-orange-400 font-mono font-bold"
+                className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-orange-500 px-3.5 py-2.5 rounded-xl text-sm text-orange-600 font-mono font-bold focus:outline-none"
               />
               <span className="text-[11px] text-slate-500 mt-1 block">Bonus ajouté à chaque étape réussie sans faute</span>
             </div>
 
-            <div className="md:col-span-2 p-4 rounded-2xl bg-slate-950 border-2 border-indigo-500/40 flex items-center justify-between gap-4">
+            <div className="md:col-span-2 p-4 rounded-2xl bg-blue-50/70 border-2 border-blue-200 flex items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                  <span className="text-sm font-black text-white uppercase tracking-wider">
+                  <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                  <span className="text-sm font-black text-slate-900 uppercase tracking-wider">
                     Mode Compétition Jour J (Verrouillage des Scans Réels)
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-slate-600 mt-1">
                   Empêche les participants d'avancer virtuellement en cliquant sur l'écran. Seuls les vrais scans au laser Zebra ou à la caméra smartphone valident les étapes.
                 </p>
               </div>
@@ -2412,88 +2421,88 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                   onChange={(e) => setLocalConfig({ ...localConfig, strictScanOnly: e.target.checked })}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
               </label>
             </div>
 
-            <div className="md:col-span-2 pt-3 border-t border-slate-800">
-              <h4 className="text-xs font-bold text-amber-400 uppercase font-mono mb-3">
+            <div className="md:col-span-2 pt-3 border-t border-slate-200">
+              <h4 className="text-xs font-bold text-amber-700 uppercase font-mono mb-3">
                 Personnalisation du Diplôme Imprimable :
               </h4>
             </div>
 
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Titre du Diplôme :</label>
+              <label className="text-xs font-bold text-slate-700 block mb-1">Titre du Diplôme :</label>
               <input
                 type="text"
                 value={localConfig.diplomaTitle || 'DIPLÔME D\'HONNEUR'}
                 onChange={(e) => setLocalConfig({ ...localConfig, diplomaTitle: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-700 px-3.5 py-2 rounded-xl text-xs text-white font-bold"
+                className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-3.5 py-2.5 rounded-xl text-xs text-slate-900 font-bold focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Signature Officielle (Bas Droite) :</label>
+              <label className="text-xs font-bold text-slate-700 block mb-1">Signature Officielle (Bas Droite) :</label>
               <input
                 type="text"
                 value={localConfig.diplomaSignatory || 'La Direction Logistique & Supply Chain'}
                 onChange={(e) => setLocalConfig({ ...localConfig, diplomaSignatory: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-700 px-3.5 py-2 rounded-xl text-xs text-white"
+                className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-3.5 py-2.5 rounded-xl text-xs text-slate-900 font-medium focus:outline-none"
               />
             </div>
 
             <div className="md:col-span-2">
-              <label className="text-xs text-slate-400 block mb-1">Texte d'Honneur :</label>
+              <label className="text-xs font-bold text-slate-700 block mb-1">Texte d'Honneur :</label>
               <textarea
                 rows={2}
                 value={localConfig.diplomaDescription || 'Attribué pour l\'excellence opérationnelle lors du shift de picking logistique.'}
                 onChange={(e) => setLocalConfig({ ...localConfig, diplomaDescription: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-700 px-3.5 py-2 rounded-xl text-xs text-white"
+                className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-3.5 py-2.5 rounded-xl text-xs text-slate-900 font-medium focus:outline-none"
               />
             </div>
           </div>
         </div>
       )}
 
-      {/* TAB 6: HAZARDS & DISTRACTIONS */}
+      {/* TAB 7: HAZARDS & DISTRACTIONS */}
       {activeTab === 'hazards' && (
         <div className="space-y-6">
           {/* Notification feedback */}
           {hazardFeedback && (
-            <div className="bg-amber-950/90 border border-amber-500/50 text-amber-200 px-4 py-3 rounded-2xl text-xs font-semibold flex items-center space-x-2 shadow-lg animate-pulse">
-              <Zap className="w-4 h-4 text-amber-400 shrink-0" />
+            <div className="bg-amber-50 border-2 border-amber-400 text-amber-900 px-4 py-3 rounded-2xl text-xs font-bold flex items-center space-x-2 shadow-sm animate-pulse">
+              <Zap className="w-4 h-4 text-amber-600 shrink-0" />
               <span>{hazardFeedback}</span>
             </div>
           )}
 
           {/* Section 1: Live Control & Dispatch Panel (Régie Stand en Direct) */}
-          <div className="bg-gradient-to-br from-slate-900 via-amber-950/20 to-slate-900 rounded-3xl p-6 border-2 border-amber-500/30 shadow-2xl space-y-5">
+          <div className="bg-gradient-to-br from-amber-50/70 via-white to-amber-50/40 rounded-3xl p-6 border-2 border-amber-300 shadow-sm space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700">
                   <Radio className="w-5 h-5 animate-pulse" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold text-white flex items-center space-x-2">
+                  <h3 className="text-base font-extrabold text-slate-900 flex items-center space-x-2">
                     <span>RÉGIE D'ANIMATION EN DIRECT • DÉCLENCHEUR D'ALÉAS</span>
                   </h3>
-                  <p className="text-xs text-slate-300">
+                  <p className="text-xs text-slate-600 font-medium">
                     Déclenchez des urgences réelles et imprévues pour tester les réflexes des opérateurs et invités.
                   </p>
                 </div>
               </div>
 
               {/* Station target selector */}
-              <div className="flex items-center space-x-2 bg-slate-950 px-3.5 py-2 rounded-xl border border-amber-500/30 text-xs font-mono">
-                <span className="text-slate-400 font-medium">Cible :</span>
+              <div className="flex items-center space-x-2 bg-white px-3.5 py-2 rounded-xl border border-amber-300 text-xs font-mono shadow-sm">
+                <span className="text-slate-500 font-semibold">Cible :</span>
                 <select
                   value={targetStationForHazard}
                   onChange={(e) => setTargetStationForHazard(e.target.value)}
-                  className="bg-transparent text-amber-400 font-bold focus:outline-none cursor-pointer"
+                  className="bg-transparent text-amber-800 font-bold focus:outline-none cursor-pointer"
                 >
-                  <option value="all" className="bg-slate-900">⚡ Tous les postes (Broadcast)</option>
+                  <option value="all">⚡ Tous les postes (Broadcast)</option>
                   {(localConfig.availableStations || []).map((s) => (
-                    <option key={s.id} value={s.id} className="bg-slate-900">
+                    <option key={s.id} value={s.id}>
                       🎯 {s.name}
                     </option>
                   ))}
@@ -2505,13 +2514,13 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <button
                 onClick={handleTriggerSurpriseOrder}
-                className="p-4 rounded-2xl bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-500 hover:to-orange-400 text-slate-950 font-black text-xs flex items-center justify-between shadow-lg shadow-amber-600/30 transition-all cursor-pointer group"
+                className="p-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs flex items-center justify-between shadow-md shadow-amber-500/20 transition-all cursor-pointer group"
               >
                 <div className="flex items-center space-x-3">
                   <Boxes className="w-5 h-5 group-hover:scale-110 transition-transform" />
                   <div className="text-left">
                     <div className="font-extrabold uppercase tracking-wide">Lancer une Commande Client Surprise</div>
-                    <div className="text-[10px] font-normal opacity-90">Génère un enlèvement urgent imprévu nécessitant un scan physique immédiat</div>
+                    <div className="text-[11px] font-medium opacity-90">Génère un enlèvement urgent imprévu nécessitant un scan physique immédiat</div>
                   </div>
                 </div>
                 <Send className="w-4 h-4 ml-2 shrink-0" />
@@ -2533,13 +2542,13 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                     });
                   }
                 }}
-                className="p-4 rounded-2xl bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white font-black text-xs flex items-center justify-between shadow-lg shadow-rose-600/30 transition-all cursor-pointer group"
+                className="p-4 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs flex items-center justify-between shadow-md shadow-rose-600/20 transition-all cursor-pointer group"
               >
                 <div className="flex items-center space-x-3">
                   <ShieldAlert className="w-5 h-5 group-hover:scale-110 transition-transform" />
                   <div className="text-left">
                     <div className="font-extrabold uppercase tracking-wide">Déclencher un Aléa Flash Aléatoire</div>
-                    <div className="text-[10px] font-normal opacity-90">Active une alerte sonore avec sirène et compte à rebours sur le stand</div>
+                    <div className="text-[11px] font-medium opacity-90">Active une alerte sonore avec sirène et compte à rebours sur le stand</div>
                   </div>
                 </div>
                 <Zap className="w-4 h-4 ml-2 shrink-0" />
@@ -2548,37 +2557,35 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
             {/* List of preset hazards ready to trigger */}
             <div>
-              <div className="text-xs font-mono font-bold text-slate-400 uppercase mb-2.5">
+              <div className="text-xs font-mono font-bold text-slate-700 uppercase mb-2.5">
                 Modèles d'Aléas Prêts au Déclenchement Immédiat :
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {distractions.map((d) => (
                   <div
                     key={d.id}
-                    className="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800 hover:border-amber-500/50 flex flex-col justify-between gap-2.5 transition-all shadow-sm"
+                    className="bg-white p-4 rounded-2xl border border-slate-200 hover:border-amber-400 flex flex-col justify-between gap-3 transition-all shadow-sm"
                   >
                     <div>
-                      <div className="flex items-center justify-between gap-1 mb-1">
+                      <div className="flex items-center justify-between gap-1 mb-1.5">
                         <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                          d.severity === 'critical' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                          d.severity === 'critical' ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
                         }`}>
                           {d.severity === 'critical' ? '🚨 Critique' : '⚠️ Alerte'}
                         </span>
-                        <span className="text-[10px] font-mono text-emerald-400 font-bold">+{d.points_bonus} pts</span>
+                        <span className="text-[10px] font-mono text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">+{d.points_bonus} pts</span>
                       </div>
-                      <h4 className="text-xs font-bold text-white leading-tight">{d.title}</h4>
-                      <p className="text-[11px] text-slate-300 mt-1 line-clamp-2">{d.description}</p>
-                      <div className="mt-2 text-[10px] font-mono text-slate-400">
-                        Scan attendu : <strong className="text-sky-300">{d.barcode_label}</strong> ({d.expected_barcode})
-                      </div>
-                      <div className="text-[10px] font-mono text-amber-300 mt-0.5">
-                        Délai : <strong>{d.time_limit_seconds} secondes</strong>
+                      <h4 className="text-xs font-bold text-slate-900 leading-tight">{d.title}</h4>
+                      <p className="text-[11px] text-slate-600 mt-1 line-clamp-2">{d.description}</p>
+                      <div className="mt-2 text-[10px] font-mono text-slate-600 bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+                        <div>Scan attendu : <strong className="text-blue-700 font-bold">{d.barcode_label}</strong> ({d.expected_barcode})</div>
+                        <div className="text-amber-700 font-semibold mt-0.5">Délai : <strong>{d.time_limit_seconds} secondes</strong></div>
                       </div>
                     </div>
 
                     <button
                       onClick={() => handleTriggerLiveHazard(d)}
-                      className="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+                      className="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-sm transition-all cursor-pointer"
                     >
                       <Play className="w-3.5 h-3.5 fill-current" />
                       <span>Déclencher en Direct</span>
@@ -2590,30 +2597,30 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
           </div>
 
           {/* Section 2: Automation Settings & Interval */}
-          <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-4">
-            <h3 className="text-sm font-bold font-mono text-slate-300 uppercase flex items-center space-x-2">
-              <Clock className="w-4 h-4 text-indigo-400" />
-              <span>Paramètres du Déclencheur Automatique d'Aléas :</span>
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+            <h3 className="text-sm font-bold font-mono text-slate-800 uppercase flex items-center space-x-2">
+              <Clock className="w-4 h-4 text-blue-600" />
+              <span>Paramètres du Déclencheur Automatique d'Aléas</span>
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center space-x-3 bg-slate-950 p-4 rounded-2xl border border-slate-800">
+              <div className="flex items-center space-x-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <input
                   type="checkbox"
                   id="autoHazardsToggle"
                   checked={localConfig.autoHazardsEnabled ?? true}
                   onChange={(e) => setLocalConfig({ ...localConfig, autoHazardsEnabled: e.target.checked })}
-                  className="w-5 h-5 rounded text-amber-500 bg-slate-900 border-slate-700 cursor-pointer"
+                  className="w-5 h-5 rounded text-amber-600 bg-white border-slate-300 cursor-pointer"
                 />
-                <label htmlFor="autoHazardsToggle" className="text-xs text-slate-300 cursor-pointer">
-                  <strong className="text-white block">Activer les Aléas Automatiques en Continu</strong>
+                <label htmlFor="autoHazardsToggle" className="text-xs text-slate-700 cursor-pointer">
+                  <strong className="text-slate-900 block font-bold">Activer les Aléas Automatiques en Continu</strong>
                   Permet au jeu d'injecter des interruptions réalistes à intervalles réguliers sans intervention manuelle.
                 </label>
               </div>
 
-              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col justify-center">
-                <label className="text-xs text-slate-400 block mb-1">
-                  Fréquence Moyenne des Aléas : <strong className="text-amber-400 font-mono">{localConfig.hazardIntervalSeconds ?? 90} secondes</strong>
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col justify-center">
+                <label className="text-xs text-slate-700 font-semibold block mb-1">
+                  Fréquence Moyenne des Aléas : <strong className="text-amber-700 font-mono font-bold">{localConfig.hazardIntervalSeconds ?? 90} secondes</strong>
                 </label>
                 <input
                   type="range"
@@ -2622,9 +2629,9 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                   step="15"
                   value={localConfig.hazardIntervalSeconds ?? 90}
                   onChange={(e) => setLocalConfig({ ...localConfig, hazardIntervalSeconds: parseInt(e.target.value) || 90 })}
-                  className="w-full accent-amber-500 cursor-pointer"
+                  className="w-full accent-amber-600 cursor-pointer"
                 />
-                <div className="flex justify-between text-[10px] text-slate-400 mt-1 font-mono">
+                <div className="flex justify-between text-[10px] text-slate-500 mt-1 font-mono">
                   <span>30s (Intense)</span>
                   <span>90s (Standard Stand)</span>
                   <span>300s (Rare)</span>
@@ -2634,12 +2641,12 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
           </div>
 
           {/* Section 3: Clients Catalog (Laboratoires CEA) */}
-          <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-4">
-            <h3 className="text-sm font-bold font-mono text-slate-300 uppercase flex items-center space-x-2">
-              <Building className="w-4 h-4 text-sky-400" />
-              <span>Catalogue des Clients & Laboratoires CEA :</span>
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+            <h3 className="text-sm font-bold font-mono text-slate-800 uppercase flex items-center space-x-2">
+              <Building className="w-4 h-4 text-blue-600" />
+              <span>Catalogue des Clients & Laboratoires CEA</span>
             </h3>
-            <p className="text-xs text-slate-300">
+            <p className="text-xs text-slate-500">
               Ces entités sont utilisées pour générer les commandes clients imprévues et les tickets de transport.
             </p>
 
@@ -2647,13 +2654,13 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
               {(localConfig.clientsCatalog || []).map((client, idx) => (
                 <div
                   key={idx}
-                  className="bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 flex items-center space-x-2 text-xs text-slate-200"
+                  className="bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 flex items-center space-x-2 text-xs text-slate-800 font-medium"
                 >
-                  <Building className="w-3.5 h-3.5 text-sky-400" />
+                  <Building className="w-3.5 h-3.5 text-blue-600" />
                   <span>{client}</span>
                   <button
                     onClick={() => handleRemoveClientFromCatalog(idx)}
-                    className="text-slate-500 hover:text-rose-400 transition-colors ml-1 cursor-pointer"
+                    className="text-slate-400 hover:text-rose-600 font-bold transition-colors ml-1 cursor-pointer"
                     title="Supprimer ce client"
                   >
                     ×
@@ -2669,11 +2676,11 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                 value={newClientName}
                 onChange={(e) => setNewClientName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddClientToCatalog()}
-                className="flex-1 bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white"
+                className="flex-1 bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-3 py-2 rounded-xl text-xs text-slate-900 font-medium focus:outline-none"
               />
               <button
                 onClick={handleAddClientToCatalog}
-                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl flex items-center space-x-1.5 cursor-pointer"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center space-x-1.5 cursor-pointer shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Ajouter</span>
@@ -2682,11 +2689,11 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
           </div>
 
           {/* Section 4: Create / Edit Distraction Templates */}
-          <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold font-mono text-slate-300 uppercase flex items-center space-x-2">
-                <Plus className="w-4 h-4 text-emerald-400" />
-                <span>Créer ou Configurer un Modèle d'Aléa :</span>
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
+              <h3 className="text-sm font-bold font-mono text-slate-800 uppercase flex items-center space-x-2">
+                <Plus className="w-4 h-4 text-emerald-600" />
+                <span>Créer ou Configurer un Modèle d'Aléa</span>
               </h3>
 
               {/* Quick Preset Generator from Inventory */}
@@ -2710,7 +2717,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                     }
                   }}
                   defaultValue=""
-                  className="bg-slate-950 border border-amber-500/50 text-xs text-amber-300 font-mono px-3 py-1.5 rounded-xl focus:outline-none cursor-pointer"
+                  className="bg-slate-50 border border-amber-300 text-xs text-amber-900 font-mono px-3 py-2 rounded-xl focus:outline-none cursor-pointer"
                 >
                   <option value="">⚡ Préremplir depuis un article Stock...</option>
                   {localInventory.map(item => (
@@ -2722,7 +2729,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
             {/* Quick Template Chips */}
             <div className="flex flex-wrap gap-2 pt-1">
-              <span className="text-[11px] text-slate-400 font-mono block w-full">Suggestions d'urgences d'entrepôt prêtes à charger :</span>
+              <span className="text-[11px] text-slate-500 font-mono block w-full">Suggestions d'urgences d'entrepôt prêtes à charger :</span>
               <button
                 type="button"
                 onClick={() => setNewDistraction({
@@ -2735,7 +2742,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                   severity: 'critical',
                   is_active: true
                 })}
-                className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 text-[11px] text-amber-300 rounded-lg border border-amber-500/30 cursor-pointer"
+                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-[11px] text-slate-800 rounded-lg border border-slate-300 font-medium cursor-pointer transition-colors"
               >
                 🚨 Arrêt Banc Dépôt (Bride KF40)
               </button>
@@ -2751,7 +2758,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                   severity: 'warning',
                   is_active: true
                 })}
-                className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 text-[11px] text-amber-300 rounded-lg border border-amber-500/30 cursor-pointer"
+                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-[11px] text-slate-800 rounded-lg border border-slate-300 font-medium cursor-pointer transition-colors"
               >
                 ⚠️ Contrôle Qualité (Scellé)
               </button>
@@ -2767,7 +2774,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                   severity: 'critical',
                   is_active: true
                 })}
-                className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 text-[11px] text-amber-300 rounded-lg border border-amber-500/30 cursor-pointer"
+                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-[11px] text-slate-800 rounded-lg border border-slate-300 font-medium cursor-pointer transition-colors"
               >
                 🚚 Camion à Quai (Fret Intl)
               </button>
@@ -2783,7 +2790,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                   severity: 'critical',
                   is_active: true
                 })}
-                className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 text-[11px] text-amber-300 rounded-lg border border-amber-500/30 cursor-pointer"
+                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-[11px] text-slate-800 rounded-lg border border-slate-300 font-medium cursor-pointer transition-colors"
               >
                 ❄️ Alerte Cryo (Zone Pompe 41)
               </button>
@@ -2791,66 +2798,66 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-slate-400 block mb-1">Titre de l'Aléa :</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Titre de l'Aléa :</label>
                 <input
                   type="text"
                   placeholder="Ex: 🚨 FUITE AZOTE LIQUIDE : Salle Blanche"
                   value={newDistraction.title || ''}
                   onChange={(e) => setNewDistraction({ ...newDistraction, title: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white"
+                  className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-3 py-2 rounded-xl text-xs text-slate-900 font-medium focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-slate-400 block mb-1">Code-Barres Physique Attendu :</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Code-Barres Physique Attendu :</label>
                 <input
                   type="text"
                   placeholder="Ex: ART-KF40-INOX ou LOC-B01-T03"
                   value={newDistraction.expected_barcode || ''}
                   onChange={(e) => setNewDistraction({ ...newDistraction, expected_barcode: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white font-mono"
+                  className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-3 py-2 rounded-xl text-xs text-slate-900 font-mono font-bold focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-slate-400 block mb-1">Libellé de l'Étiquette :</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Libellé de l'Étiquette :</label>
                 <input
                   type="text"
                   placeholder="Ex: Bride KF40 Inox (Casier Allée B)"
                   value={newDistraction.barcode_label || ''}
                   onChange={(e) => setNewDistraction({ ...newDistraction, barcode_label: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white"
+                  className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-3 py-2 rounded-xl text-xs text-slate-900 font-medium focus:outline-none"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="text-xs text-slate-400 block mb-1">Consigne / Description affichée à l'écran :</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Consigne / Description affichée à l'écran :</label>
                 <input
                   type="text"
                   placeholder="Ex: Scanner immédiatement le scellé de sécurité pour valider la coupure vanne."
                   value={newDistraction.description || ''}
                   onChange={(e) => setNewDistraction({ ...newDistraction, description: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white"
+                  className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-3 py-2 rounded-xl text-xs text-slate-900 font-medium focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Délai (secondes) :</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Délai (secondes) :</label>
                   <input
                     type="number"
                     value={newDistraction.time_limit_seconds || 45}
                     onChange={(e) => setNewDistraction({ ...newDistraction, time_limit_seconds: parseInt(e.target.value) || 45 })}
-                    className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white"
+                    className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-3 py-2 rounded-xl text-xs text-slate-900 font-semibold focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Bonus Points :</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Bonus Points :</label>
                   <input
                     type="number"
                     value={newDistraction.points_bonus || 600}
                     onChange={(e) => setNewDistraction({ ...newDistraction, points_bonus: parseInt(e.target.value) || 600 })}
-                    className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-xs text-white"
+                    className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-3 py-2 rounded-xl text-xs text-slate-900 font-semibold focus:outline-none"
                   />
                 </div>
               </div>
@@ -2858,7 +2865,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
             <button
               onClick={handleSaveDistractionTemplate}
-              className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center space-x-1.5 cursor-pointer shadow-md shadow-emerald-500/20"
+              className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center space-x-1.5 cursor-pointer shadow-md shadow-emerald-600/20"
             >
               <Save className="w-3.5 h-3.5" />
               <span>Enregistrer ce Modèle d'Aléa dans Supabase</span>
@@ -2867,79 +2874,84 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         </div>
       )}
 
-      {/* TAB 7: DATABASE, BACKUP & SCENARIO FILES */}
+      {/* TAB 8: DATABASE, BACKUP & SCENARIO FILES */}
       {activeTab === 'database' && (
-        <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-6">
-          <h3 className="text-sm font-bold font-mono text-slate-300 uppercase">
-            Maintenance Base de Données & Gestion des Fichiers Scénarios :
-          </h3>
+        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
+          <div className="pb-3 border-b border-slate-200">
+            <h3 className="text-base font-black font-mono text-slate-900 uppercase tracking-wide">
+              Maintenance Base de Données & Gestion des Fichiers Scénarios
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Sauvegardez vos configurations en local, chargez un scénario pour un événement ou purgez les données de test.
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Clear Scores */}
-            <div className="bg-slate-950/80 p-4 rounded-2xl border border-rose-900/40 space-y-2 flex flex-col justify-between">
+            <div className="bg-rose-50/70 p-4 rounded-2xl border border-rose-200 space-y-2 flex flex-col justify-between">
               <div>
-                <div className="flex items-center space-x-2 text-rose-400 mb-1">
+                <div className="flex items-center space-x-2 text-rose-700 mb-1">
                   <Trash2 className="w-4 h-4" />
                   <h4 className="text-xs font-bold uppercase">Purger le Podium</h4>
                 </div>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-rose-900/80">
                   Efface tous les scores pour repartir avec un classement vierge le jour J.
                 </p>
               </div>
               <button
                 onClick={handleClearScores}
-                className="w-full py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs"
+                className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs shadow-sm cursor-pointer transition-colors"
               >
                 Vider les Scores
               </button>
             </div>
 
             {/* Clear Live Activity */}
-            <div className="bg-slate-950/80 p-4 rounded-2xl border border-rose-900/40 space-y-2 flex flex-col justify-between">
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2 flex flex-col justify-between">
               <div>
-                <div className="flex items-center space-x-2 text-rose-400 mb-1">
+                <div className="flex items-center space-x-2 text-slate-700 mb-1">
                   <Radio className="w-4 h-4" />
                   <h4 className="text-xs font-bold uppercase">Purger l'Activité Live</h4>
                 </div>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-600">
                   Efface les logs des scans en direct pour nettoyer l'historique de régie.
                 </p>
               </div>
               <button
                 onClick={handleClearLiveScans}
-                className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-300 font-bold text-xs"
+                className="w-full py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs shadow-sm cursor-pointer transition-colors"
               >
                 Vider Scans Live
               </button>
             </div>
 
             {/* Export JSON */}
-            <div className="bg-slate-950/80 p-4 rounded-2xl border border-sky-900/40 space-y-2 flex flex-col justify-between">
+            <div className="bg-sky-50/70 p-4 rounded-2xl border border-sky-200 space-y-2 flex flex-col justify-between">
               <div>
-                <div className="flex items-center space-x-2 text-sky-400 mb-1">
+                <div className="flex items-center space-x-2 text-sky-800 mb-1">
                   <Download className="w-4 h-4" />
                   <h4 className="text-xs font-bold uppercase">Exporter Scénario</h4>
                 </div>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-sky-950/80">
                   Télécharge un fichier .json contenant toutes vos missions, articles et paramètres.
                 </p>
               </div>
               <button
                 onClick={handleExportJson}
-                className="w-full py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs"
+                className="w-full py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-sm cursor-pointer transition-colors"
               >
                 Télécharger (.json)
               </button>
             </div>
 
             {/* Import JSON */}
-            <div className="bg-slate-950/80 p-4 rounded-2xl border border-indigo-900/40 space-y-2 flex flex-col justify-between">
+            <div className="bg-indigo-50/70 p-4 rounded-2xl border border-indigo-200 space-y-2 flex flex-col justify-between">
               <div>
-                <div className="flex items-center space-x-2 text-indigo-400 mb-1">
+                <div className="flex items-center space-x-2 text-indigo-800 mb-1">
                   <Upload className="w-4 h-4" />
                   <h4 className="text-xs font-bold uppercase">Importer Scénario</h4>
                 </div>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-indigo-950/80">
                   Chargez un fichier .json préparé à l'avance pour changer d'animation instantanément.
                 </p>
               </div>
@@ -2953,7 +2965,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                 />
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
+                  className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm cursor-pointer transition-colors"
                 >
                   Charger un Fichier (.json)
                 </button>
@@ -2962,25 +2974,25 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
           </div>
 
           {/* Detailed Scores Management Table */}
-          <div className="bg-slate-950/80 rounded-2xl p-5 border border-slate-800 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-800">
+          <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200">
               <div className="flex items-center space-x-2">
-                <Award className="w-4 h-4 text-amber-400" />
-                <h4 className="text-xs font-bold font-mono text-white uppercase">
+                <Award className="w-4 h-4 text-amber-500" />
+                <h4 className="text-xs font-bold font-mono text-slate-800 uppercase">
                   Gestion Individuelle des Scores du Classement ({adminScores.length} enregistrements) :
                 </h4>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={loadAdminScores}
-                  className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-mono"
+                  className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition-colors cursor-pointer"
                 >
                   Actualiser
                 </button>
                 {adminScores.length > 0 && (
                   <button
                     onClick={handleClearScores}
-                    className="px-3 py-1 bg-rose-600/30 hover:bg-rose-600/50 text-rose-300 border border-rose-500/40 rounded-lg text-xs font-mono font-bold"
+                    className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300 rounded-lg text-xs font-mono font-bold transition-colors cursor-pointer"
                   >
                     Tout Purger
                   </button>
@@ -2993,31 +3005,31 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                 Aucun score enregistré dans la base de données. Le classement est 100% vierge.
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
                 <table className="w-full text-left text-xs font-mono">
                   <thead>
-                    <tr className="border-b border-slate-800 text-slate-400">
-                      <th className="py-2 px-3">Rang</th>
-                      <th className="py-2 px-3">Invité / Duo</th>
-                      <th className="py-2 px-3">Collaborateur / Organisme</th>
-                      <th className="py-2 px-3 text-right">Score</th>
-                      <th className="py-2 px-3 text-right">Temps</th>
-                      <th className="py-2 px-3 text-center">Action</th>
+                    <tr className="border-b border-slate-200 bg-slate-100 text-slate-700 font-bold">
+                      <th className="py-2.5 px-3">Rang</th>
+                      <th className="py-2.5 px-3">Invité / Duo</th>
+                      <th className="py-2.5 px-3">Collaborateur / Organisme</th>
+                      <th className="py-2.5 px-3 text-right">Score</th>
+                      <th className="py-2.5 px-3 text-right">Temps</th>
+                      <th className="py-2.5 px-3 text-center">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody className="divide-y divide-slate-100">
                     {adminScores.map((sc, idx) => (
-                      <tr key={sc.id || idx} className="hover:bg-slate-900/50">
-                        <td className="py-2 px-3 font-bold text-slate-400">#{idx + 1}</td>
-                        <td className="py-2 px-3 font-bold text-white">{sc.name}</td>
-                        <td className="py-2 px-3 text-slate-400">{sc.company}</td>
-                        <td className="py-2 px-3 text-right text-emerald-400 font-bold">{sc.score} pts</td>
-                        <td className="py-2 px-3 text-right text-slate-400">{sc.time_spent || '-'}</td>
-                        <td className="py-2 px-3 text-center">
+                      <tr key={sc.id || idx} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-2.5 px-3 font-bold text-slate-600">#{idx + 1}</td>
+                        <td className="py-2.5 px-3 font-bold text-slate-900">{sc.name}</td>
+                        <td className="py-2.5 px-3 text-slate-600">{sc.company}</td>
+                        <td className="py-2.5 px-3 text-right text-emerald-700 font-black">{sc.score} pts</td>
+                        <td className="py-2.5 px-3 text-right text-slate-600">{sc.time_spent || '-'}</td>
+                        <td className="py-2.5 px-3 text-center">
                           {sc.id && (
                             <button
                               onClick={() => handleDeleteAdminScore(sc.id!, sc.name)}
-                              className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 transition-all cursor-pointer"
+                              className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-colors cursor-pointer"
                               title="Supprimer ce score"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
