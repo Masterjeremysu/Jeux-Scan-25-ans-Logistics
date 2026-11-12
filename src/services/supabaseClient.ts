@@ -46,6 +46,7 @@ export interface StoredAppConfig {
   autoHazardsEnabled?: boolean;
   hazardIntervalSeconds?: number;
   clientsCatalog?: string[];
+  strictScanOnly?: boolean;
   missions: Mission[];
   inventory: InventoryItem[];
 }
@@ -285,6 +286,7 @@ export async function loadAppConfig(): Promise<StoredAppConfig | null> {
           ],
           autoHazardsEnabled: data.auto_hazards_enabled ?? true,
           hazardIntervalSeconds: data.hazard_interval_seconds ?? 90,
+          strictScanOnly: data.strict_scan_only ?? false,
           clientsCatalog: Array.isArray(data.clients_catalog) ? data.clients_catalog : [
             'CEA LETI - Bât. 17 (Nano)',
             'Minatec Salle Blanche ISO 5',
@@ -334,6 +336,7 @@ export async function saveAppConfig(config: StoredAppConfig): Promise<boolean> {
         available_stations: config.availableStations,
         auto_hazards_enabled: config.autoHazardsEnabled ?? true,
         hazard_interval_seconds: config.hazardIntervalSeconds ?? 90,
+        strict_scan_only: config.strictScanOnly ?? false,
         clients_catalog: config.clientsCatalog ?? [],
         missions: config.missions,
         inventory: config.inventory,
@@ -375,6 +378,7 @@ export function subscribeToAppConfig(onConfigChanged: (config: StoredAppConfig) 
             ],
             autoHazardsEnabled: row.auto_hazards_enabled ?? true,
             hazardIntervalSeconds: row.hazard_interval_seconds ?? 90,
+            strictScanOnly: row.strict_scan_only ?? false,
             clientsCatalog: Array.isArray(row.clients_catalog) ? row.clients_catalog : [],
             missions: Array.isArray(row.missions) ? row.missions : [],
             inventory: Array.isArray(row.inventory) ? row.inventory : []

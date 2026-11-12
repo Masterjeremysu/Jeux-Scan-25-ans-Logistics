@@ -42,6 +42,7 @@ interface ZebraPlayViewProps {
   hazardSecondsRemaining: number;
   otherStations: DuoStation[];
   inventory?: InventoryItem[];
+  strictScanOnly?: boolean;
   onDeclareAnomaly?: (realQty: number) => void;
   onBarcodeScanned?: (code: string) => void;
   onNextMission?: () => void;
@@ -65,6 +66,7 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
   hazardSecondsRemaining,
   otherStations,
   inventory = [],
+  strictScanOnly = false,
   onDeclareAnomaly,
   onBarcodeScanned,
   onNextMission,
@@ -127,8 +129,9 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
     };
   }, [isAnomalyModalOpen, isCameraOpen]);
 
-  // Keyboard shortcut Spacebar for quick test
+  // Keyboard shortcut Spacebar for quick test (uniquement si le mode strict Jour J est désactivé)
   useEffect(() => {
+    if (strictScanOnly) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space' && (e.target as HTMLElement)?.tagName !== 'INPUT') {
         e.preventDefault();
@@ -141,7 +144,7 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentStep, activeHazard]);
+  }, [currentStep, activeHazard, strictScanOnly]);
 
   const triggerScan = (code: string) => {
     const cleaned = code.trim().toUpperCase();
@@ -419,11 +422,16 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
                   <input
                     ref={scanInputRef}
                     type="text"
+                    inputMode="none"
+                    autoCapitalize="off"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                     value={scanInputValue}
                     onChange={handleInputChange}
                     onKeyDown={handleInputKeyDown}
-                    placeholder="Flashez au laser Zebra ou tapez ici..."
-                    className="w-full bg-slate-900 border-2 border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm sm:text-base text-white font-mono font-bold tracking-wider placeholder:text-slate-500 focus:outline-none transition-all shadow-inner"
+                    placeholder="Visez avec le laser Zebra..."
+                    className="zebra-barcode-catcher w-full bg-slate-900 border-2 border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm sm:text-base text-white font-mono font-bold tracking-wider placeholder:text-slate-500 focus:outline-none transition-all shadow-inner"
                     autoFocus
                   />
                   {scanInputValue && (
@@ -479,18 +487,25 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
                   </button>
                 )}
 
-                {/* Dev Simulation Button */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    triggerScan(currentStep.expectedBarcode);
-                  }}
-                  className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-bold border border-slate-700 transition-colors cursor-pointer"
-                  title="Simule le scan si la douchette physique n'est pas connectée"
-                >
-                  Flasher {requiredQty > 1 ? `(${currentScannedQty + 1}/${requiredQty})` : ''}
-                </button>
+                {/* Dev Simulation Button (affiché uniquement si strictScanOnly est désactivé) */}
+                {!strictScanOnly ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      triggerScan(currentStep.expectedBarcode);
+                    }}
+                    className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-bold border border-slate-700 transition-colors cursor-pointer"
+                    title="Simule le scan si la douchette physique n'est pas connectée"
+                  >
+                    Flasher {requiredQty > 1 ? `(${currentScannedQty + 1}/${requiredQty})` : ''}
+                  </button>
+                ) : (
+                  <div className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-mono text-emerald-400 flex items-center gap-1.5">
+                    <ScanBarcode className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Scan réel requis</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -35,7 +35,8 @@ import {
   QrCode,
   ExternalLink,
   Smartphone,
-  MapPin
+  MapPin,
+  ShieldCheck
 } from 'lucide-react';
 import { 
   saveAppConfig, 
@@ -2193,6 +2194,29 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                 className="w-full bg-slate-950 border border-slate-700 px-3.5 py-2.5 rounded-xl text-sm text-orange-400 font-mono font-bold"
               />
               <span className="text-[11px] text-slate-500 mt-1 block">Bonus ajouté à chaque étape réussie sans faute</span>
+            </div>
+
+            <div className="md:col-span-2 p-4 rounded-2xl bg-slate-950 border-2 border-indigo-500/40 flex items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                  <span className="text-sm font-black text-white uppercase tracking-wider">
+                    Mode Compétition Jour J (Verrouillage des Scans Réels)
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Empêche les participants d'avancer virtuellement en cliquant sur l'écran. Seuls les vrais scans au laser Zebra ou à la caméra smartphone valident les étapes.
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input
+                  type="checkbox"
+                  checked={localConfig.strictScanOnly ?? false}
+                  onChange={(e) => setLocalConfig({ ...localConfig, strictScanOnly: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
             </div>
 
             <div className="md:col-span-2 pt-3 border-t border-slate-800">

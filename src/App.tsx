@@ -43,10 +43,10 @@ const getStationMissions = (baseMissions: Mission[], stId: string): Mission[] =>
   return baseMissions;
 };
 
-// Flexible barcode comparator supporting aliases, L/R codes and scanner variations
+// Flexible barcode comparator supporting aliases, L/R codes, scanner prefixes and warehouse variations
 const isBarcodeMatching = (scanned: string, expected: string, lrCode?: string): boolean => {
-  const cleanS = scanned.trim().toUpperCase();
-  const cleanE = expected.trim().toUpperCase();
+  const cleanS = scanned.replace(/^\][a-zA-Z0-9]{2}/, '').replace(/[\r\n\t]/g, '').trim().toUpperCase();
+  const cleanE = expected.replace(/^\][a-zA-Z0-9]{2}/, '').replace(/[\r\n\t]/g, '').trim().toUpperCase();
   if (cleanS === cleanE) return true;
 
   if (lrCode && cleanS === lrCode.trim().toUpperCase()) return true;
@@ -58,16 +58,27 @@ const isBarcodeMatching = (scanned: string, expected: string, lrCode?: string): 
   if (strippedS === strippedE) return true;
   if (strippedLr && strippedS === strippedLr) return true;
 
-  // Specific warehouse aliases (shelves, docks, articles)
-  if (cleanE.includes('ETAGERE-LIVRAISON') && (cleanS.includes('LIVRAISON') || cleanS.includes('ETA_LIVR') || cleanS.includes('ETALIVR'))) return true;
-  if (cleanE.includes('ETAGERE-COLLECTE') && (cleanS.includes('COLLECTE') || cleanS.includes('ETA_COLLECT'))) return true;
-  if (cleanE.includes('KF40') && (cleanS.includes('KF40') || cleanS.includes('BRD_KF40'))) return true;
-  if (cleanE.includes('7490') && (cleanS.includes('7490') || cleanS.includes('JNT_A001') || cleanS.includes('KALREZ'))) return true;
-  if (cleanE.includes('POMPE') && (cleanS.includes('POMPE') || cleanS.includes('GRILLE_41'))) return true;
+  // Interopérabilité des étagères de départ selon le poste (Poste 1 sur Étagère 1, Poste 2 sur Étagère 2)
+  if ((cleanE.includes('ETA1') || cleanE.includes('ETA2') || cleanE.includes('ETA_1') || cleanE.includes('ETA_2')) &&
+      (cleanS.includes('ETA1') || cleanS.includes('ETA2') || cleanS.includes('ETA_1') || cleanS.includes('ETA_2') || cleanS.includes('ETAGERE'))) {
+    return true;
+  }
+
+  // Aliases d'emplacements et quais
+  if (cleanE.includes('ETAGERE-LIVRAISON') && (cleanS.includes('LIVRAISON') || cleanS.includes('ETA_LIVR') || cleanS.includes('ETALIVR') || cleanS.includes('LIVR'))) return true;
+  if (cleanE.includes('ETAGERE-COLLECTE') && (cleanS.includes('COLLECTE') || cleanS.includes('ETA_COLLECT') || cleanS.includes('COLLECT'))) return true;
+  if (cleanE.includes('RECEPTION') && (cleanS.includes('RECEPTION') || cleanS.includes('REC_CENT') || cleanS.includes('CENTRALE') || cleanS.includes('DEPART'))) return true;
+  if (cleanE.includes('TRANSPORT') && (cleanS.includes('TRANSPORT') || cleanS.includes('DOC_TRP') || cleanS.includes('TRP') || cleanS.includes('BORDEREAU'))) return true;
+  if (cleanE.includes('B01') && (cleanS.includes('B01_T03') || cleanS.includes('B01-T03') || cleanS.includes('B01_T04') || cleanS.includes('B01-T04') || cleanS.includes('ARMOIRE_B'))) return true;
+
+  // Aliases d'articles et pièces
+  if (cleanE.includes('KF40') && (cleanS.includes('KF40') || cleanS.includes('BRD_KF40') || cleanS.includes('BRIDE'))) return true;
+  if (cleanE.includes('7490') && (cleanS.includes('7490') || cleanS.includes('JNT_A001') || cleanS.includes('KALREZ') || cleanS.includes('JOINT'))) return true;
+  if (cleanE.includes('POMPE') && (cleanS.includes('POMPE') || cleanS.includes('GRILLE_41') || cleanS.includes('PMP'))) return true;
   if (cleanE.includes('VITON') && cleanS.includes('VITON')) return true;
   if (cleanE.includes('WAFER') && cleanS.includes('WAFER')) return true;
   if (cleanE.includes('SACHET') && cleanS.includes('SACHET')) return true;
-  if (cleanE.includes('CARTON') && cleanS.includes('CARTON')) return true;
+  if (cleanE.includes('CARTON') && (cleanS.includes('CARTON') || cleanS.includes('CTN') || cleanS.includes('DOUBLE'))) return true;
   if (cleanE.includes('SCEL') && cleanS.includes('SCEL')) return true;
 
   return false;
@@ -204,11 +215,12 @@ export const App: React.FC = () => {
           diplomaTitle: stored.diplomaTitle ?? prev.diplomaTitle,
           diplomaDescription: stored.diplomaDescription ?? prev.diplomaDescription,
           diplomaSignatory: stored.diplomaSignatory ?? prev.diplomaSignatory,
-          availableStations: stored.availableStations ?? prev.availableStations
+          availableStations: stored.availableStations ?? prev.availableStations,
+          strictScanOnly: stored.strictScanOnly ?? prev.strictScanOnly
         }));
         setShiftSecondsRemaining(stored.shiftDurationSeconds);
         if (stored.missions && stored.missions.length > 0) {
-          setMissions(stored.missions);
+          setMissions(getStationMissions(stored.missions, stationIdRef.current));
         }
         if (stored.inventory && stored.inventory.length > 0) {
           setInventory(stored.inventory);
@@ -252,10 +264,11 @@ export const App: React.FC = () => {
         availableStations: newCfg.availableStations ?? prev.availableStations,
         autoHazardsEnabled: newCfg.autoHazardsEnabled ?? prev.autoHazardsEnabled,
         hazardIntervalSeconds: newCfg.hazardIntervalSeconds ?? prev.hazardIntervalSeconds,
-        clientsCatalog: newCfg.clientsCatalog ?? prev.clientsCatalog
+        clientsCatalog: newCfg.clientsCatalog ?? prev.clientsCatalog,
+        strictScanOnly: newCfg.strictScanOnly ?? prev.strictScanOnly
       }));
       if (newCfg.missions && newCfg.missions.length > 0) {
-        setMissions(newCfg.missions);
+        setMissions(getStationMissions(newCfg.missions, stationIdRef.current));
       }
       if (newCfg.inventory && newCfg.inventory.length > 0) {
         setInventory(newCfg.inventory);
@@ -279,9 +292,8 @@ export const App: React.FC = () => {
         if (updatedStation.operator_cea) setOperatorCea(updatedStation.operator_cea);
         if (updatedStation.client_guest) setClientGuest(updatedStation.client_guest);
         
-        // Host started new match (either marked 'idle' or newly started 'in_progress' with score 0)
-        const isNewMatchSignal = updatedStation.status === 'idle' || 
-          (updatedStation.status === 'in_progress' && (updatedStation.score === 0 || updatedStation.current_step_index === 0));
+        // Host started new match (marked 'idle' from previous run or status reset)
+        const isNewMatchSignal = updatedStation.status === 'idle';
 
         if (isNewMatchSignal) {
           setCurrentMissionIndex(0);
@@ -290,8 +302,9 @@ export const App: React.FC = () => {
           errorScansCountRef.current = 0;
           lastStepStartTimeRef.current = Date.now();
           setShiftSecondsRemaining(appConfig.shiftDurationSeconds || 180);
-          setMissions((prev) =>
-            prev.map((m) => ({
+          const pool = missionsRef.current && missionsRef.current.length > 0 ? missionsRef.current : MISSIONS;
+          setMissions(
+            getStationMissions(pool, stationIdRef.current).map((m) => ({
               ...m,
               steps: m.steps.map((st) => ({ ...st, completed: false, scannedCount: 0 }))
             }))
@@ -440,6 +453,10 @@ export const App: React.FC = () => {
       if (route.stationId && route.stationName) {
         setStationId(route.stationId);
         setStationName(route.stationName);
+        stationIdRef.current = route.stationId;
+        stationNameRef.current = route.stationName;
+        const pool = missionsRef.current && missionsRef.current.length > 0 ? missionsRef.current : MISSIONS;
+        setMissions(getStationMissions(pool, route.stationId));
       }
     };
 
@@ -1332,6 +1349,7 @@ export const App: React.FC = () => {
           hazardSecondsRemaining={hazardSecondsRemaining}
           otherStations={liveStations}
           inventory={inventory}
+          strictScanOnly={appConfig.strictScanOnly}
           onDeclareAnomaly={handleDeclareStockAnomaly}
           onBarcodeScanned={handleBarcodeScanned}
           onNextMission={advanceToNextMission}
@@ -1420,6 +1438,7 @@ export const App: React.FC = () => {
             onTriggerSurpriseOrder={handleTriggerSurpriseOrder}
             onStartNewMatch={handleStartNewShift}
             onDeclareAnomaly={handleDeclareStockAnomaly}
+            strictScanOnly={appConfig.strictScanOnly}
           />
         )}
 

@@ -47,6 +47,7 @@ interface PosteOperateurViewProps {
   onStartNewMatch?: () => void;
   onBackToHome?: () => void;
   onDeclareAnomaly?: (realQty: number) => void;
+  strictScanOnly?: boolean;
 }
 
 export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
@@ -70,7 +71,8 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
   onTriggerSurpriseOrder,
   onStartNewMatch,
   onBackToHome,
-  onDeclareAnomaly
+  onDeclareAnomaly,
+  strictScanOnly = false
 }) => {
   const [isDuoModalOpen, setIsDuoModalOpen] = useState(false);
   const [ceaInput, setCeaInput] = useState(operatorCea);
@@ -369,14 +371,21 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
 
             {/* BIG CLICKABLE ACTION BUTTON & ANOMALY OPTION */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => barcodeListener.simulateScan(currentStep.expectedBarcode)}
-                className="w-full sm:w-auto px-6 py-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-base sm:text-lg rounded-2xl shadow-xl shadow-amber-500/25 flex items-center justify-center gap-2.5 transition-all hover:scale-[1.02] cursor-pointer"
-              >
-                <Zap className="w-5 h-5 text-slate-950 fill-current" />
-                <span>FLASHER : {currentStep.expectedBarcode} {requiredQty > 1 ? `(${currentScannedQty + 1}/${requiredQty})` : ''}</span>
-              </button>
+              {!strictScanOnly ? (
+                <button
+                  type="button"
+                  onClick={() => barcodeListener.simulateScan(currentStep.expectedBarcode)}
+                  className="w-full sm:w-auto px-6 py-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-base sm:text-lg rounded-2xl shadow-xl shadow-amber-500/25 flex items-center justify-center gap-2.5 transition-all hover:scale-[1.02] cursor-pointer"
+                >
+                  <Zap className="w-5 h-5 text-slate-950 fill-current" />
+                  <span>FLASHER : {currentStep.expectedBarcode} {requiredQty > 1 ? `(${currentScannedQty + 1}/${requiredQty})` : ''}</span>
+                </button>
+              ) : (
+                <div className="w-full sm:w-auto px-6 py-4 bg-slate-900 border-2 border-slate-800 text-emerald-400 font-mono font-bold text-sm rounded-2xl flex items-center justify-center gap-2.5 shadow-lg">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                  <span>Scannez l'étiquette au laser Zebra ou par caméra</span>
+                </div>
+              )}
 
               <button
                 type="button"

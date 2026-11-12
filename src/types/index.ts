@@ -44,6 +44,7 @@ export interface AppConfig {
   hazardIntervalSeconds?: number;
   clientsCatalog?: string[];
   locations?: WarehouseLocation[]; // Emplacements personnalisés configurables par l'utilisateur
+  strictScanOnly?: boolean; // Mode Jour J / Compétition Réelle : seuls les vrais scans (laser Zebra ou caméra) sont acceptés, aucun avancement virtuel
 }
 
 export interface Distraction {
