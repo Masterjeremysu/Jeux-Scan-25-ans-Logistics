@@ -78,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
   ];
 
   return (
-    <header className="no-print bg-slate-950/90 border-b border-slate-800/80 backdrop-blur-xl px-3 sm:px-5 py-2.5 flex items-center justify-between gap-4 select-none sticky top-0 z-40">
+    <header className="no-print bg-[#0c1e3a] text-white border-b-2 border-red-600 shadow-md px-3 sm:px-5 py-2.5 flex items-center justify-between gap-4 select-none sticky top-0 z-40 relative">
       {/* 1. BRAND & IDENTITY (Left) */}
       <div className="flex items-center space-x-3 shrink-0">
         <button
@@ -97,12 +97,12 @@ export const Header: React.FC<HeaderProps> = ({
           />
           <div className="hidden lg:flex flex-col">
             <div className="flex items-center space-x-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-emerald-400">
                 WMS CONNECTÉ
               </span>
             </div>
-            <span className="text-[11px] font-semibold text-slate-400 tracking-tight">
+            <span className="text-[11px] font-semibold text-slate-300 tracking-tight">
               25 Ans de Partenariat CEA
             </span>
           </div>
@@ -110,7 +110,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* 2. DOCK-STYLE CENTER NAVIGATION (Center) */}
-      <nav className="flex items-center p-1 bg-slate-900/90 rounded-2xl border border-slate-800/80 shadow-inner overflow-x-auto scrollbar-none">
+      <nav className="flex items-center p-1 bg-[#071224]/80 rounded-2xl border border-slate-700/80 shadow-inner overflow-x-auto scrollbar-none">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentView === item.id;
@@ -123,16 +123,16 @@ export const Header: React.FC<HeaderProps> = ({
               }}
               className={`relative flex items-center space-x-2 px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-150 cursor-pointer ${
                 isActive
-                  ? 'bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-sky-600/30 border border-sky-400/30'
-                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+                  ? 'bg-white text-[#0c1e3a] font-black shadow-md border border-white/50'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
               }`}
             >
-              <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+              <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#0c1e3a]' : 'text-slate-400'}`} />
               <span className="tracking-tight">{item.label}</span>
               {item.badge && (
                 <span
                   className={`text-[9px] font-extrabold uppercase font-mono px-1.5 py-0.2 rounded-full leading-tight shrink-0 ${
-                    item.badgeColor || 'bg-sky-500 text-white'
+                    item.badgeColor || 'bg-red-600 text-white'
                   }`}
                 >
                   {item.badge}

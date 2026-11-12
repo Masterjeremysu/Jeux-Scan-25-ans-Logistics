@@ -225,7 +225,7 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
   };
 
   return (
-    <div className="min-h-[calc(100vh-65px)] p-3 sm:p-5 flex flex-col gap-4 font-sans bg-[#071224] text-slate-100">
+    <div className="min-h-[calc(100vh-65px)] p-3 sm:p-5 flex flex-col gap-4 font-sans bg-slate-50 text-slate-900">
       {/* Datalist invisible pour les suggestions d'emplacements rapides */}
       <datalist id="warehouse-locations-list">
         {locationOptions.map((loc) => (
@@ -236,29 +236,27 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
       </datalist>
 
       {/* Top Banner & Command Bar GT Logistics */}
-      <div className="bg-[#0c1e3a]/95 rounded-2xl p-4 border border-slate-700/80 flex flex-wrap items-center justify-between gap-4 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-red-600 via-rose-500 to-transparent opacity-80" />
-
+      <div className="bg-[#0c1e3a] text-white rounded-2xl p-4 border-b-2 border-red-600 flex flex-wrap items-center justify-between gap-4 shadow-md relative overflow-hidden">
         <div>
           <div className="flex items-center gap-2">
             <span className="font-sans font-black italic tracking-tight text-white text-lg">
               <span>gt</span>
               <span className="ml-1 not-italic font-bold text-slate-200 lowercase">logistics</span>
             </span>
-            <span className="text-slate-500">•</span>
+            <span className="text-slate-400">•</span>
             <h2 className="text-base sm:text-lg font-black text-white tracking-wide uppercase">
               GESTION DES STOCKS & ERP TRAÇABILITÉ
             </h2>
             {hasChanges && (
-              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 font-mono text-[10px] font-bold uppercase animate-pulse">
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-mono text-[10px] font-bold uppercase animate-pulse">
                 Modifications en attente
               </span>
             )}
           </div>
           <p className="text-xs text-slate-300 font-sans mt-0.5 flex items-center gap-2">
             <span>Base de données magasins centraux CEA LETI</span>
-            <span className="text-red-500">•</span>
-            <span className="italic text-slate-400">Tous les champs sont éditables directement (Réf, Code-barres, Désignation, Emplacement)</span>
+            <span className="text-red-400">•</span>
+            <span className="italic text-slate-300">Tous les champs sont éditables directement (Réf, Code-barres, Désignation, Emplacement)</span>
           </p>
         </div>
 
@@ -317,10 +315,10 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
             type="button"
             disabled={isSaving}
             onClick={handleSaveAll}
-            className={`px-5 py-2 rounded-xl font-black text-xs flex items-center space-x-2 shadow-lg cursor-pointer transition-all ${
+            className={`px-5 py-2 rounded-xl font-black text-xs flex items-center space-x-2 shadow-md cursor-pointer transition-all ${
               hasChanges
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-emerald-500/40 ring-2 ring-emerald-300 animate-pulse'
-                : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+                ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 ring-2 ring-emerald-300 animate-pulse'
+                : 'bg-white text-slate-800 hover:bg-slate-100 border border-slate-300'
             }`}
             title="Enregistrer toutes les modifications dans la base (Ctrl + S)"
           >
@@ -336,12 +334,12 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Rechercher réf, SKU, emplacement..."
-              className="bg-[#071224] border border-slate-700 pl-9 pr-3 py-1.5 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 w-56 sm:w-64"
+              className="bg-white border border-slate-300 pl-9 pr-3 py-1.5 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 w-56 sm:w-64 shadow-sm"
             />
           </div>
 
           {/* Category Filter */}
-          <div className="flex items-center space-x-1 bg-[#071224] p-1 rounded-xl border border-slate-800 text-xs">
+          <div className="flex items-center space-x-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700 text-xs">
             {categories.map((cat) => (
               <button
                 key={cat}
@@ -349,8 +347,8 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
                 onClick={() => setSelectedCategory(cat)}
                 className={`px-2.5 py-1 rounded-lg font-medium transition-colors ${
                   selectedCategory === cat
-                    ? 'bg-sky-600 text-white font-bold'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-blue-600 text-white font-bold'
+                    : 'text-slate-300 hover:text-white'
                 }`}
               >
                 {cat === 'all' ? 'Tous' : cat}
@@ -360,11 +358,11 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
         </div>
       </div>
 
-      {/* Stock Table avec Édition Directe Fiable */}
-      <div className="bg-[#0c1e3a]/95 rounded-3xl border border-slate-700/80 flex-1 overflow-hidden shadow-2xl flex flex-col">
+      {/* Stock Table avec Édition Directe Fiable - Modern Light ERP Styling */}
+      <div className="bg-white rounded-2xl border border-slate-200 flex-1 overflow-hidden shadow-sm flex flex-col">
         <div className="overflow-x-auto flex-1">
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#08152c] text-slate-300 font-mono uppercase text-[10px] sm:text-[11px] sticky top-0 border-b border-slate-700 z-10 backdrop-blur-md">
+            <thead className="bg-slate-100 text-slate-700 font-mono uppercase text-[10px] sm:text-[11px] sticky top-0 border-b border-slate-200 z-10">
               <tr>
                 <th className="py-3 px-3">Réf Article</th>
                 <th className="py-3 px-3">Code-barres SKU</th>
@@ -376,7 +374,7 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
                 <th className="py-3 px-3 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800 font-sans">
+            <tbody className="divide-y divide-slate-100 font-sans">
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-slate-400 font-mono">
@@ -385,53 +383,53 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
                 </tr>
               ) : (
                 filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-800/50 transition-colors group">
+                  <tr key={item.id} className="hover:bg-blue-50/50 transition-colors group">
                     {/* 1. Réf article (ex: JNT_A001) */}
-                    <td className="py-2 px-3 whitespace-nowrap">
+                    <td className="py-2.5 px-3 whitespace-nowrap">
                       <input
                         type="text"
                         value={item.lrCode || ''}
                         onChange={(e) => handleFieldChange(item.id, 'lrCode', e.target.value)}
                         placeholder="JNT_A001"
-                        className="bg-[#071224] border border-slate-700 focus:border-amber-400 px-2 py-1 rounded-lg text-amber-300 font-mono font-bold w-28 text-xs focus:outline-none"
+                        className="bg-amber-50 border border-amber-200 focus:border-amber-500 px-2.5 py-1 rounded-lg text-amber-900 font-mono font-bold w-28 text-xs focus:outline-none shadow-sm"
                         title="Référence courte article imprimée sur le ticket L/R"
                       />
                     </td>
 
                     {/* 2. Code-barres SKU (ex: REF191000007490) */}
-                    <td className="py-2 px-3 whitespace-nowrap">
+                    <td className="py-2.5 px-3 whitespace-nowrap">
                       <input
                         type="text"
                         value={item.sku || ''}
                         onChange={(e) => handleFieldChange(item.id, 'sku', e.target.value)}
                         placeholder="REF191000..."
-                        className="bg-[#071224] border border-slate-700 focus:border-sky-400 px-2 py-1 rounded-lg text-sky-400 font-mono font-bold w-40 text-xs focus:outline-none"
+                        className="bg-slate-50 border border-slate-200 focus:border-blue-500 px-2.5 py-1 rounded-lg text-slate-800 font-mono font-bold w-40 text-xs focus:outline-none shadow-sm"
                         title="Code-barres scanné au laser par les joueurs"
                       />
                     </td>
 
                     {/* 3. Désignation & Description */}
-                    <td className="py-2 px-3 min-w-[240px]">
+                    <td className="py-2.5 px-3 min-w-[240px]">
                       <div className="space-y-1">
                         <input
                           type="text"
                           value={item.name || ''}
                           onChange={(e) => handleFieldChange(item.id, 'name', e.target.value)}
                           placeholder="Nom de la pièce..."
-                          className="bg-[#071224] border border-slate-700 focus:border-slate-400 px-2 py-1 rounded-lg text-white font-semibold w-full text-xs focus:outline-none"
+                          className="bg-white border border-slate-200 focus:border-blue-500 px-2.5 py-1 rounded-lg text-slate-900 font-bold w-full text-xs focus:outline-none shadow-sm"
                         />
                         <input
                           type="text"
                           value={item.description || ''}
                           onChange={(e) => handleFieldChange(item.id, 'description', e.target.value)}
                           placeholder="Description / utilisation..."
-                          className="bg-[#071224]/80 border border-slate-800 focus:border-slate-700 px-2 py-0.5 rounded text-[10px] text-slate-400 w-full focus:outline-none"
+                          className="bg-slate-50 border border-slate-200 focus:border-slate-300 px-2 py-0.5 rounded text-[10px] text-slate-500 w-full focus:outline-none"
                         />
                       </div>
                     </td>
 
                     {/* 4. Quantité en stock & Boutons delta */}
-                    <td className="py-2 px-3 text-right whitespace-nowrap">
+                    <td className="py-2.5 px-3 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end space-x-1">
                         <button
                           type="button"
@@ -440,7 +438,7 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
                             handleFieldChange(item.id, 'quantity', newQ);
                             onUpdateQuantity(item.id, -1);
                           }}
-                          className="w-6 h-6 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center font-bold text-xs cursor-pointer"
+                          className="w-6 h-6 rounded-md bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs cursor-pointer shadow-sm"
                           title="-1 pièce"
                         >
                           -
@@ -449,7 +447,7 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
                           type="number"
                           value={item.quantity}
                           onChange={(e) => handleFieldChange(item.id, 'quantity', parseInt(e.target.value) || 0)}
-                          className="bg-[#071224] border border-slate-700 px-1 py-1 rounded-lg text-emerald-400 font-mono font-bold w-14 text-xs text-right focus:outline-none"
+                          className="bg-slate-100 border border-slate-200 text-slate-900 px-1 py-1 rounded-lg font-mono font-bold w-14 text-xs text-right focus:outline-none shadow-sm"
                         />
                         <button
                           type="button"
@@ -458,7 +456,7 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
                             handleFieldChange(item.id, 'quantity', newQ);
                             onUpdateQuantity(item.id, 1);
                           }}
-                          className="w-6 h-6 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center font-bold text-xs cursor-pointer"
+                          className="w-6 h-6 rounded-md bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs cursor-pointer shadow-sm"
                           title="+1 pièce"
                         >
                           +
@@ -467,57 +465,57 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
                           type="text"
                           value={item.unit || 'pcs'}
                           onChange={(e) => handleFieldChange(item.id, 'unit', e.target.value)}
-                          className="bg-[#071224] border border-slate-800 px-1 py-1 rounded text-slate-400 font-mono w-10 text-center text-[10px] focus:outline-none"
+                          className="bg-slate-50 border border-slate-200 px-1 py-1 rounded text-slate-600 font-mono w-10 text-center text-[10px] focus:outline-none"
                           title="Unité de mesure (pcs, boîtes, etc.)"
                         />
                       </div>
                     </td>
 
                     {/* 5. Emplacement Physique (Avec Datalist & Choix Rapide) */}
-                    <td className="py-2 px-3 whitespace-nowrap">
+                    <td className="py-2.5 px-3 whitespace-nowrap">
                       <div className="flex items-center space-x-1">
-                        <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                         <input
                           type="text"
                           list="warehouse-locations-list"
                           value={item.location || ''}
                           onChange={(e) => handleFieldChange(item.id, 'location', e.target.value)}
                           placeholder="LOC-B01-T03..."
-                          className="bg-[#071224] border border-slate-700 focus:border-amber-400 px-2 py-1 rounded-lg text-sky-300 font-mono font-semibold w-40 text-xs focus:outline-none"
+                          className="bg-blue-50/70 border border-blue-200 focus:border-blue-500 px-2.5 py-1 rounded-lg text-blue-900 font-mono font-bold w-40 text-xs focus:outline-none shadow-sm"
                           title="Emplacement physique dans l'entrepôt (tapez ou choisissez dans la liste)"
                         />
                       </div>
                     </td>
 
                     {/* 6. Gestionnaire */}
-                    <td className="py-2 px-3 whitespace-nowrap">
+                    <td className="py-2.5 px-3 whitespace-nowrap">
                       <input
                         type="text"
                         value={item.gestionnaire || ''}
                         onChange={(e) => handleFieldChange(item.id, 'gestionnaire', e.target.value)}
                         placeholder="GT Logistics"
-                        className="bg-[#071224] border border-slate-700 focus:border-slate-500 px-2 py-1 rounded-lg text-slate-300 text-xs w-28 focus:outline-none"
+                        className="bg-white border border-slate-200 focus:border-slate-400 px-2.5 py-1 rounded-lg text-slate-700 text-xs w-28 focus:outline-none shadow-sm"
                       />
                     </td>
 
                     {/* 7. Machine / Poste */}
-                    <td className="py-2 px-3 whitespace-nowrap">
+                    <td className="py-2.5 px-3 whitespace-nowrap">
                       <input
                         type="text"
                         value={item.machinePdt || ''}
                         onChange={(e) => handleFieldChange(item.id, 'machinePdt', e.target.value)}
                         placeholder="Poste / Bâti..."
-                        className="bg-[#071224] border border-slate-700 focus:border-slate-500 px-2 py-1 rounded-lg text-slate-300 font-mono text-[11px] w-32 focus:outline-none"
+                        className="bg-white border border-slate-200 focus:border-slate-400 px-2.5 py-1 rounded-lg text-slate-700 font-mono text-[11px] w-32 focus:outline-none shadow-sm"
                       />
                     </td>
 
                     {/* 8. Actions (Dupliquer / Supprimer) */}
-                    <td className="py-2 px-3 text-center whitespace-nowrap">
+                    <td className="py-2.5 px-3 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center space-x-1">
                         <button
                           type="button"
                           onClick={() => handleDuplicateItem(item)}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-sky-950 text-slate-400 hover:text-sky-300 transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-500 hover:text-blue-600 border border-slate-200 transition-colors cursor-pointer shadow-sm"
                           title="Dupliquer cette référence"
                         >
                           <Copy className="w-3.5 h-3.5" />
@@ -525,7 +523,7 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
                         <button
                           type="button"
                           onClick={() => handleDeleteItem(item.id, item.name)}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-950/80 text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200 transition-colors cursor-pointer shadow-sm"
                           title="Supprimer cette référence du stock"
                         >
                           <Trash2 className="w-3.5 h-3.5" />

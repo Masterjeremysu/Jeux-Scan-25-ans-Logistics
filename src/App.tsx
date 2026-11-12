@@ -1366,7 +1366,7 @@ export const App: React.FC = () => {
   // DEDICATED HANDHELD ZEBRA PURE GAME MODE (NO HEADER, NO ADMIN/ERP TABS, LOCKED TO GAMEPLAY)
   if (currentView === 'play') {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+      <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans">
         <ZebraPlayView
           stationId={stationId}
           stationName={stationName}
@@ -1418,7 +1418,7 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
       {/* Top Header */}
       <Header
         currentView={currentView}

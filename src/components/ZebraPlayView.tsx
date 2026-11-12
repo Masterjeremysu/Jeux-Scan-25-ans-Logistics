@@ -211,17 +211,17 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
 
   return (
     <div 
-      className={`min-h-screen bg-slate-950 text-slate-100 flex flex-col p-3 sm:p-5 select-none transition-colors duration-200 ${
-        flashState === 'green' ? 'bg-emerald-950/40' : flashState === 'red' ? 'bg-rose-950/40' : ''
+      className={`min-h-screen bg-slate-100 text-slate-900 flex flex-col p-3 sm:p-5 select-none transition-colors duration-200 ${
+        flashState === 'green' ? 'bg-emerald-100' : flashState === 'red' ? 'bg-rose-100' : ''
       }`}
       onClick={() => scanInputRef.current?.focus({ preventScroll: true })}
     >
-      {/* 1. TOP LOCKED ZEBRA HUD */}
-      <header className="bg-slate-900 rounded-2xl p-3 border border-slate-800 shadow-xl flex items-center justify-between gap-2 shrink-0">
+      {/* 1. TOP LOCKED ZEBRA HUD (GT LOGISTICS OFFICIAL WMS) */}
+      <header className="bg-[#0c1e3a] text-white rounded-2xl p-3 border-b-2 border-red-600 shadow-lg flex items-center justify-between gap-2 shrink-0">
         {/* Station Badge & Duo Name */}
         <div className="flex items-center space-x-2 min-w-0">
-          <span className={`text-[11px] font-black font-mono px-2.5 py-1 rounded-xl uppercase shrink-0 ${
-            isPoste1 ? 'bg-sky-500 text-slate-950 shadow-md shadow-sky-500/20' : 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
+          <span className={`text-[11px] font-black font-mono px-2.5 py-1 rounded-xl uppercase shrink-0 shadow-sm ${
+            isPoste1 ? 'bg-sky-500 text-white' : 'bg-amber-500 text-white'
           }`}>
             {stationName.split(' ')[0]} {isPoste1 ? 'Bleu' : 'Orange'}
           </span>
@@ -229,7 +229,7 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
             <span className="text-xs font-bold text-white block truncate">
               {operatorCea} 🤝 {clientGuest}
             </span>
-            <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+            <span className="text-[10px] font-mono text-emerald-300 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
               <span>Connecté en direct</span>
             </span>
@@ -237,7 +237,7 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
         </div>
 
         {/* Center: Match Countdown */}
-        <div className="flex items-center space-x-1.5 bg-slate-950 px-3 py-1 rounded-xl border border-slate-800 font-mono text-sm font-black text-amber-300 shrink-0">
+        <div className="flex items-center space-x-1.5 bg-[#071224] px-3 py-1 rounded-xl border border-slate-700 font-mono text-sm font-black text-amber-300 shrink-0">
           <Clock className="w-4 h-4 text-amber-400 animate-pulse" />
           <span>{formatTime(shiftSecondsRemaining)}</span>
         </div>
@@ -267,7 +267,7 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
           )}
           <div className="text-right">
             <span className="text-sm sm:text-base font-black font-mono text-emerald-400">
-              {score} <span className="text-[10px] text-slate-400 font-normal">pts</span>
+              {score} <span className="text-[10px] text-slate-300 font-normal">pts</span>
             </span>
           </div>
         </div>
@@ -275,62 +275,62 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
 
       {/* 2. RIVAL RADAR OR SOLO DUO CHALLENGE TARGET */}
       {rival && rival.status === 'in_progress' && (rival.score > 0 || rival.progress_percent > 0) ? (
-        <div className="mt-2.5 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800/80 flex items-center justify-between text-xs font-mono shrink-0">
-          <div className="flex items-center space-x-1.5 text-slate-400 truncate">
-            <Swords className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="truncate">Adversaire ({rival.station_name.split(' ')[0]}) : <strong className="text-slate-200">{rival.team_name}</strong></span>
+        <div className="mt-2.5 bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between text-xs font-mono shrink-0">
+          <div className="flex items-center space-x-1.5 text-slate-600 truncate">
+            <Swords className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            <span className="truncate">Adversaire ({rival.station_name.split(' ')[0]}) : <strong className="text-slate-900">{rival.team_name}</strong></span>
           </div>
           <div className="flex items-center space-x-2 shrink-0 ml-2">
-            <div className="w-16 sm:w-24 bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
-              <div className="bg-amber-400 h-full rounded-full transition-all duration-300" style={{ width: `${rival.progress_percent}%` }} />
+            <div className="w-16 sm:w-24 bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-300">
+              <div className="bg-amber-500 h-full rounded-full transition-all duration-300" style={{ width: `${rival.progress_percent}%` }} />
             </div>
-            <span className="text-amber-400 font-bold">{rival.score} pts</span>
+            <span className="text-amber-600 font-bold">{rival.score} pts</span>
           </div>
         </div>
       ) : (
-        <div className="mt-2.5 bg-gradient-to-r from-slate-900 via-emerald-950/40 to-slate-900 px-3.5 py-1.5 rounded-xl border border-emerald-500/30 flex items-center justify-between text-xs font-mono shrink-0">
-          <div className="flex items-center space-x-1.5 text-slate-300 truncate">
-            <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="truncate">Défi Chrono Duo • <strong className="text-emerald-300">Objectif Record</strong></span>
+        <div className="mt-2.5 bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between text-xs font-mono shrink-0">
+          <div className="flex items-center space-x-1.5 text-slate-700 truncate">
+            <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            <span className="truncate">Défi Chrono Duo • <strong className="text-emerald-700">Objectif Record</strong></span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-[10px] text-slate-400">Palier Or :</span>
-            <span className="text-amber-400 font-black">2 000 pts</span>
+            <span className="text-[10px] text-slate-500">Palier Or :</span>
+            <span className="text-amber-600 font-black">2 000 pts</span>
           </div>
         </div>
       )}
 
       {/* 3. EMERGENCY HAZARD TAKE-OVER (If triggered by Admin) */}
       {activeHazard && (
-        <div className="mt-3 bg-gradient-to-r from-red-950 via-rose-900 to-amber-950 rounded-2xl p-4 border-2 border-red-500 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-pulse">
+        <div className="mt-3 bg-red-50 border-2 border-red-500 rounded-2xl p-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3 animate-pulse text-slate-900">
           <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 rounded-2xl bg-red-600/30 border border-red-400 flex items-center justify-center text-red-300 shrink-0">
-              <ShieldAlert className="w-7 h-7 text-red-400 animate-bounce" />
+            <div className="w-12 h-12 rounded-2xl bg-red-100 border border-red-300 flex items-center justify-center text-red-600 shrink-0">
+              <ShieldAlert className="w-7 h-7 text-red-600 animate-bounce" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-red-500 text-slate-950">
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-red-600 text-white">
                   ALÉA FLASH EN DIRECT
                 </span>
-                <span className="text-xs font-mono font-bold text-amber-300">
+                <span className="text-xs font-mono font-bold text-red-700">
                   +{activeHazard.points_bonus} PTS BONUS
                 </span>
               </div>
-              <h2 className="text-base font-black text-white mt-0.5">
+              <h2 className="text-base font-black text-slate-900 mt-0.5">
                 {activeHazard.title}
               </h2>
-              <p className="text-xs text-rose-200 leading-tight">
+              <p className="text-xs text-slate-700 leading-tight">
                 {activeHazard.message}
               </p>
-              <div className="mt-2 text-xs font-mono text-white bg-red-950/90 px-3 py-1 rounded-xl border border-red-500/40 inline-block">
-                ⚡ SCANNEZ : <strong className="text-amber-300">{activeHazard.expected_barcode}</strong>
+              <div className="mt-2 text-xs font-mono text-slate-900 bg-white px-3 py-1 rounded-xl border border-red-300 inline-block">
+                ⚡ SCANNEZ : <strong className="text-red-700">{activeHazard.expected_barcode}</strong>
               </div>
             </div>
           </div>
 
-          <div className="bg-black/60 px-4 py-2 rounded-xl border border-red-500/40 font-mono text-center shrink-0">
-            <span className="text-[10px] text-red-400 block font-bold">COMPTE À REBOURS</span>
-            <span className="text-2xl font-black text-amber-300">{hazardSecondsRemaining}s</span>
+          <div className="bg-white px-4 py-2 rounded-xl border border-red-400 font-mono text-center shrink-0 shadow-sm">
+            <span className="text-[10px] text-red-600 block font-bold">COMPTE À REBOURS</span>
+            <span className="text-2xl font-black text-red-600">{hazardSecondsRemaining}s</span>
           </div>
         </div>
       )}
@@ -338,78 +338,78 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
       {/* 4. MAIN ACTION CARD : CURRENT PICKING ORDER */}
       <main className="my-auto py-3 flex flex-col items-center justify-center max-w-2xl mx-auto w-full">
         {currentStep ? (
-          <div className="w-full bg-slate-900 rounded-3xl p-4 sm:p-7 border-2 border-indigo-500/40 shadow-2xl space-y-4">
+          <div className="w-full bg-white rounded-3xl p-4 sm:p-7 border border-slate-200 shadow-xl space-y-4">
             {/* Mission Header */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div>
-                <span className="text-[11px] font-mono font-bold text-sky-400 uppercase tracking-wider block">
+                <span className="text-[11px] font-mono font-bold text-blue-700 uppercase tracking-wider block">
                   {mission.code} • Mission {currentMissionIndex + 1}/{missions.length}
                 </span>
-                <h1 className="text-base sm:text-2xl font-black text-white tracking-tight">
+                <h1 className="text-base sm:text-2xl font-black text-slate-900 tracking-tight">
                   {mission.title}
                 </h1>
               </div>
               <div className="text-right">
-                <span className="text-[11px] font-mono text-slate-400 block">Étape</span>
-                <span className="text-base sm:text-lg font-black font-mono text-sky-400">
+                <span className="text-[11px] font-mono text-slate-500 block">Étape</span>
+                <span className="text-base sm:text-lg font-black font-mono text-blue-700">
                   {completedStepsCount + 1} / {totalStepsCount}
                 </span>
               </div>
             </div>
 
             {/* Instruction Prompt */}
-            <div className="bg-slate-950/80 p-3.5 sm:p-4 rounded-2xl border border-slate-800 space-y-1.5">
-              <span className="text-[11px] font-mono uppercase font-bold text-amber-400 flex items-center space-x-1">
+            <div className="bg-blue-50/90 p-3.5 sm:p-4 rounded-2xl border-2 border-blue-200 space-y-1.5 shadow-sm">
+              <span className="text-[11px] font-mono uppercase font-bold text-blue-800 flex items-center space-x-1">
                 <Zap className="w-3.5 h-3.5" />
                 <span>Consigne d'action immédiate :</span>
               </span>
-              <p className="text-sm sm:text-xl font-extrabold text-white leading-snug">
+              <p className="text-sm sm:text-xl font-extrabold text-slate-900 leading-snug">
                 {currentStep.instruction}
               </p>
             </div>
 
             {/* Big Physical Target Display */}
-            <div className="bg-gradient-to-br from-slate-950 to-slate-900 p-4 sm:p-5 rounded-2xl border-2 border-dashed border-sky-500/50 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <div className="bg-slate-50 p-4 sm:p-5 rounded-2xl border-2 border-dashed border-slate-300 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left shadow-sm">
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs uppercase font-mono text-slate-400 block font-bold">
+                  <span className="text-xs uppercase font-mono text-slate-500 block font-bold">
                     {currentStep.barcodeType === 'location' ? '📍 Emplacement Étagère :' : currentStep.barcodeType === 'dock' ? '🚚 Quai d\'Expédition :' : '📦 Pièce / Colis à scanner :'}
                   </span>
                   {requiredQty > 1 && (
-                    <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-xs font-black border border-amber-500/40">
+                    <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-mono text-xs font-black border border-amber-300">
                       Qté : {currentScannedQty}/{requiredQty} pcs
                     </span>
                   )}
                 </div>
-                <div className="text-base sm:text-lg font-black text-white flex items-center justify-center sm:justify-start space-x-2">
+                <div className="text-base sm:text-lg font-black text-slate-900 flex items-center justify-center sm:justify-start space-x-2">
                   <span>{displayTargetLabel}</span>
                 </div>
                 {matchedItem?.lrCode && (
-                  <span className="text-xs font-mono text-amber-400 font-bold block">
+                  <span className="text-xs font-mono text-blue-700 font-bold block">
                     Réf L/R : {matchedItem.lrCode}
                   </span>
                 )}
                 {currentStep.hint && (
-                  <p className="text-xs text-slate-400 italic pt-1">
+                  <p className="text-xs text-slate-600 italic pt-1">
                     💡 {currentStep.hint}
                   </p>
                 )}
               </div>
 
               {/* Expected Barcode High-Vis Badge */}
-              <div className="bg-slate-950 px-4 py-3 rounded-2xl border-2 border-amber-500/50 shadow-lg text-center shrink-0">
-                <span className="text-[10px] text-slate-400 font-mono block">Code-barres attendu</span>
-                <span className="text-base sm:text-xl font-black font-mono text-amber-300 tracking-wider">
+              <div className="bg-amber-50 px-4 py-3 rounded-2xl border-2 border-amber-400 shadow-sm text-center shrink-0">
+                <span className="text-[10px] text-amber-800 font-mono block font-bold">Code-barres attendu</span>
+                <span className="text-base sm:text-xl font-black font-mono text-amber-950 tracking-wider">
                   {currentStep.expectedBarcode}
                 </span>
               </div>
             </div>
 
             {/* DEDICATED VISIBLE WMS SCAN BOX FOR ZEBRA LASER & KEYSTROKES */}
-            <div className="bg-slate-950 p-3 sm:p-4 rounded-2xl border-2 border-indigo-500/60 shadow-xl space-y-2">
+            <div className="bg-slate-50 p-3.5 sm:p-4 rounded-2xl border-2 border-blue-600/70 shadow-md space-y-2">
               <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-slate-300 font-bold flex items-center gap-1.5">
-                  <ScanBarcode className="w-4 h-4 text-emerald-400 animate-pulse" />
+                <span className="text-slate-800 font-bold flex items-center gap-1.5">
+                  <ScanBarcode className="w-4 h-4 text-emerald-600 animate-pulse" />
                   <span>Zone de Scan Laser Zebra Active</span>
                 </span>
                 <span className="text-[10px] text-slate-500 hidden sm:inline">
@@ -431,11 +431,11 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
                     onChange={handleInputChange}
                     onKeyDown={handleInputKeyDown}
                     placeholder="Visez avec le laser Zebra..."
-                    className="zebra-barcode-catcher w-full bg-slate-900 border-2 border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm sm:text-base text-white font-mono font-bold tracking-wider placeholder:text-slate-500 focus:outline-none transition-all shadow-inner"
+                    className="zebra-barcode-catcher w-full bg-white border-2 border-slate-300 focus:border-blue-600 rounded-xl px-3.5 py-2.5 text-sm sm:text-base text-slate-900 font-mono font-bold tracking-wider placeholder:text-slate-400 focus:outline-none transition-all shadow-inner"
                     autoFocus
                   />
                   {scanInputValue && (
-                    <span className="absolute right-3 top-2.5 text-xs font-mono text-amber-400 animate-pulse">
+                    <span className="absolute right-3 top-2.5 text-xs font-mono text-amber-600 animate-pulse font-bold">
                       Lecture...
                     </span>
                   )}
@@ -448,7 +448,7 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
                       triggerScan(scanInputValue);
                     }
                   }}
-                  className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer shrink-0"
+                  className="px-4 py-2.5 bg-[#0c1e3a] hover:bg-[#16325c] text-white font-black text-xs rounded-xl shadow-md transition-all cursor-pointer shrink-0"
                 >
                   OK
                 </button>
@@ -465,10 +465,10 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
                     e.stopPropagation();
                     setIsCameraOpen(true);
                   }}
-                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition-all hover:scale-105 cursor-pointer"
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
                   title="Scanner avec l'appareil photo du téléphone/terminal"
                 >
-                  <Camera className="w-4 h-4 text-sky-200" />
+                  <Camera className="w-4 h-4 text-white" />
                   <span>Scanner Caméra</span>
                 </button>
 
@@ -480,9 +480,9 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
                       setAnomalyQty(Math.max(0, currentScannedQty));
                       setIsAnomalyModalOpen(true);
                     }}
-                    className="flex-1 sm:flex-none px-3 py-2.5 rounded-xl bg-amber-950/70 hover:bg-amber-900 border border-amber-500/50 text-amber-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    className="flex-1 sm:flex-none px-3 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
                   >
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
                     <span>Écart Stock ?</span>
                   </button>
                 )}
@@ -495,14 +495,14 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
                       e.stopPropagation();
                       triggerScan(currentStep.expectedBarcode);
                     }}
-                    className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-bold border border-slate-700 transition-colors cursor-pointer"
+                    className="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-mono font-bold border border-slate-300 transition-colors cursor-pointer shadow-sm"
                     title="Simule le scan si la douchette physique n'est pas connectée"
                   >
                     Flasher {requiredQty > 1 ? `(${currentScannedQty + 1}/${requiredQty})` : ''}
                   </button>
                 ) : (
-                  <div className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-mono text-emerald-400 flex items-center gap-1.5">
-                    <ScanBarcode className="w-3.5 h-3.5 text-emerald-400" />
+                  <div className="px-3 py-2 rounded-xl bg-slate-100 border border-slate-300 text-[11px] font-mono text-slate-700 flex items-center gap-1.5">
+                    <ScanBarcode className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Scan réel requis</span>
                   </div>
                 )}
@@ -511,20 +511,20 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
           </div>
         ) : (
           /* Mission Completed Card */
-          <div className="w-full bg-slate-900 rounded-3xl p-5 sm:p-8 border-2 border-emerald-500/80 text-center space-y-5 shadow-2xl animate-fade-in max-w-xl mx-auto">
+          <div className="w-full bg-white rounded-3xl p-5 sm:p-8 border-2 border-emerald-500 text-center space-y-5 shadow-xl animate-fade-in max-w-xl mx-auto text-slate-900">
             {/* Celebration Icon */}
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/30">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto shadow-md">
               <Sparkles className="w-9 h-9 sm:w-11 sm:h-11 animate-pulse" />
             </div>
 
             {/* Heading */}
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-400 block mb-1">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-700 block mb-1">
                 {currentMissionIndex + 1 < missions.length
                   ? `COMMANDE ${currentMissionIndex + 1}/${missions.length} EXPÉDIÉE !`
                   : 'CHALLENGE ACCOMPLI • TOUTES LES COMMANDES SONT TRAITÉES !'}
               </span>
-              <h2 className="text-xl sm:text-2xl font-black text-white">
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900">
                 {currentMissionIndex + 1 < missions.length
                   ? 'Super travail d\'équipe !'
                   : '🏆 PERFORMANCE EXCEPTIONNELLE DU BINÔME !'}
@@ -532,30 +532,30 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
             </div>
 
             {/* Score & Badges Dashboard */}
-            <div className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-around gap-2">
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 flex items-center justify-around gap-2">
               <div>
-                <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block">
+                <span className="text-[10px] font-mono uppercase text-slate-500 font-bold block">
                   Score Duo
                 </span>
-                <span className="text-2xl sm:text-3xl font-black font-mono text-emerald-400">
+                <span className="text-2xl sm:text-3xl font-black font-mono text-emerald-700">
                   {score} <span className="text-xs text-slate-400 font-normal">pts</span>
                 </span>
               </div>
-              <div className="h-8 w-px bg-slate-800" />
+              <div className="h-8 w-px bg-slate-200" />
               <div>
-                <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block">
+                <span className="text-[10px] font-mono uppercase text-slate-500 font-bold block">
                   Temps Restant
                 </span>
-                <span className="text-xl sm:text-2xl font-black font-mono text-amber-300">
+                <span className="text-xl sm:text-2xl font-black font-mono text-amber-700">
                   {formatTime(shiftSecondsRemaining)}
                 </span>
               </div>
-              <div className="h-8 w-px bg-slate-800" />
+              <div className="h-8 w-px bg-slate-200" />
               <div>
-                <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block">
+                <span className="text-[10px] font-mono uppercase text-slate-500 font-bold block">
                   Précision
                 </span>
-                <span className="text-xl sm:text-2xl font-black font-mono text-sky-400">
+                <span className="text-xl sm:text-2xl font-black font-mono text-blue-700">
                   100%
                 </span>
               </div>
@@ -572,12 +572,12 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
                       e.stopPropagation();
                       onNextMission?.();
                     }}
-                    className="w-full py-4 px-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-display font-black text-base sm:text-lg rounded-2xl shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    className="w-full py-4 px-6 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white font-display font-black text-base sm:text-lg rounded-2xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <span>PASSER À LA COMMANDE SUIVANTE ({currentMissionIndex + 2}/{missions.length})</span>
                     <ChevronRight className="w-5 h-5 stroke-[3]" />
                   </button>
-                  <p className="text-xs font-mono text-emerald-300/80 animate-pulse">
+                  <p className="text-xs font-mono text-emerald-800 animate-pulse">
                     ⚡ Passage automatique dans quelques instants, ou cliquez ci-dessus pour enchaîner immédiatement !
                   </p>
                 </div>
@@ -592,7 +592,7 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
                         e.stopPropagation();
                         onOpenDiplome();
                       }}
-                      className="w-full py-4 px-6 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-300 hover:from-amber-300 hover:to-yellow-200 text-slate-950 font-display font-black text-base sm:text-lg rounded-2xl shadow-xl shadow-amber-400/30 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      className="w-full py-4 px-6 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-display font-black text-base sm:text-lg rounded-2xl shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
                     >
                       <Award className="w-6 h-6 text-slate-950 fill-current" />
                       <span>DÉCOUVRIR NOTRE DIPLÔME D'HONNEUR 📜</span>
@@ -608,7 +608,7 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
                           e.stopPropagation();
                           onNextMission();
                         }}
-                        className="py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-mono font-bold text-xs sm:text-sm rounded-xl border border-indigo-400/40 flex items-center justify-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
+                        className="py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-mono font-bold text-xs sm:text-sm rounded-xl border border-blue-500 flex items-center justify-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
                       >
                         <Zap className="w-4 h-4 text-amber-300" />
                         <span>NOUVELLE VAGUE (+BONUS)</span>
@@ -623,9 +623,9 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
                           e.stopPropagation();
                           onRestartShift();
                         }}
-                        className="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono font-bold text-xs sm:text-sm rounded-xl border border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                        className="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono font-bold text-xs sm:text-sm rounded-xl border border-slate-300 flex items-center justify-center gap-1.5 cursor-pointer transition-all"
                       >
-                        <RotateCcw className="w-4 h-4 text-slate-400" />
+                        <RotateCcw className="w-4 h-4 text-slate-500" />
                         <span>Nouveau Binôme (Remise à zéro)</span>
                       </button>
                     )}
@@ -640,9 +640,9 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
       {/* 5. FOOTER FEEDBACK (Last scan log) */}
       <footer className="mt-auto pt-2 shrink-0 text-center font-mono text-xs text-slate-500">
         {lastScannedCode ? (
-          <div className="inline-flex items-center gap-2 bg-slate-900 px-3 py-1 rounded-xl border border-slate-800">
-            <span className="text-slate-400">Dernier code flashé :</span>
-            <strong className="text-emerald-400 font-bold">{lastScannedCode}</strong>
+          <div className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-xl border border-slate-200 shadow-sm">
+            <span className="text-slate-600">Dernier code flashé :</span>
+            <strong className="text-emerald-700 font-bold">{lastScannedCode}</strong>
           </div>
         ) : (
           <span>Visez les étiquettes avec le laser de la douchette ou le scanner caméra.</span>
@@ -659,24 +659,24 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
 
       {/* ANOMALIE DE STOCK MODAL (ZEBRA COMPACT) */}
       {isAnomalyModalOpen && currentStep && (
-        <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border-2 border-amber-500/70 rounded-3xl p-5 max-w-sm w-full shadow-2xl space-y-4">
-            <div className="flex items-center space-x-2.5 text-amber-400">
-              <AlertTriangle className="w-5 h-5 text-amber-400 animate-pulse shrink-0" />
+        <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border-2 border-amber-500 rounded-3xl p-5 max-w-sm w-full shadow-2xl space-y-4 text-slate-900">
+            <div className="flex items-center space-x-2.5 text-amber-700">
+              <AlertTriangle className="w-5 h-5 text-amber-600 animate-pulse shrink-0" />
               <div>
-                <span className="text-[10px] font-mono font-bold uppercase text-amber-400 block">
+                <span className="text-[10px] font-mono font-bold uppercase text-amber-700 block">
                   Écart de Stock Réel
                 </span>
-                <h3 className="text-base font-black text-white">{displayTargetLabel}</h3>
+                <h3 className="text-base font-black text-slate-900">{displayTargetLabel}</h3>
               </div>
             </div>
 
-            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs space-y-1">
-              <div className="text-slate-300">
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs space-y-1">
+              <div className="text-slate-700">
                 <span className="text-slate-500 font-mono">Attendu commande : </span>
-                <strong className="text-amber-400">{requiredQty} pcs</strong>
+                <strong className="text-amber-800">{requiredQty} pcs</strong>
               </div>
-              <div className="text-white font-bold pt-1">
+              <div className="text-slate-900 font-bold pt-1">
                 Combien de pièces sont réellement présentes en rayon ?
               </div>
             </div>
@@ -689,8 +689,8 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
                   onClick={() => setAnomalyQty(qty)}
                   className={`py-2.5 rounded-xl font-mono font-black text-xs border transition-all ${
                     anomalyQty === qty 
-                      ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/30'
-                      : 'bg-slate-800 text-slate-300 border-slate-700'
+                      ? 'bg-amber-500 text-white border-amber-600 shadow-md shadow-amber-500/30'
+                      : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
                   }`}
                 >
                   {qty === 0 ? '0 (Rupture)' : `${qty} pc`}
@@ -698,15 +698,15 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
               ))}
             </div>
 
-            <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-[10px] text-amber-200">
+            <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[10px] text-amber-900">
               🛡️ <strong>Bonus Vigilance : +400 pts</strong> (Ajuste le stock WMS sans bloquer la livraison)
             </div>
 
-            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-800">
+            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-200">
               <button
                 type="button"
                 onClick={() => setIsAnomalyModalOpen(false)}
-                className="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold"
+                className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
               >
                 Annuler
               </button>
@@ -718,7 +718,7 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
                   }
                   setIsAnomalyModalOpen(false);
                 }}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs shadow-md shadow-amber-500/30 flex items-center space-x-1"
+                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black text-xs shadow-md shadow-amber-600/20 flex items-center space-x-1 transition-colors"
               >
                 <Check className="w-3.5 h-3.5" />
                 <span>Valider (+400 pts)</span>

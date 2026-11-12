@@ -1071,18 +1071,18 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
   };
 
   return (
-    <div className="min-h-[calc(100vh-65px)] p-3 sm:p-5 flex flex-col gap-4 max-w-7xl mx-auto w-full select-none">
+    <div className="min-h-[calc(100vh-65px)] p-3 sm:p-5 flex flex-col gap-4 max-w-7xl mx-auto w-full select-none text-slate-900">
       {/* Top Banner */}
-      <div className="bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center space-x-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700 shrink-0">
             <Settings className="w-6 h-6 animate-spin-slow" />
           </div>
           <div>
-            <h2 className="text-xl sm:text-2xl font-black text-white flex items-center space-x-2">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center space-x-2">
               <span>AXE DE PARAMÉTRAGE INTÉGRAL (CMS DE JEU)</span>
             </h2>
-            <p className="text-xs text-slate-300">
+            <p className="text-xs text-slate-600">
               Construisez vos scénarios, missions, codes-barres et règles sans aucune contrainte de code en dur.
             </p>
           </div>
@@ -1091,7 +1091,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         <div className="flex items-center space-x-2 shrink-0">
           <button
             onClick={handleSaveAll}
-            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs flex items-center space-x-2 shadow-lg shadow-emerald-500/30 transition-all cursor-pointer"
+            className="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center space-x-2 shadow-md transition-all cursor-pointer"
           >
             <Save className="w-4 h-4" />
             <span>Enregistrer & Synchroniser Tout</span>
@@ -1100,17 +1100,17 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
       </div>
 
       {/* MATCH & ZEBRA QR DISPATCHER */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950/60 to-slate-900 rounded-3xl p-5 sm:p-6 border-2 border-indigo-500/40 shadow-2xl space-y-4">
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-md space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-600/30 border border-indigo-400/40 flex items-center justify-center text-indigo-400">
-              <Swords className="w-5 h-5 text-indigo-300 animate-bounce" />
+            <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
+              <Swords className="w-5 h-5 text-blue-600 animate-bounce" />
             </div>
             <div>
-              <h3 className="text-base font-black text-white flex items-center space-x-2">
+              <h3 className="text-base font-black text-slate-900 flex items-center space-x-2">
                 <span>RÉGIE MATCH : DÉPART DUEL & GÉNÉRATEUR QR CODES ZEBRA</span>
               </h3>
-              <p className="text-xs text-slate-300">
+              <p className="text-xs text-slate-600">
                 Saisissez les prénoms des joueurs, validez, et faites scanner les QR Codes générés par chaque terminal Zebra.
               </p>
             </div>
@@ -1119,7 +1119,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
           <div className="flex items-center space-x-2 shrink-0">
             <button
               onClick={() => window.open(`${baseUrl}/#tv`, '_blank')}
-              className="px-4 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-sky-400 border border-sky-500/40 text-xs font-mono font-bold flex items-center space-x-1.5 transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-blue-700 border border-blue-300 text-xs font-mono font-bold flex items-center space-x-1.5 transition-colors cursor-pointer shadow-sm"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               <span>Ouvrir Arène TV 55"</span>
@@ -1265,11 +1265,11 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
       </div>
 
       {/* Navigation Tabs (Fully Responsive) */}
-      <div className="flex space-x-1.5 bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800 overflow-x-auto scrollbar-none shrink-0">
+      <div className="flex space-x-1.5 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm overflow-x-auto scrollbar-none shrink-0">
         <button
           onClick={() => setActiveTab('branding')}
           className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'branding' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+            activeTab === 'branding' ? 'bg-[#0c1e3a] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Globe className="w-3.5 h-3.5" />
@@ -1279,7 +1279,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         <button
           onClick={() => setActiveTab('missions')}
           className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'missions' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+            activeTab === 'missions' ? 'bg-[#0c1e3a] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
@@ -1289,7 +1289,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         <button
           onClick={() => setActiveTab('inventory')}
           className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'inventory' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+            activeTab === 'inventory' ? 'bg-[#0c1e3a] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Boxes className="w-3.5 h-3.5" />
@@ -1299,17 +1299,17 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         <button
           onClick={() => setActiveTab('locations')}
           className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'locations' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            activeTab === 'locations' ? 'bg-[#0c1e3a] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
-          <MapPin className="w-3.5 h-3.5 text-amber-400" />
+          <MapPin className="w-3.5 h-3.5 text-amber-500" />
           <span>4. Emplacements & Entrepôt ({localLocations.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('stations')}
           className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'stations' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+            activeTab === 'stations' ? 'bg-[#0c1e3a] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Monitor className="w-3.5 h-3.5" />
@@ -1319,7 +1319,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         <button
           onClick={() => setActiveTab('rules')}
           className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'rules' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+            activeTab === 'rules' ? 'bg-[#0c1e3a] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Award className="w-3.5 h-3.5" />
@@ -1329,7 +1329,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         <button
           onClick={() => setActiveTab('hazards')}
           className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'hazards' ? 'bg-amber-500 text-slate-950 font-black' : 'text-amber-400 hover:text-white'
+            activeTab === 'hazards' ? 'bg-amber-500 text-slate-950 font-black shadow-sm' : 'text-amber-700 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
           <Zap className="w-3.5 h-3.5" />
@@ -1339,7 +1339,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         <button
           onClick={() => setActiveTab('database')}
           className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-            activeTab === 'database' ? 'bg-rose-900/60 text-rose-300' : 'text-slate-400 hover:text-rose-300'
+            activeTab === 'database' ? 'bg-red-600 text-white shadow-sm' : 'text-red-700 hover:text-red-900 hover:bg-slate-100'
           }`}
         >
           <AlertTriangle className="w-3.5 h-3.5" />
