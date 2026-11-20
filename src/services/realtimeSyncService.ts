@@ -2,6 +2,7 @@ import { AppConfig, InventoryItem, Mission, DuoStation } from '../types';
 
 export type RealtimeEventType = 
   | 'CONFIG_UPDATED'
+  | 'LOCATIONS_UPDATED'
   | 'INVENTORY_UPDATED'
   | 'MISSIONS_UPDATED'
   | 'STATIONS_UPDATED'

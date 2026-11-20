@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { InventoryItem, WarehouseLocation } from '../types';
-import { INITIAL_LOCATIONS, INITIAL_INVENTORY } from '../data/initialData';
+import { resetInventoryToNominal } from '../services/supabaseClient';
 import { 
   Search, 
   MapPin, 
@@ -28,7 +28,7 @@ interface StockERPViewProps {
 
 export const StockERPView: React.FC<StockERPViewProps> = ({ 
   inventory, 
-  locations = INITIAL_LOCATIONS,
+  locations = [],
   onUpdateQuantity,
   onUpdateInventory,
   onNavigateToAdminLocations
@@ -91,11 +91,11 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
   }, [locations, localItems]);
 
   const categories = useMemo(() => {
-    const set = new Set<string>(['Vide & Cryo', 'Microélectronique', 'Consommables']);
+    const set = new Set<string>();
     localItems.forEach((it) => {
       if (it.category) set.add(it.category);
     });
-    return ['all', ...Array.from(set)];
+    return ['all', ...Array.from(set).sort()];
   }, [localItems]);
 
   const filtered = useMemo(() => {
@@ -125,8 +125,9 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
       name: 'NOUVEL ARTICLE INDUSTRIEL',
       crLabel: 'NOUVEL ARTICLE INDUSTRIEL',
       category: selectedCategory !== 'all' ? selectedCategory : 'Consommables',
-      location: locations[0]?.barcode || 'LOC-B01-T03',
+      location: locations[0]?.barcode || '',
       quantity: 10,
+      nominalQuantity: 10,
       unit: 'pcs',
       critical: false,
       batch: `LOT-${new Date().getFullYear()}`,
@@ -176,17 +177,22 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
     }
   };
 
-  // Enregistrer toutes les modifications
+  // Enregistrer toutes les modifications (met aussi à jour les quantités nominales de référence)
   const handleSaveAll = async () => {
     setIsSaving(true);
     try {
+      const normalized = localItems.map((it) => ({
+        ...it,
+        nominalQuantity: it.quantity
+      }));
       if (onUpdateInventory) {
-        await onUpdateInventory(localItems);
+        await onUpdateInventory(normalized);
       }
+      setLocalItems(normalized);
       setHasChanges(false);
       showToast({
         title: 'Stock ERP Enregistré',
-        message: `${localItems.length} références synchronisées en direct sur tous les postes`,
+        message: `${normalized.length} références synchronisées en direct sur Supabase`,
         type: 'success'
       });
     } catch (err) {
@@ -208,19 +214,24 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
     }
   };
 
-  // Réinitialisation du stock physique nominal après qu'un ou plusieurs duos ont manipulé les bacs
-  const handleResetPhysicalStockNominal = () => {
-    if (window.confirm("🔄 Remise à Niveau Physique du Stock (Fin de Shift) :\n\nRéinitialiser l'ensemble des 20 références (Silicium, Wafers, Salle Blanche & Pièces Détachées) à leurs quantités nominales et bacs d'origine ?")) {
-      setLocalItems(INITIAL_INVENTORY);
-      setHasChanges(true);
-      if (onUpdateInventory) {
-        onUpdateInventory(INITIAL_INVENTORY);
+  // Réinitialisation du stock physique nominal depuis Supabase (quantity = nominal_quantity)
+  const handleResetPhysicalStockNominal = async () => {
+    if (window.confirm(`🔄 Remise à Niveau Physique du Stock (Fin de Shift) :\n\nRéinitialiser les quantités des ${localItems.length} références en base Supabase à leur stock nominal de départ ?`)) {
+      const ok = await resetInventoryToNominal();
+      if (ok) {
+        setHasChanges(false);
+        showToast({
+          title: 'Stock Physique Réinitialisé',
+          message: 'Toutes les références en base sont remises à leur stock nominal !',
+          type: 'success'
+        });
+      } else {
+        showToast({
+          title: 'Erreur Réinitialisation',
+          message: 'Impossible de contacter Supabase pour remettre les quantités à niveau',
+          type: 'warning'
+        });
       }
-      showToast({
-        title: 'Stock Physique Réinitialisé',
-        message: 'Les 20 références sont remises à niveau pour les prochains duos !',
-        type: 'success'
-      });
     }
   };
 
@@ -469,6 +480,11 @@ export const StockERPView: React.FC<StockERPViewProps> = ({
                           title="Unité de mesure (pcs, boîtes, etc.)"
                         />
                       </div>
+                      {(item.onTableQty || 0) > 0 && (
+                        <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-mono text-[10px] font-bold">
+                          <span>📦 Sur Table : {item.onTableQty}</span>
+                        </div>
+                      )}
                     </td>
 
                     {/* 5. Emplacement Physique (Avec Datalist & Choix Rapide) */}

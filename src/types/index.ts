@@ -13,19 +13,21 @@ export interface DuoStation {
   score: number;
   combo: number;
   status: 'idle' | 'in_progress' | 'completed';
-  last_scan_code?: string;
-  last_scan_status?: string;
+  last_scan_code?: string | null;
+  last_scan_status?: string | null;
   updated_at?: string;
 }
 
 export interface WarehouseLocation {
   id: string;
-  barcode: string; // e.g. "LOC-B01-T03" ou "ZONE_POMPE_GRILLE_41"
+  barcode: string; // e.g. "BAT 41 - MB - S02 / D"
   label: string; // e.g. "Armoire B01 (Allée B - Tiroir T03)"
   lrCode?: string; // e.g. "LOC_B01_T03"
   crLabel?: string; // e.g. "ARMOIRE ALLEE B TIROIR T03"
-  zone?: string; // e.g. "Magasin Central", "Quai Expédition", "Poste 1", "Poste 2"
+  zone?: string; // e.g. "Magasin Central", "Quai Expédition", "Bâtiment 41"
   description?: string;
+  aliases?: string[];
+  sortOrder?: number;
 }
 
 export interface AppConfig {
@@ -40,10 +42,14 @@ export interface AppConfig {
   diplomaSignatory: string;
   availableStations: { id: string; name: string }[];
   customLogoUrl?: string;
+  goldenTicketBarcode?: string;
+  deliveryTableBarcode?: string;
+  collectTableBarcode?: string;
+  autoLoopEnabled?: boolean;
   autoHazardsEnabled?: boolean;
   hazardIntervalSeconds?: number;
   clientsCatalog?: string[];
-  locations?: WarehouseLocation[]; // Emplacements personnalisés configurables par l'utilisateur
+  locations?: WarehouseLocation[]; // Conservé pour rétro-compatibilité UI (source de vérité : table wms_locations)
   strictScanOnly?: boolean; // Mode Jour J / Compétition Réelle : seuls les vrais scans (laser Zebra ou caméra) sont acceptés, aucun avancement virtuel
 }
 
@@ -74,20 +80,24 @@ export interface LiveHazard {
 
 export interface InventoryItem {
   id: string;
-  sku: string; // e.g. "REF191000007490" ou "ART-KF40-INOX"
-  name: string; // Désignation (e.g. "JOINT TORIQUE KALREZ (TUBE)")
+  sku: string;
+  name: string;
   category: string;
-  location: string; // e.g. "ZONE_POMPE_GRILLE_41" ou "LOC-B01-T03"
+  itemType?: 'article' | 'package' | 'seal' | 'dock' | 'golden_ticket';
+  location: string;
   quantity: number;
+  nominalQuantity?: number;
+  onTableQty?: number;
   unit: string;
   critical: boolean;
   batch: string;
   description: string;
-  lrCode?: string; // Réf article (e.g. "JNT_A001")
-  crLabel?: string; // Désignation complète (e.g. "JOINT TORIQUE KALREZ (TUBE)")
-  gestionnaire?: string; // Gestionnaire de stock (e.g. "GT Logistics", "CEA LETI")
-  machinePdt?: string; // Machine / Poste de travail (e.g. "Bâti Dépôt PVD", "Épitaxie MBE")
-  refEquipementier?: string; // Réf équipementier / Fournisseur (e.g. "KLZ-4079-USA", "EDW-9941")
+  lrCode?: string;
+  crLabel?: string;
+  gestionnaire?: string;
+  machinePdt?: string;
+  refEquipementier?: string;
+  aliases?: string[];
 }
 
 export interface MissionStep {
@@ -108,12 +118,15 @@ export interface Mission {
   id: string;
   title: string;
   code: string;
-  client: string; // e.g. "CEA LETI - Bâtiment 17 (Nano-Caractérisation)"
+  client: string;
   priority: 'URGENCE CRITIQUE' | 'STANDARD' | 'EXPÉDITION INTERNATIONALE';
   description: string;
   timeLimitSeconds: number;
   basePoints: number;
   steps: MissionStep[];
+  stockDirection?: 'out' | 'in' | 'none'; // 'out' = Livraison (-1 bac/+1 table), 'in' = Collecte (+1 bac/-1 table), 'none' = Manutention
+  isActive?: boolean;
+  sortOrder?: number;
 }
 
 export interface ScanLog {

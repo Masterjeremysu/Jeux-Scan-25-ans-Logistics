@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { InventoryItem, Mission, Distraction, WarehouseLocation } from '../types';
-import { BARCODE_CATALOG, BarcodeItemCatalog, INITIAL_LOCATIONS } from '../data/initialData';
 import { Printer, Filter, X, Tag, Sliders, Layers, FileText, CheckCircle2, Sparkles } from 'lucide-react';
 import { GtStockLabel } from './GtStockLabel';
 
@@ -25,6 +24,7 @@ interface PlancheEtiquettesViewProps {
   locations?: WarehouseLocation[];
   missions?: Mission[];
   distractions?: Distraction[];
+  goldenTicketBarcode?: string;
   onOpenGoldenTicket?: () => void;
 }
 
@@ -37,10 +37,11 @@ export interface BarcodeItem {
 }
 
 export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
-  inventory,
-  locations = INITIAL_LOCATIONS,
-  missions,
-  distractions,
+  inventory = [],
+  locations = [],
+  missions = [],
+  distractions = [],
+  goldenTicketBarcode = 'ART-GT25-VIP',
   onOpenGoldenTicket
 }) => {
   const [filterType, setFilterType] = useState<string>('all');
@@ -64,78 +65,66 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
     };
   }, []);
 
-  // Dynamically compute all barcodes needed from inventory, locations, missions and distractions
+  // Dynamically compute all barcodes 100% from Supabase (locations, inventory, missions, distractions)
   const allItems = useMemo<BarcodeItem[]>(() => {
     const map = new Map<string, BarcodeItem>();
 
-    // 0. Emplacements configurés par l'utilisateur en priorité
+    // 1. Emplacements depuis la table wms_locations
     if (locations) {
       locations.forEach((loc) => {
+        if (!loc.barcode) return;
         map.set(loc.barcode, {
           code: loc.barcode,
           label: loc.label,
           type: 'location',
-          lrCode: loc.lrCode || loc.barcode.replace('LOC-', 'LOC_').replace(/-/g, '_'),
+          lrCode: loc.lrCode || loc.barcode.replace('LOC-', 'LOC_').replace(/[^A-Za-z0-9_]/g, '_'),
           crLabel: loc.crLabel || loc.label.toUpperCase()
         });
       });
     }
 
-    // 1. Base catalog first (with official GT reference lines L/R & C/R)
-    BARCODE_CATALOG.forEach((bc: BarcodeItemCatalog) => {
-      if (!map.has(bc.code)) {
-        map.set(bc.code, {
-          code: bc.code,
-          label: bc.label,
-          type: bc.type,
-          lrCode: bc.lrCode || bc.code.replace(/^(ART|LOC)-/, '').replace(/-/g, '_'),
-          crLabel: bc.crLabel || bc.label.toUpperCase()
-        });
-      }
-    });
-
-    // 2. Locations and articles from active inventory
+    // 2. Articles & emplacements actifs depuis la table wms_inventory
     if (inventory) {
       inventory.forEach((item) => {
         if (item.location && !map.has(item.location)) {
           map.set(item.location, {
             code: item.location,
-            label: `Emplacement ${item.location} (${item.name})`,
+            label: `Emplacement ${item.location}`,
             type: 'location',
-            lrCode: item.location.replace('LOC-', 'LOC_').replace(/-/g, '_'),
-            crLabel: `EMPLACEMENT ${item.name.toUpperCase()}`
+            lrCode: item.location.replace('LOC-', 'LOC_').replace(/[^A-Za-z0-9_]/g, '_'),
+            crLabel: item.location.toUpperCase()
           });
         }
         if (item.sku && !map.has(item.sku)) {
           map.set(item.sku, {
             code: item.sku,
             label: `${item.name} [${item.sku}]`,
-            type: 'article',
-            lrCode: item.lrCode || item.sku.replace('ART-', 'REF_').replace(/-/g, '_'),
+            type: item.itemType || 'article',
+            lrCode: item.lrCode || item.sku.replace('ART-', 'REF_').replace(/[^A-Za-z0-9_]/g, '_'),
             crLabel: item.crLabel || item.name.toUpperCase()
           });
         }
       });
     }
 
-    // 3. Mission steps
+    // 3. Étapes de missions depuis la table wms_missions
     if (missions) {
       missions.forEach((m) => {
         m.steps.forEach((s) => {
-          if (!map.has(s.expectedBarcode)) {
+          if (s.expectedBarcode && !map.has(s.expectedBarcode)) {
             map.set(s.expectedBarcode, {
               code: s.expectedBarcode,
               label: s.targetLabel || s.expectedBarcode,
               type: s.barcodeType || 'article',
-              lrCode: s.lrCode || s.expectedBarcode.replace(/^(ART|LOC)-/, '').replace(/-/g, '_'),
-              crLabel: s.crLabel || s.targetLabel.toUpperCase()
+              lrCode: s.lrCode || s.expectedBarcode.replace(/^(ART|LOC)-/, '').replace(/[^A-Za-z0-9_]/g, '_'),
+              crLabel: s.crLabel || (s.targetLabel || s.expectedBarcode).toUpperCase()
             });
           }
         });
       });
     }
 
-    // 4. Emergency & Distraction barcodes (e.g. Aléas Stand)
+    // 4. Aléas & distractions depuis la table distractions
     if (distractions && distractions.length > 0) {
       distractions.forEach((d) => {
         if (d.expected_barcode && !map.has(d.expected_barcode)) {
@@ -150,8 +139,19 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
       });
     }
 
+    // 5. Ticket d'Or configurable depuis app_config.golden_ticket_barcode
+    if (goldenTicketBarcode && !map.has(goldenTicketBarcode)) {
+      map.set(goldenTicketBarcode, {
+        code: goldenTicketBarcode,
+        label: '🎟️ TICKET D\'OR • Archive Collector 25 Ans',
+        type: 'golden_ticket',
+        lrCode: 'GT_25ANS',
+        crLabel: 'TICKET D OR 25 ANS'
+      });
+    }
+
     return Array.from(map.values());
-  }, [inventory, missions, distractions]);
+  }, [locations, inventory, missions, distractions, goldenTicketBarcode]);
 
   const items = useMemo(() => {
     if (filterType === 'all') return allItems;

@@ -79,13 +79,13 @@ class BarcodeListener {
     // Ignore function keys, escape
     if (e.key === 'Escape') return;
 
-    // Do not interfere if user is typing in a standard visible form input
+    // Do not interfere if user is typing in ANY input/textarea (including .zebra-barcode-catcher,
+    // which has its own dedicated onChange/onKeyDown handler in ZebraPlayView — prevents double-scan!)
     const target = e.target as HTMLElement;
-    const isStandardTextInput = target && 
-      (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') && 
-      !target.classList.contains('zebra-barcode-catcher');
+    const isAnyTextInput = target &&
+      (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
 
-    if (isStandardTextInput) return;
+    if (isAnyTextInput) return;
 
     const currentTime = Date.now();
     const timeDiff = currentTime - this.lastKeyTime;

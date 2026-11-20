@@ -20,7 +20,6 @@ import {
   FileText
 } from 'lucide-react';
 import { AppConfig, DuoStation, Mission } from '../types';
-import { MISSIONS } from '../data/missions';
 import { GameLogo } from './GameLogo';
 import { soundService } from '../services/soundService';
 
@@ -50,7 +49,7 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
   onUpdateLogo
 }) => {
   const [gameMode, setGameMode] = useState<'duel' | 'solo'>('duel');
-  const missionsPool = (missions && missions.length > 0) ? missions : MISSIONS;
+  const missionsPool: Mission[] = missions || [];
   
   // Duo 1 state
   const [d1Cea, setD1Cea] = useState(() => localStorage.getItem('gt_d1_collab') || 'Jeremy (GT)');

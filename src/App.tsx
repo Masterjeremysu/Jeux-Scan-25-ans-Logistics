@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ViewMode, InventoryItem, Mission, ScanLog, OperatorProfile, AppConfig, DuoStation, Distraction, LiveHazard } from './types';
-import { INITIAL_INVENTORY, INITIAL_LOCATIONS } from './data/initialData';
-import { MISSIONS } from './data/missions';
+import { ViewMode, InventoryItem, Mission, ScanLog, OperatorProfile, AppConfig, DuoStation, Distraction, LiveHazard, WarehouseLocation } from './types';
 import { Header } from './components/Header';
 import { PosteOperateurView } from './components/PosteOperateurView';
 import { StockERPView } from './components/StockERPView';
@@ -23,10 +21,24 @@ import {
   loadAppConfig, 
   saveAppConfig,
   subscribeToAppConfig,
+  fetchLocations,
+  syncLocations,
+  subscribeToLocations,
+  fetchInventory,
+  syncInventory,
+  adjustInventoryQuantity,
+  moveStockLoop,
+  setInventoryItemQuantity,
+  subscribeToInventory,
+  fetchMissions,
+  syncMissions,
+  subscribeToMissions,
   getStationsLive,
   updateStationLive,
   subscribeToStationsLive,
   fetchDistractions,
+  subscribeToDistractions,
+  fetchActiveHazardForStation,
   triggerLiveHazard,
   resolveLiveHazard,
   expireLiveHazard,
@@ -37,6 +49,7 @@ let logCounter = 0;
 const generateUniqueLogId = () => `log-${Date.now()}-${++logCounter}-${Math.random().toString(36).slice(2, 7)}`;
 
 const getStationMissions = (baseMissions: Mission[], stId: string, preferredMissionIndex?: number): Mission[] => {
+  if (!baseMissions || baseMissions.length === 0) return [];
   if (typeof preferredMissionIndex === 'number' && preferredMissionIndex >= 0 && preferredMissionIndex < baseMissions.length) {
     const chosen = baseMissions[preferredMissionIndex];
     return [chosen, ...baseMissions.filter((m) => m.id !== chosen.id)];
@@ -48,61 +61,42 @@ const getStationMissions = (baseMissions: Mission[], stId: string, preferredMiss
   return baseMissions;
 };
 
-// Flexible barcode comparator supporting aliases, L/R codes, scanner prefixes and warehouse variations
-const isBarcodeMatching = (scanned: string, expected: string, lrCode?: string): boolean => {
-  const cleanS = scanned.replace(/^\][a-zA-Z0-9]{2}/, '').replace(/[\r\n\t]/g, '').trim().toUpperCase();
-  const cleanE = expected.replace(/^\][a-zA-Z0-9]{2}/, '').replace(/[\r\n\t]/g, '').trim().toUpperCase();
+// Clean, 100% DB-driven barcode comparator (supports scanner prefixes, L/R codes, and DB aliases)
+const normalizeBarcode = (raw: string): string =>
+  raw.replace(/^\][a-zA-Z0-9]{2}/, '').replace(/[\r\n\t]/g, '').trim().toUpperCase();
+
+const stripBarcode = (raw: string): string =>
+  normalizeBarcode(raw).replace(/[^A-Z0-9]/g, '');
+
+const isBarcodeMatching = (
+  scanned: string,
+  expected: string,
+  lrCode?: string,
+  aliases?: string[]
+): boolean => {
+  const cleanS = normalizeBarcode(scanned);
+  const cleanE = normalizeBarcode(expected);
+  if (!cleanS || !cleanE) return false;
   if (cleanS === cleanE) return true;
 
-  if (lrCode && cleanS === lrCode.trim().toUpperCase()) return true;
+  if (lrCode && cleanS === normalizeBarcode(lrCode)) return true;
 
-  const strippedS = cleanS.replace(/[^A-Z0-9]/g, '');
-  const strippedE = cleanE.replace(/[^A-Z0-9]/g, '');
-  const strippedLr = lrCode ? lrCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
+  const strippedS = stripBarcode(cleanS);
+  const strippedE = stripBarcode(cleanE);
+  if (strippedS && strippedS === strippedE) return true;
 
-  if (strippedS === strippedE) return true;
-  if (strippedLr && strippedS === strippedLr) return true;
-
-  // Interopérabilité des étagères de départ selon le poste (Poste 1 sur Étagère 1, Poste 2 sur Étagère 2)
-  if ((cleanE.includes('ETA1') || cleanE.includes('ETA2') || cleanE.includes('ETA_1') || cleanE.includes('ETA_2')) &&
-      (cleanS.includes('ETA1') || cleanS.includes('ETA2') || cleanS.includes('ETA_1') || cleanS.includes('ETA_2') || cleanS.includes('ETAGERE'))) {
-    return true;
+  if (lrCode) {
+    const strippedLr = stripBarcode(lrCode);
+    if (strippedLr && strippedS === strippedLr) return true;
   }
 
-  // Aliases d'emplacements et quais
-  if (cleanE.includes('ETAGERE-LIVRAISON') && (cleanS.includes('LIVRAISON') || cleanS.includes('ETA_LIVR') || cleanS.includes('ETALIVR') || cleanS.includes('LIVR'))) return true;
-  if (cleanE.includes('ETAGERE-COLLECTE') && (cleanS.includes('COLLECTE') || cleanS.includes('ETA_COLLECT') || cleanS.includes('COLLECT'))) return true;
-  if (cleanE.includes('RECEPTION') && (cleanS.includes('RECEPTION') || cleanS.includes('REC_CENT') || cleanS.includes('CENTRALE') || cleanS.includes('DEPART'))) return true;
-  if (cleanE.includes('TRANSPORT') && (cleanS.includes('TRANSPORT') || cleanS.includes('DOC_TRP') || cleanS.includes('TRP') || cleanS.includes('BORDEREAU'))) return true;
-  if (cleanE.includes('B01') && (cleanS.includes('B01_T03') || cleanS.includes('B01-T03') || cleanS.includes('B01_T04') || cleanS.includes('B01-T04') || cleanS.includes('ARMOIRE_B'))) return true;
-  if (cleanE.includes('SB-C01') && (cleanS.includes('SB-C01') || cleanS.includes('SBC1') || cleanS.includes('SALLE_BLANCHE') || cleanS.includes('CASIER'))) return true;
-  if (cleanE.includes('PACK-ZONE') && (cleanS.includes('PACK') || cleanS.includes('EMBALLAGE') || cleanS.includes('CONDITIONNEMENT'))) return true;
-  if (cleanE.includes('DOCK-EXPED') && (cleanS.includes('DOCK') || cleanS.includes('EXPED') || cleanS.includes('QAI_EXP') || cleanS.includes('QUAI'))) return true;
-
-  // Aliases d'articles et pièces (Famille Silicium & Salle Blanche)
-  if (cleanE.includes('WAFER-300') && (cleanS.includes('WAFER-300') || cleanS.includes('WFR_S300') || cleanS.includes('300MM') || cleanS.includes('FOSB'))) return true;
-  if (cleanE.includes('WAFER-200') && (cleanS.includes('WAFER-200') || cleanS.includes('WFR_P200') || cleanS.includes('200MM'))) return true;
-  if (cleanE.includes('CASSETTE-FOUP') && (cleanS.includes('FOUP') || cleanS.includes('FOU_300E') || cleanS.includes('ENTEGRIS'))) return true;
-  if (cleanE.includes('PINCE-TEFLON') && (cleanS.includes('PINCE') || cleanS.includes('TEFLON') || cleanS.includes('PNC_TEFL') || cleanS.includes('PTFE'))) return true;
-  if (cleanE.includes('CARRIER-QUARTZ') && (cleanS.includes('QUARTZ') || cleanS.includes('CARRIER') || cleanS.includes('NAC_QTZ') || cleanS.includes('NACELLE'))) return true;
-  if (cleanE.includes('TARGET-TITANE') && (cleanS.includes('TARGET') || cleanS.includes('TITANE') || cleanS.includes('CIB_TI') || cleanS.includes('PVD'))) return true;
-  if (cleanE.includes('RESINE') && (cleanS.includes('RESINE') || cleanS.includes('PHOTORESIST') || cleanS.includes('RES_ILIN') || cleanS.includes('ILINE'))) return true;
-  if (cleanE.includes('GEL-PACK') && (cleanS.includes('GEL') || cleanS.includes('MEMS') || cleanS.includes('GEL_PAKM') || cleanS.includes('GELPAK'))) return true;
-  if (cleanE.includes('SACHET') && (cleanS.includes('SACHET') || cleanS.includes('ESD') || cleanS.includes('SAC_ESD'))) return true;
-  if (cleanE.includes('BOITE-PETRI') && (cleanS.includes('PETRI') || cleanS.includes('BTE_PETR') || cleanS.includes('BOITE'))) return true;
-
-  // Aliases d'articles et pièces (Famille Pièces Détachées, Vide & Cryo)
-  if (cleanE.includes('KF40') && (cleanS.includes('KF40') || cleanS.includes('BRD_KF40') || cleanS.includes('BRIDE'))) return true;
-  if (cleanE.includes('7490') && (cleanS.includes('7490') || cleanS.includes('JNT_A001') || cleanS.includes('KALREZ') || cleanS.includes('JOINT'))) return true;
-  if (cleanE.includes('VITON') && (cleanS.includes('VITON') || cleanS.includes('JNT_VT40') || cleanS.includes('VT40'))) return true;
-  if (cleanE.includes('CLAMP') && (cleanS.includes('CLAMP') || cleanS.includes('KF25') || cleanS.includes('CLP_KF25') || cleanS.includes('COLLIER'))) return true;
-  if (cleanE.includes('PUMP-EDWARDS') && (cleanS.includes('EDWARDS') || cleanS.includes('PMP_EDW3') || cleanS.includes('TURBO') || cleanS.includes('POMPE'))) return true;
-  if (cleanE.includes('POMPE') && (cleanS.includes('POMPE') || cleanS.includes('GRILLE_41') || cleanS.includes('PMP'))) return true;
-  if (cleanE.includes('PENNING') && (cleanS.includes('PENNING') || cleanS.includes('JGE_PENN') || cleanS.includes('JAUGE') || cleanS.includes('MANO'))) return true;
-  if (cleanE.includes('ELECTROVANNE') && (cleanS.includes('ELECTROVANNE') || cleanS.includes('SMC') || cleanS.includes('VAN_PNEU') || cleanS.includes('VANNE'))) return true;
-  if (cleanE.includes('FILTRE') && (cleanS.includes('FILTRE') || cleanS.includes('FLT_PMP1') || cleanS.includes('HUILE'))) return true;
-  if (cleanE.includes('CARTON') && (cleanS.includes('CARTON') || cleanS.includes('CTN') || cleanS.includes('DOUBLE'))) return true;
-  if (cleanE.includes('SCEL') && (cleanS.includes('SCEL') || cleanS.includes('SCL_IATA') || cleanS.includes('IATA'))) return true;
+  if (Array.isArray(aliases) && aliases.length > 0) {
+    for (const alias of aliases) {
+      const cleanA = normalizeBarcode(alias);
+      if (!cleanA) continue;
+      if (cleanS === cleanA || strippedS === stripBarcode(cleanA)) return true;
+    }
+  }
 
   return false;
 };
@@ -152,31 +146,32 @@ export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewMode>(initialRoute.view);
   const [stationId, setStationId] = useState<string>(initialStationId);
   const [stationName, setStationName] = useState<string>(initialStationName);
-  const [inventory, setInventory] = useState<InventoryItem[]>(INITIAL_INVENTORY);
-  const [missions, setMissions] = useState<Mission[]>(() => getStationMissions(MISSIONS, initialStationId));
+  const [isDbLoading, setIsDbLoading] = useState<boolean>(true);
+  const [locations, setLocations] = useState<WarehouseLocation[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [missions, setMissions] = useState<Mission[]>([]);
   const [appConfig, setAppConfig] = useState<AppConfig>({
-    eventTitle: 'CEA GRENOBLE',
-    eventSubtitle: 'WMS Industrial Terminal • Shift Challenge',
+    eventTitle: 'GT LOGISTICS',
+    eventSubtitle: 'WMS Industrial Terminal',
     badgeLabel: 'ÉDITION 25 ANS',
     shiftDurationSeconds: 180,
     comboBonusPoints: 50,
-    publicUrl: 'https://jeux-scan-25-ans-logistics.vercel.app',
+    publicUrl: typeof window !== 'undefined' ? window.location.origin : '',
     diplomaTitle: 'DIPLÔME D\'HONNEUR',
-    diplomaDescription: 'A accompli avec distinction et succès les opérations de préparation, traçabilité et conditionnement logistique.',
-    diplomaSignatory: 'La Direction Logistique & Supply Chain',
-    availableStations: [
-      { id: 'poste-1', name: 'Poste 1 (Scannette A)' },
-      { id: 'poste-2', name: 'Poste 2 (Scannette B)' },
-      { id: 'poste-3', name: 'Poste 3 (Zebra Scan)' }
-    ],
-    locations: INITIAL_LOCATIONS
+    diplomaDescription: '',
+    diplomaSignatory: '',
+    availableStations: [],
+    goldenTicketBarcode: 'ART-GT25-VIP',
+    locations: []
   });
   const [currentMissionIndex, setCurrentMissionIndex] = useState<number>(0);
   const [logs, setLogs] = useState<ScanLog[]>([]);
   const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
+  const [lastScanStatus, setLastScanStatus] = useState<'valid' | 'invalid' | null>(null);
   const [flashState, setFlashState] = useState<'green' | 'red' | null>(null);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [shiftSecondsRemaining, setShiftSecondsRemaining] = useState<number>(180);
+  const [isShiftTimerRunning, setIsShiftTimerRunning] = useState<boolean>(false);
   const [isDiplomeOpen, setIsDiplomeOpen] = useState<boolean>(false);
   const [isGoldenTicketOpen, setIsGoldenTicketOpen] = useState<boolean>(false);
   const [hasFoundGoldenTicket, setHasFoundGoldenTicket] = useState<boolean>(false);
@@ -197,6 +192,12 @@ export const App: React.FC = () => {
   // Keep fresh references to avoid closure race conditions
   const missionsRef = useRef(missions);
   missionsRef.current = missions;
+  const locationsRef = useRef(locations);
+  locationsRef.current = locations;
+  const inventoryRef = useRef(inventory);
+  inventoryRef.current = inventory;
+  const appConfigRef = useRef(appConfig);
+  appConfigRef.current = appConfig;
   const currentMissionIndexRef = useRef(currentMissionIndex);
   currentMissionIndexRef.current = currentMissionIndex;
   const comboRef = useRef(combo);
@@ -210,8 +211,15 @@ export const App: React.FC = () => {
   const clientGuestRef = useRef(clientGuest);
   clientGuestRef.current = clientGuest;
 
-  // Real-time Scoring Intelligence (Speed bonus & Accuracy tracking)
+  // Real-time Scoring Intelligence (Speed bonus, Accuracy & Zebra anti-bounce tracking)
   const lastStepStartTimeRef = useRef<number>(Date.now());
+  const shiftSecondsRemainingRef = useRef<number>(shiftSecondsRemaining);
+  shiftSecondsRemainingRef.current = shiftSecondsRemaining;
+  const lastProcessedScanRef = useRef<{ code: string; time: number; wasValid: boolean }>({
+    code: '',
+    time: 0,
+    wasValid: false
+  });
   const validScansCountRef = useRef<number>(0);
   const errorScansCountRef = useRef<number>(0);
 
@@ -224,80 +232,154 @@ export const App: React.FC = () => {
     shiftDurationSeconds: 300
   });
 
-  // Load Remote / Custom App Config on startup
+  // Load 100% of data from Supabase relational tables on startup + subscribe to Realtime
   useEffect(() => {
-    async function initConfig() {
-      const stored = await loadAppConfig();
-      if (stored) {
-        setAppConfig((prev) => ({
-          ...prev,
-          eventTitle: stored.eventTitle,
-          eventSubtitle: stored.eventSubtitle,
-          badgeLabel: stored.badgeLabel,
-          shiftDurationSeconds: stored.shiftDurationSeconds,
-          comboBonusPoints: stored.comboBonusPoints ?? prev.comboBonusPoints,
-          publicUrl: stored.publicUrl ?? prev.publicUrl,
-          diplomaTitle: stored.diplomaTitle ?? prev.diplomaTitle,
-          diplomaDescription: stored.diplomaDescription ?? prev.diplomaDescription,
-          diplomaSignatory: stored.diplomaSignatory ?? prev.diplomaSignatory,
-          availableStations: stored.availableStations ?? prev.availableStations,
-          strictScanOnly: stored.strictScanOnly ?? prev.strictScanOnly
-        }));
-        setShiftSecondsRemaining(stored.shiftDurationSeconds);
-        if (stored.missions && stored.missions.length > 0) {
-          setMissions(getStationMissions(stored.missions, stationIdRef.current));
-        }
-        if (stored.inventory && stored.inventory.length > 0) {
-          setInventory(stored.inventory);
-        }
-      }
+    async function initFromSupabase() {
+      try {
+        const [storedCfg, dbLocations, dbInventory, dbMissions, stList, distList] = await Promise.all([
+          loadAppConfig(),
+          fetchLocations(),
+          fetchInventory(),
+          fetchMissions(),
+          getStationsLive(),
+          fetchDistractions()
+        ]);
 
-      const stList = await getStationsLive();
-      if (stList.length > 0) {
-        setLiveStations(stList);
-        const myStation = stList.find((s) => s.station_id === stationIdRef.current);
-        if (myStation) {
-          if (myStation.operator_cea) setOperatorCea(myStation.operator_cea);
-          if (myStation.client_guest) setClientGuest(myStation.client_guest);
-          setOperator((prev) => ({
+        setLocations(dbLocations);
+        setInventory(dbInventory);
+
+        // Align initial mission order if this station already has an assigned mission in stations_live
+        const myInitialStation = stList.find((s) => s.station_id === stationIdRef.current);
+        let initialPreferredIdx: number | undefined = undefined;
+        if (myInitialStation?.current_mission_title) {
+          const foundIdx = dbMissions.findIndex(
+            (m) => m.title.toLowerCase() === myInitialStation.current_mission_title.toLowerCase()
+          );
+          if (foundIdx !== -1) initialPreferredIdx = foundIdx;
+        }
+        let orderedMissions = getStationMissions(dbMissions, stationIdRef.current, initialPreferredIdx);
+
+        // Restore active match progress from sessionStorage if the Zebra was accidentally refreshed mid-match
+        try {
+          const savedRaw = sessionStorage.getItem(`zebra_match_${stationIdRef.current}`);
+          if (savedRaw && myInitialStation?.status === 'in_progress') {
+            const saved = JSON.parse(savedRaw);
+            if (saved && typeof saved.score === 'number' && saved.score > 0) {
+              setOperator((prev) => ({
+                ...prev,
+                score: saved.score,
+                completedMissions: saved.completedMissions || 0,
+                accuracy: saved.accuracy ?? 100
+              }));
+              setCombo(saved.combo || 0);
+              if (typeof saved.currentMissionIndex === 'number' && saved.currentMissionIndex < orderedMissions.length) {
+                setCurrentMissionIndex(saved.currentMissionIndex);
+              }
+              if (typeof saved.shiftSecondsRemaining === 'number' && saved.shiftSecondsRemaining > 0) {
+                setShiftSecondsRemaining(saved.shiftSecondsRemaining);
+              }
+              if (saved.stepProgress && typeof saved.stepProgress === 'object') {
+                orderedMissions = orderedMissions.map((m) => ({
+                  ...m,
+                  steps: m.steps.map((st) => {
+                    const sp = saved.stepProgress[st.id];
+                    return sp ? { ...st, completed: Boolean(sp.completed), scannedCount: sp.scannedCount || 0 } : st;
+                  })
+                }));
+              }
+            }
+          }
+        } catch {}
+
+        setMissions(orderedMissions);
+
+        if (storedCfg) {
+          setAppConfig((prev) => ({
             ...prev,
-            name: myStation.team_name || `Duo ${myStation.client_guest}`
+            ...storedCfg,
+            locations: dbLocations
           }));
+          setShiftSecondsRemaining(storedCfg.shiftDurationSeconds || 180);
+        } else {
+          setAppConfig((prev) => ({ ...prev, locations: dbLocations }));
         }
-      }
 
-      const distList = await fetchDistractions();
-      if (distList.length > 0) {
-        setDistractions(distList);
+        if (stList.length > 0) {
+          setLiveStations(stList);
+          if (myInitialStation) {
+            if (myInitialStation.operator_cea) setOperatorCea(myInitialStation.operator_cea);
+            if (myInitialStation.client_guest) setClientGuest(myInitialStation.client_guest);
+            setIsShiftTimerRunning(myInitialStation.status === 'in_progress');
+            setOperator((prev) => ({
+              ...prev,
+              name: myInitialStation.team_name || `Duo ${myInitialStation.client_guest}`
+            }));
+          }
+        }
+
+        if (distList.length > 0) {
+          setDistractions(distList);
+        }
+
+        // Vérifier s'il y a déjà un aléa actif en cours pour ce poste (en cas de reload / reconnexion)
+        const pendingHazard = await fetchActiveHazardForStation(stationIdRef.current);
+        if (pendingHazard) {
+          setActiveHazard(pendingHazard);
+          setHazardSecondsRemaining(pendingHazard.time_limit_seconds || 45);
+        }
+      } finally {
+        setIsDbLoading(false);
       }
     }
-    initConfig();
+    initFromSupabase();
 
-    // Subscribe to live config updates from admin changes across stations
+    // Realtime: app_config
     const unsubConfig = subscribeToAppConfig((newCfg) => {
       setAppConfig((prev) => ({
         ...prev,
-        eventTitle: newCfg.eventTitle,
-        eventSubtitle: newCfg.eventSubtitle,
-        badgeLabel: newCfg.badgeLabel,
-        shiftDurationSeconds: newCfg.shiftDurationSeconds,
-        comboBonusPoints: newCfg.comboBonusPoints ?? prev.comboBonusPoints,
-        publicUrl: newCfg.publicUrl ?? prev.publicUrl,
-        diplomaTitle: newCfg.diplomaTitle ?? prev.diplomaTitle,
-        diplomaDescription: newCfg.diplomaDescription ?? prev.diplomaDescription,
-        diplomaSignatory: newCfg.diplomaSignatory ?? prev.diplomaSignatory,
-        availableStations: newCfg.availableStations ?? prev.availableStations,
-        autoHazardsEnabled: newCfg.autoHazardsEnabled ?? prev.autoHazardsEnabled,
-        hazardIntervalSeconds: newCfg.hazardIntervalSeconds ?? prev.hazardIntervalSeconds,
-        clientsCatalog: newCfg.clientsCatalog ?? prev.clientsCatalog,
-        strictScanOnly: newCfg.strictScanOnly ?? prev.strictScanOnly
+        ...newCfg,
+        locations: locationsRef.current
       }));
-      if (newCfg.missions && newCfg.missions.length > 0) {
-        setMissions(getStationMissions(newCfg.missions, stationIdRef.current));
+    });
+
+    // Realtime: wms_locations
+    const unsubLocations = subscribeToLocations((freshLocations) => {
+      setLocations(freshLocations);
+      setAppConfig((prev) => ({ ...prev, locations: freshLocations }));
+    });
+
+    // Realtime: wms_inventory
+    const unsubInventory = subscribeToInventory((freshInventory) => {
+      setInventory(freshInventory);
+    });
+
+    // Realtime: wms_missions (préserve la progression locale si une mission est en cours)
+    const unsubMissions = subscribeToMissions((freshMissions) => {
+      const prevPool = missionsRef.current || [];
+      const hasLocalProgress = prevPool.some((m) => m.steps.some((st) => st.completed || (st.scannedCount || 0) > 0));
+      if (!hasLocalProgress) {
+        setMissions(getStationMissions(freshMissions, stationIdRef.current));
+        return;
       }
-      if (newCfg.inventory && newCfg.inventory.length > 0) {
-        setInventory(newCfg.inventory);
-      }
+      const prevById = new Map(prevPool.map((m) => [m.id, m]));
+      const merged = getStationMissions(freshMissions, stationIdRef.current).map((m) => {
+        const oldM = prevById.get(m.id);
+        if (!oldM) return m;
+        const oldStepsById = new Map(oldM.steps.map((s) => [s.id, s]));
+        return {
+          ...m,
+          steps: m.steps.map((st) => {
+            const oldSt = oldStepsById.get(st.id);
+            return oldSt ? { ...st, completed: oldSt.completed, scannedCount: oldSt.scannedCount } : st;
+          })
+        };
+      });
+      setMissions(merged);
+    });
+
+    // Realtime: distractions (synchronise instantanément les aléas & la planche d'étiquettes)
+    const unsubDistractions = subscribeToDistractions((freshDistractions) => {
+      setDistractions(freshDistractions);
     });
 
     // Subscribe to live stations updates
@@ -312,24 +394,46 @@ export const App: React.FC = () => {
         return [...prev, updatedStation];
       });
 
-      // If this update is for this terminal, sync identity and match reset
+      // If this update is for this terminal, sync identity, assigned mission and match reset
       if (updatedStation.station_id === stationIdRef.current) {
         if (updatedStation.operator_cea) setOperatorCea(updatedStation.operator_cea);
         if (updatedStation.client_guest) setClientGuest(updatedStation.client_guest);
         
-        // Host started new match (marked 'idle' from previous run or status reset)
-        const isNewMatchSignal = updatedStation.status === 'idle';
+        // Detect BOTH idle reset AND TV Arena "Top Départ Duel" (in_progress with score=0, step=0, no last_scan_code)
+        const isIdleReset = updatedStation.status === 'idle';
+        const isFreshTvDuelLaunch =
+          updatedStation.status === 'in_progress' &&
+          (updatedStation.score || 0) === 0 &&
+          (updatedStation.current_step_index || 0) === 0 &&
+          (updatedStation.progress_percent || 0) === 0 &&
+          !updatedStation.last_scan_code;
 
-        if (isNewMatchSignal) {
+        if (isIdleReset || isFreshTvDuelLaunch) {
+          try {
+            sessionStorage.removeItem(`zebra_match_${stationIdRef.current}`);
+          } catch {}
           setCurrentMissionIndex(0);
           setCombo(0);
+          setLastScannedCode(null);
+          setLastScanStatus(null);
+          setIsDiplomeOpen(false);
           validScansCountRef.current = 0;
           errorScansCountRef.current = 0;
           lastStepStartTimeRef.current = Date.now();
-          setShiftSecondsRemaining(appConfig.shiftDurationSeconds || 180);
-          const pool = missionsRef.current && missionsRef.current.length > 0 ? missionsRef.current : MISSIONS;
+          setShiftSecondsRemaining(appConfigRef.current.shiftDurationSeconds || 180);
+          setIsShiftTimerRunning(isFreshTvDuelLaunch);
+
+          const pool = missionsRef.current || [];
+          let preferredIdx: number | undefined = undefined;
+          if (updatedStation.current_mission_title) {
+            const foundIdx = pool.findIndex(
+              (m) => m.title.toLowerCase() === updatedStation.current_mission_title.toLowerCase()
+            );
+            if (foundIdx !== -1) preferredIdx = foundIdx;
+          }
+
           setMissions(
-            getStationMissions(pool, stationIdRef.current).map((m) => ({
+            getStationMissions(pool, stationIdRef.current, preferredIdx).map((m) => ({
               ...m,
               steps: m.steps.map((st) => ({ ...st, completed: false, scannedCount: 0 }))
             }))
@@ -338,8 +442,19 @@ export const App: React.FC = () => {
             ...prev,
             score: 0,
             completedMissions: 0,
+            accuracy: 100,
             name: updatedStation.team_name || `Duo ${updatedStation.client_guest}`
           }));
+
+          if (isFreshTvDuelLaunch) {
+            soundService.playSuccessJingle();
+            showToast({
+              title: '🚀 TOP DÉPART DUEL !',
+              message: `Mission assignée : ${updatedStation.current_mission_title}`,
+              type: 'success',
+              duration: 4000
+            });
+          }
         }
       }
     });
@@ -353,6 +468,11 @@ export const App: React.FC = () => {
         setActiveHazard(hazard);
         setHazardSecondsRemaining(hazard.time_limit_seconds || 45);
         soundService.playEmergencyAlarm();
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          try {
+            navigator.vibrate([250, 100, 250, 100, 400]);
+          } catch {}
+        }
         showToast({
           title: '🚨 ALÉA DÉCLENCHÉ EN DIRECT !',
           message: `${hazard.title} (+${hazard.points_bonus} pts)`,
@@ -376,6 +496,9 @@ export const App: React.FC = () => {
     const unsubLocal = subscribeToLocalRealtime((msg) => {
       if (msg.type === 'INVENTORY_UPDATED' && Array.isArray(msg.payload)) {
         setInventory(msg.payload);
+      } else if (msg.type === 'LOCATIONS_UPDATED' && Array.isArray(msg.payload)) {
+        setLocations(msg.payload);
+        setAppConfig((prev) => ({ ...prev, locations: msg.payload }));
       } else if (msg.type === 'MISSIONS_UPDATED' && Array.isArray(msg.payload)) {
         setMissions(msg.payload);
       } else if (msg.type === 'CONFIG_UPDATED' && msg.payload) {
@@ -385,13 +508,67 @@ export const App: React.FC = () => {
       }
     });
 
+    // Auto-resync Supabase data when Wi-Fi reconnects or Zebra screen wakes up
+    const handleResyncOnReconnect = async () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+      try {
+        const [freshStations, freshInv, pendingHazard] = await Promise.all([
+          getStationsLive(),
+          fetchInventory(),
+          fetchActiveHazardForStation(stationIdRef.current)
+        ]);
+        if (freshStations.length > 0) setLiveStations(freshStations);
+        if (freshInv.length > 0) setInventory(freshInv);
+        if (pendingHazard && activeHazardRef.current?.id !== pendingHazard.id) {
+          setActiveHazard(pendingHazard);
+          setHazardSecondsRemaining(pendingHazard.time_limit_seconds || 45);
+        }
+      } catch {}
+    };
+    window.addEventListener('online', handleResyncOnReconnect);
+    document.addEventListener('visibilitychange', handleResyncOnReconnect);
+
     return () => {
       unsubConfig();
+      unsubLocations();
+      unsubInventory();
+      unsubMissions();
+      unsubDistractions();
       unsubStations();
       unsubHazards();
       unsubLocal();
+      window.removeEventListener('online', handleResyncOnReconnect);
+      document.removeEventListener('visibilitychange', handleResyncOnReconnect);
     };
   }, []);
+
+  // Persist active match progress in sessionStorage to survive accidental Zebra refresh
+  useEffect(() => {
+    if (isDbLoading) return;
+    try {
+      const stepProgress: Record<string, { completed: boolean; scannedCount: number }> = {};
+      missions.forEach((m) => {
+        m.steps.forEach((st) => {
+          if (st.completed || (st.scannedCount || 0) > 0) {
+            stepProgress[st.id] = { completed: st.completed, scannedCount: st.scannedCount || 0 };
+          }
+        });
+      });
+      sessionStorage.setItem(
+        `zebra_match_${stationId}`,
+        JSON.stringify({
+          score: operator.score,
+          completedMissions: operator.completedMissions,
+          accuracy: operator.accuracy,
+          combo,
+          currentMissionIndex,
+          shiftSecondsRemaining,
+          stepProgress
+        })
+      );
+    } catch {}
+  }, [isDbLoading, stationId, operator.score, operator.completedMissions, operator.accuracy, combo, currentMissionIndex, shiftSecondsRemaining, missions]);
 
   // Hazard countdown timer
   useEffect(() => {
@@ -426,10 +603,19 @@ export const App: React.FC = () => {
 
   // Handler to trigger sudden unplanned client order
   const handleTriggerSurpriseOrder = async () => {
-    const clients = appConfig.clientsCatalog || ['CEA LETI - Bât. 17 (Nano)', 'Minatec Salle Blanche ISO 5'];
+    const clients = appConfig.clientsCatalog && appConfig.clientsCatalog.length > 0
+      ? appConfig.clientsCatalog
+      : [appConfig.eventTitle || 'Client Urgent'];
     const randomClient = clients[Math.floor(Math.random() * clients.length)];
-    const items = inventory.length > 0 ? inventory : INITIAL_INVENTORY;
-    const randomItem = items[Math.floor(Math.random() * items.length)];
+    if (inventory.length === 0) {
+      showToast({
+        title: 'Stock vide',
+        message: 'Ajoutez au moins un article dans l\'ERP ou l\'Admin pour déclencher une commande urgente.',
+        type: 'warning'
+      });
+      return;
+    }
+    const randomItem = inventory[Math.floor(Math.random() * inventory.length)];
 
     await triggerLiveHazard({
       target_station_id: stationIdRef.current,
@@ -442,13 +628,14 @@ export const App: React.FC = () => {
     });
   };
 
-  // Shift Timer Countdown
+  // Shift Timer Countdown (ne décrémente que lorsqu'un match/shift est actif)
   useEffect(() => {
+    if (!isShiftTimerRunning) return;
     const timer = setInterval(() => {
       setShiftSecondsRemaining((prev) => Math.max(0, prev - 1));
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [isShiftTimerRunning]);
 
   // Open Diploma at the end of the shift (3 minutes) if the team was active and scored
   useEffect(() => {
@@ -480,7 +667,7 @@ export const App: React.FC = () => {
         setStationName(route.stationName);
         stationIdRef.current = route.stationId;
         stationNameRef.current = route.stationName;
-        const pool = missionsRef.current && missionsRef.current.length > 0 ? missionsRef.current : MISSIONS;
+        const pool = missionsRef.current || [];
         setMissions(getStationMissions(pool, route.stationId));
       }
     };
@@ -504,7 +691,7 @@ export const App: React.FC = () => {
   const handleSelectStation = (id: string, name: string) => {
     setStationId(id);
     setStationName(name);
-    const activeMissionsPool = missionsRef.current && missionsRef.current.length > 0 ? missionsRef.current : MISSIONS;
+    const activeMissionsPool = missionsRef.current || [];
     setMissions(getStationMissions(activeMissionsPool, id));
     localStorage.setItem('cea_station_id', id);
     localStorage.setItem('cea_station_name', name);
@@ -602,6 +789,27 @@ export const App: React.FC = () => {
     const cleanedCode = code.trim();
     if (!cleanedCode) return;
 
+    const now = Date.now();
+    const normCode = normalizeBarcode(cleanedCode);
+    const prevScan = lastProcessedScanRef.current;
+
+    // 1. Protection matérielle anti-double-déclenchement Zebra (< 250ms sur le même code)
+    if (prevScan.code === normCode && now - prevScan.time < 250) {
+      return;
+    }
+
+    // 2. Protection anti-rebond de gâchette (< 800ms sur un code qui vient juste de valider l'étape précédente
+    //    et qui n'est PAS le code attendu par la nouvelle étape active)
+    if (prevScan.wasValid && prevScan.code === normCode && now - prevScan.time < 800) {
+      const curMission = missionsRef.current[currentMissionIndexRef.current];
+      const curStep = curMission?.steps.find((s) => !s.completed);
+      if (curStep && !isBarcodeMatching(cleanedCode, curStep.expectedBarcode, curStep.lrCode)) {
+        return;
+      }
+    }
+
+    // Démarre le chrono du shift automatiquement dès le premier scan actif
+    setIsShiftTimerRunning(true);
     setLastScannedCode(cleanedCode);
     soundService.playScanBeep();
 
@@ -612,16 +820,14 @@ export const App: React.FC = () => {
     });
 
     // ========================================================
-    // EASTER EGG : LE TICKET D'OR DU JUBILÉ 25 ANS DU GROUPE GT LOGISTICS
+    // EASTER EGG : LE TICKET D'OR (Code configurable dans app_config)
     // ========================================================
-    const upperClean = cleanedCode.toUpperCase();
-    const isGoldenTicketScan = 
-      upperClean === 'ART-GT25-VIP' ||
-      upperClean === 'GT_25ANS' ||
-      upperClean === 'GT-25-ANS' ||
-      upperClean === 'GT25ANS';
+    const configuredGoldenCode = appConfigRef.current.goldenTicketBarcode || 'ART-GT25-VIP';
+    const isGoldenTicketScan = isBarcodeMatching(cleanedCode, configuredGoldenCode, 'GT_25ANS', ['GT-25-ANS', 'GT25ANS']);
 
     if (isGoldenTicketScan) {
+      lastProcessedScanRef.current = { code: normCode, time: now, wasValid: true };
+      setLastScanStatus('valid');
       triggerFlash('green');
       const bonusGolden = 2500;
       setOperator((prev) => ({
@@ -634,7 +840,7 @@ export const App: React.FC = () => {
 
       showToast({
         title: '🎟️ TICKET D\'OR 25 ANS DÉCOUVERT (+2 500 PTS) !',
-        message: 'Incroyable trouvaille en rayon ! Vous avez déniché l\'Archive Secrète du Groupe GT !',
+        message: 'Incroyable trouvaille en rayon ! Vous avez déniché l\'Archive Secrète !',
         type: 'success',
         duration: 9000
       });
@@ -642,9 +848,9 @@ export const App: React.FC = () => {
       broadcastScan({
         station_name: stationNameRef.current,
         operator_name: `${clientGuestRef.current} (avec ${operatorCeaRef.current})`,
-        barcode: 'ART-GT25-VIP',
+        barcode: configuredGoldenCode,
         action_type: 'GOLDEN_TICKET',
-        message: `🎟️ TICKET D'OR 25 ANS ! ${clientGuestRef.current} a déniché le Ticket d'Or du Jubilé GT (+2 500 pts d'Or) !`,
+        message: `🎟️ TICKET D'OR 25 ANS ! ${clientGuestRef.current} a déniché le Ticket d'Or (+2 500 pts) !`,
         status: 'valid'
       }).catch(() => {});
 
@@ -664,18 +870,35 @@ export const App: React.FC = () => {
     // 0. PRIORITY CHECK: Is there an ongoing active Hazard / Distraction?
     if (activeHazardRef.current) {
       const currentHazard = activeHazardRef.current;
-      if (cleanedCode.toUpperCase() === currentHazard.expected_barcode.toUpperCase()) {
+      if (isBarcodeMatching(cleanedCode, currentHazard.expected_barcode)) {
         // HAZARD RESOLVED!
+        lastProcessedScanRef.current = { code: normCode, time: now, wasValid: true };
+        setLastScanStatus('valid');
         triggerFlash('green');
         soundService.playHazardSuccess();
         const bonusPoints = currentHazard.points_bonus || 600;
         const newCombo = comboRef.current + 2;
         setCombo(newCombo);
 
-        setOperator((prev) => ({
-          ...prev,
-          score: prev.score + bonusPoints
-        }));
+        validScansCountRef.current += 1;
+        const totalScansH = validScansCountRef.current + errorScansCountRef.current;
+        const accH = Math.max(50, Math.round((validScansCountRef.current / totalScansH) * 100));
+
+        setOperator((prev) => {
+          const nextScore = prev.score + bonusPoints;
+          updateStationLive({
+            station_id: stationIdRef.current,
+            score: nextScore,
+            combo: newCombo,
+            last_scan_code: cleanedCode,
+            last_scan_status: 'valid'
+          });
+          return {
+            ...prev,
+            score: nextScore,
+            accuracy: accH
+          };
+        });
 
         resolveLiveHazard(currentHazard.id).catch(() => {});
         setActiveHazard(null);
@@ -702,9 +925,23 @@ export const App: React.FC = () => {
         return;
       } else {
         // MISMATCH during hazard
+        lastProcessedScanRef.current = { code: normCode, time: now, wasValid: false };
+        setLastScanStatus('invalid');
         triggerFlash('red');
         soundService.playErrorBuzz();
         setCombo(0);
+
+        errorScansCountRef.current += 1;
+        const totalScansH = validScansCountRef.current + errorScansCountRef.current;
+        const accH = Math.max(40, Math.round((validScansCountRef.current / totalScansH) * 100));
+        setOperator((prev) => ({ ...prev, accuracy: accH }));
+
+        updateStationLive({
+          station_id: stationIdRef.current,
+          combo: 0,
+          last_scan_code: cleanedCode,
+          last_scan_status: 'invalid'
+        });
 
         broadcastScan({
           station_name: stationNameRef.current,
@@ -732,6 +969,14 @@ export const App: React.FC = () => {
     const activeIndex = currentMissionIndexRef.current;
     const currentMissions = missionsRef.current;
     const activeMission = currentMissions[activeIndex];
+    if (!activeMission || !activeMission.steps || activeMission.steps.length === 0) {
+      showToast({
+        title: 'Aucune mission active',
+        message: 'Créez ou activez une mission dans l\'Admin pour démarrer les scans.',
+        type: 'warning'
+      });
+      return;
+    }
     const activeStepIndex = activeMission.steps.findIndex((s) => !s.completed);
 
     if (activeStepIndex === -1) {
@@ -750,14 +995,31 @@ export const App: React.FC = () => {
 
     const activeStep = activeMission.steps[activeStepIndex];
 
+    // Helper to resolve aliases from DB (wms_inventory & wms_locations) for a given expectedBarcode
+    const getDbAliasesForStep = (expectedCode: string): string[] => {
+      const inv = inventoryRef.current.find((it) => normalizeBarcode(it.sku) === normalizeBarcode(expectedCode));
+      if (inv) return [...(inv.aliases || []), ...(inv.lrCode ? [inv.lrCode] : [])];
+      const loc = locationsRef.current.find((l) => normalizeBarcode(l.barcode) === normalizeBarcode(expectedCode));
+      if (loc) return [...(loc.aliases || []), ...(loc.lrCode ? [loc.lrCode] : [])];
+      return [];
+    };
+
     // Check direct match on active step, or flexible match on any remaining step of this mission
     let targetStepIndex = activeStepIndex;
-    let isMatch = isBarcodeMatching(cleanedCode, activeStep.expectedBarcode, activeStep.lrCode);
+    let isMatch = isBarcodeMatching(
+      cleanedCode,
+      activeStep.expectedBarcode,
+      activeStep.lrCode,
+      getDbAliasesForStep(activeStep.expectedBarcode)
+    );
 
     if (!isMatch) {
       // Find if another uncompleted step of this mission matches the scanned code
       const altStepIndex = activeMission.steps.findIndex(
-        (s, idx) => !s.completed && idx !== activeStepIndex && isBarcodeMatching(cleanedCode, s.expectedBarcode, s.lrCode)
+        (s, idx) =>
+          !s.completed &&
+          idx !== activeStepIndex &&
+          isBarcodeMatching(cleanedCode, s.expectedBarcode, s.lrCode, getDbAliasesForStep(s.expectedBarcode))
       );
 
       if (altStepIndex !== -1) {
@@ -787,6 +1049,8 @@ export const App: React.FC = () => {
 
     if (isMatch) {
       // MATCH! Valid scan
+      lastProcessedScanRef.current = { code: normCode, time: now, wasValid: true };
+      setLastScanStatus('valid');
       triggerFlash('green');
       soundService.playSuccessChime();
 
@@ -839,14 +1103,15 @@ export const App: React.FC = () => {
         speedBadge = '✓ Rythme Régulier';
       }
 
-      // 2. Pondération industrielle selon la tâche
+      // 2. Pondération industrielle selon la tâche (100 % pilotée par la BDD)
+      const matchedInvItemForScoring = inventoryRef.current.find((item) =>
+        isBarcodeMatching(cleanedCode, item.sku, item.lrCode, item.aliases)
+      );
       let taskBasePoints = 150;
       if (currentTargetStep.barcodeType === 'location') {
         taskBasePoints = 100; // Repérage d'armoire / allée
       } else if (currentTargetStep.barcodeType === 'article') {
-        const isCriticalPiece = currentTargetStep.expectedBarcode.includes('KALREZ') || 
-                                currentTargetStep.expectedBarcode.includes('7490') || 
-                                currentTargetStep.expectedBarcode.includes('INOX');
+        const isCriticalPiece = Boolean(matchedInvItemForScoring?.critical);
         taskBasePoints = isCriticalPiece ? 250 : 180;
         if (requiredQty > 1) taskBasePoints += 50; // Bonus prélèvement multiple
       } else if (currentTargetStep.barcodeType === 'package') {
@@ -884,13 +1149,18 @@ export const App: React.FC = () => {
         const nextScore = prev.score + addedPoints;
         const nextMissions = isMissionDone ? prev.completedMissions + 1 : prev.completedMissions;
 
-        // Auto-sync completed mission to Supabase
+        // Auto-sync completed mission to Supabase (avec le vrai temps écoulé)
         if (isMissionDone) {
+          const totalShiftSec = appConfigRef.current.shiftDurationSeconds || 180;
+          const elapsedSec = Math.max(1, totalShiftSec - shiftSecondsRemainingRef.current);
+          const mins = Math.floor(elapsedSec / 60).toString().padStart(2, '0');
+          const secs = (elapsedSec % 60).toString().padStart(2, '0');
+
           submitScore({
             name: `${clientGuestRef.current} (Duo avec ${operatorCeaRef.current})`,
-            company: 'CEA 25 Ans',
+            company: appConfigRef.current.eventTitle || 'GT Logistics',
             score: nextScore,
-            time_spent: '02:00',
+            time_spent: `${mins}:${secs}`,
             completed_missions: nextMissions,
             accuracy: currentAccuracy
           }).catch(() => {});
@@ -966,55 +1236,48 @@ export const App: React.FC = () => {
         }
       }
 
-      // Live ERP Stock Update & Scenarios Actions
-      const matchedInvItem = inventory.find(
-        (item) => isBarcodeMatching(cleanedCode, item.sku, item.lrCode)
+      // Live ERP Stock Update (Boucle physique atomique Bac <-> Table dans Supabase wms_inventory)
+      const matchedInvItem = inventoryRef.current.find(
+        (item) => isBarcodeMatching(cleanedCode, item.sku, item.lrCode, item.aliases)
       );
 
       if (matchedInvItem && currentTargetStep.barcodeType === 'article') {
-        // Préparation / Picking : Décrémentation automatique du stock
-        setInventory((prevInv) => {
-          const nextInv = prevInv.map((item) =>
-            item.id === matchedInvItem.id
-              ? { ...item, quantity: Math.max(0, item.quantity - 1) }
-              : item
-          );
-          broadcastLocalRealtime('INVENTORY_UPDATED', nextInv);
-          return nextInv;
-        });
+        const direction = activeMission.stockDirection || 'out';
+        if (direction === 'out' || direction === 'in') {
+          setInventory((prevInv) => {
+            const nextInv = prevInv.map((item) => {
+              if (item.id !== matchedInvItem.id) return item;
+              if (direction === 'out') {
+                return {
+                  ...item,
+                  quantity: Math.max(0, item.quantity - 1),
+                  onTableQty: (item.onTableQty || 0) + 1
+                };
+              }
+              return {
+                ...item,
+                quantity: item.quantity + 1,
+                onTableQty: Math.max(0, (item.onTableQty || 0) - 1)
+              };
+            });
+            broadcastLocalRealtime('INVENTORY_UPDATED', nextInv);
+            return nextInv;
+          });
+          moveStockLoop(matchedInvItem.id, direction).catch(() => {});
+          showToast({
+            title:
+              direction === 'out'
+                ? `📤 Livraison : Bac (-1) → Table (+1)`
+                : `📥 Collecte : Table (-1) → Bac (+1)`,
+            message: `${matchedInvItem.name} synchronisé en temps réel`,
+            type: direction === 'out' ? 'info' : 'success'
+          });
+        }
+      } else if (currentTargetStep.barcodeType === 'dock') {
         showToast({
-          title: `WMS : Sortie de Stock (-1 ${matchedInvItem.unit || 'pc'})`,
-          message: `${matchedInvItem.name} prélevé pour la commande`,
-          type: 'info'
-        });
-      } else if (cleanedCode === 'ZONE_POMPE_GRILLE_41') {
-        // Collecte / Retour en stock : Incrémentation du stock
-        setInventory((prevInv) => {
-          const nextInv = prevInv.map((item) =>
-            item.sku === 'REF191000007490' ? { ...item, quantity: item.quantity + 1 } : item
-          );
-          broadcastLocalRealtime('INVENTORY_UPDATED', nextInv);
-          return nextInv;
-        });
-        showToast({
-          title: 'WMS : Entrée en Stock (+1)',
-          message: 'Joint Kalrez réintégré en Zone Pompe Grille 41',
+          title: 'Expédition Quai Validée',
+          message: `${currentTargetStep.targetLabel} validé en temps réel.`,
           type: 'success'
-        });
-      } else if (cleanedCode === 'ZONE_RECEPTION_CENTRALE') {
-        // Manutention & Expédition vers l'étranger : Notification client
-        showToast({
-          title: 'Expédition Internationale Confirmée',
-          message: 'Colis déposé à La Réception Centrale. Le client a été notifié par email.',
-          type: 'success'
-        });
-      } else if (cleanedCode === 'BL-EDWARDS-9941') {
-        setInventory((prevInv) => {
-          const nextInv = prevInv.map((item) =>
-            item.sku === 'ART-KF40-INOX' ? { ...item, quantity: item.quantity + 5 } : item
-          );
-          broadcastLocalRealtime('INVENTORY_UPDATED', nextInv);
-          return nextInv;
         });
       }
 
@@ -1030,6 +1293,8 @@ export const App: React.FC = () => {
       ]);
     } else {
       // MISMATCH! Invalid scan
+      lastProcessedScanRef.current = { code: normCode, time: now, wasValid: false };
+      setLastScanStatus('invalid');
       triggerFlash('red');
       soundService.playErrorBuzz();
       setCombo(0);
@@ -1091,6 +1356,14 @@ export const App: React.FC = () => {
     const activeIndex = currentMissionIndexRef.current;
     const currentMissions = missionsRef.current;
     const activeMission = currentMissions[activeIndex];
+    if (!activeMission || !activeMission.steps || activeMission.steps.length === 0) {
+      showToast({
+        title: 'Aucune mission active',
+        message: 'Créez ou activez une mission dans l\'Admin pour démarrer les scans.',
+        type: 'warning'
+      });
+      return;
+    }
     const activeStepIndex = activeMission.steps.findIndex((s) => !s.completed);
     if (activeStepIndex === -1) return;
 
@@ -1113,12 +1386,14 @@ export const App: React.FC = () => {
     updatedMissions[activeIndex] = updatedMission;
     setMissions(updatedMissions);
 
-    // 2. Ajuster l'ERP au stock physique réel
+    // 2. Ajuster l'ERP au stock physique réel (mise à jour directe de la ligne en BDD)
     if (matchedItem) {
       const nextInv = inventory.map((item) =>
         item.id === matchedItem.id ? { ...item, quantity: Math.max(0, realQty) } : item
       );
-      handleUpdateInventory(nextInv);
+      setInventory(nextInv);
+      broadcastLocalRealtime('INVENTORY_UPDATED', nextInv);
+      setInventoryItemQuantity(matchedItem.id, Math.max(0, realQty)).catch(() => {});
     }
 
     // 3. Attribuer le Bonus Vigilance Logistique (+400 pts)
@@ -1161,7 +1436,7 @@ export const App: React.FC = () => {
     }
   };
 
-  // Manual stock update in ERP view
+  // Manual stock update in ERP view (atomique dans wms_inventory)
   const handleUpdateQuantity = async (id: string, delta: number) => {
     const updated = inventory.map((item) =>
       item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item
@@ -1169,56 +1444,53 @@ export const App: React.FC = () => {
     setInventory(updated);
     broadcastLocalRealtime('INVENTORY_UPDATED', updated);
     try {
-      await saveAppConfig({
-        ...appConfig,
-        missions,
-        inventory: updated
-      });
+      await adjustInventoryQuantity(id, delta);
     } catch (e) {
-      console.warn('Failed to save quantity update to Supabase:', e);
+      console.warn('Failed to adjust quantity in Supabase:', e);
     }
   };
 
-  // Full stock update (from ERP or Admin) with cloud & local persistence
+  // Full stock update (from ERP or Admin) -> table wms_inventory
   const handleUpdateInventory = async (newInv: InventoryItem[]) => {
     setInventory(newInv);
     broadcastLocalRealtime('INVENTORY_UPDATED', newInv);
     try {
-      await saveAppConfig({
-        ...appConfig,
-        missions,
-        inventory: newInv
-      });
+      await syncInventory(newInv);
     } catch (e) {
-      console.warn('Failed to save inventory to Supabase:', e);
+      console.warn('Failed to sync inventory to Supabase:', e);
     }
   };
 
-  // Full missions update with cloud & local persistence
+  // Full locations update -> table wms_locations
+  const handleUpdateLocations = async (newLocs: WarehouseLocation[]) => {
+    setLocations(newLocs);
+    setAppConfig((prev) => ({ ...prev, locations: newLocs }));
+    broadcastLocalRealtime('LOCATIONS_UPDATED', newLocs);
+    try {
+      await syncLocations(newLocs);
+    } catch (e) {
+      console.warn('Failed to sync locations to Supabase:', e);
+    }
+  };
+
+  // Full missions update -> table wms_missions
   const handleUpdateMissions = async (newMissions: Mission[]) => {
     setMissions(newMissions);
     broadcastLocalRealtime('MISSIONS_UPDATED', newMissions);
     try {
-      await saveAppConfig({
-        ...appConfig,
-        missions: newMissions,
-        inventory
-      });
+      await syncMissions(newMissions);
     } catch (e) {
-      console.warn('Failed to save missions to Supabase:', e);
+      console.warn('Failed to sync missions to Supabase:', e);
     }
   };
 
-  // Full app config update with cloud & local persistence
+  // Full app config update -> table app_config (paramètres globaux uniquement)
   const handleUpdateAppConfig = async (newConfig: AppConfig) => {
-    setAppConfig(newConfig);
+    setAppConfig({ ...newConfig, locations });
     broadcastLocalRealtime('CONFIG_UPDATED', newConfig);
     try {
-      await saveAppConfig({
-        ...newConfig,
-        missions,
-        inventory
-      });
+      const { locations: _ignored, ...storedCfg } = newConfig;
+      await saveAppConfig(storedCfg);
     } catch (e) {
       console.warn('Failed to save app config to Supabase:', e);
     }
@@ -1249,6 +1521,9 @@ export const App: React.FC = () => {
 
   // Start new shift / match with shuffled randomized missions
   const handleStartNewShift = () => {
+    try {
+      sessionStorage.removeItem(`zebra_match_${stationIdRef.current}`);
+    } catch {}
     setMissions((prev) => {
       const shuffled = [...prev];
       for (let i = shuffled.length - 1; i > 0; i--) {
@@ -1257,21 +1532,32 @@ export const App: React.FC = () => {
       }
       return shuffled.map((m) => ({
         ...m,
-        steps: m.steps.map((st) => ({ ...st, completed: false }))
+        steps: m.steps.map((st) => ({ ...st, completed: false, scannedCount: 0 }))
       }));
     });
     setCurrentMissionIndex(0);
     setShiftSecondsRemaining(appConfig.shiftDurationSeconds || 180);
+    setIsShiftTimerRunning(true);
+    setLastScannedCode(null);
+    setLastScanStatus(null);
+    setIsDiplomeOpen(false);
     setCombo(0);
+    validScansCountRef.current = 0;
+    errorScansCountRef.current = 0;
+    lastStepStartTimeRef.current = Date.now();
     setOperator((prev) => ({
       ...prev,
       score: 0,
       completedMissions: 0,
+      accuracy: 100,
       name: `Duo ${clientGuest}`,
-      companyOrRole: `Agent CEA: ${operatorCea}`
+      companyOrRole: `${appConfig.eventTitle || 'GT Logistics'} • ${operatorCea}`
     }));
     setLogs([]);
-    setCurrentView('kiosk');
+    // Ne jamais expulser la Zebra du mode #play !
+    if (currentView !== 'play') {
+      setCurrentView('kiosk');
+    }
     soundService.playSuccessChime();
 
     updateStationLive({
@@ -1280,7 +1566,122 @@ export const App: React.FC = () => {
       current_step_index: 0,
       score: 0,
       combo: 0,
-      status: 'idle'
+      status: 'idle',
+      last_scan_code: null,
+      last_scan_status: null
+    });
+  };
+
+  // Enchaînement direct du prochain Duo depuis la Zebra (sans quitter le mode #play)
+  const handleZebraStartNextDuo = (nextCea: string, nextGuest: string, preferredMissionIdx: number = 0) => {
+    try {
+      sessionStorage.removeItem(`zebra_match_${stationIdRef.current}`);
+    } catch {}
+
+    setOperatorCea(nextCea);
+    setClientGuest(nextGuest);
+    localStorage.setItem('gt_collab_name', nextCea);
+    localStorage.setItem('gt_guest_name', nextGuest);
+
+    const pool = missionsRef.current || [];
+    const ordered = getStationMissions(pool, stationIdRef.current, preferredMissionIdx).map((m) => ({
+      ...m,
+      steps: m.steps.map((st) => ({ ...st, completed: false, scannedCount: 0 }))
+    }));
+
+    setMissions(ordered);
+    setCurrentMissionIndex(0);
+    setShiftSecondsRemaining(appConfigRef.current.shiftDurationSeconds || 180);
+    setIsShiftTimerRunning(true);
+    setLastScannedCode(null);
+    setLastScanStatus(null);
+    setIsDiplomeOpen(false);
+    setCombo(0);
+    validScansCountRef.current = 0;
+    errorScansCountRef.current = 0;
+    lastStepStartTimeRef.current = Date.now();
+    setLogs([]);
+
+    setOperator({
+      name: `Duo ${nextGuest}`,
+      companyOrRole: `${appConfigRef.current.eventTitle || 'GT Logistics'} • ${nextCea}`,
+      score: 0,
+      completedMissions: 0,
+      accuracy: 100,
+      shiftDurationSeconds: appConfigRef.current.shiftDurationSeconds || 180
+    });
+
+    updateStationLive({
+      station_id: stationIdRef.current,
+      station_name: stationNameRef.current,
+      operator_cea: nextCea,
+      client_guest: nextGuest,
+      team_name: `Duo ${nextGuest}`,
+      current_mission_title: ordered[0]?.title || 'En attente...',
+      progress_percent: 0,
+      current_step_index: 0,
+      total_steps: ordered[0]?.steps?.length || 0,
+      score: 0,
+      combo: 0,
+      status: 'in_progress',
+      last_scan_code: null,
+      last_scan_status: null
+    });
+
+    soundService.playSuccessJingle();
+    showToast({
+      title: `🚀 Nouveau Duo prêt : ${nextGuest}`,
+      message: `Avec ${nextCea} — Vous pouvez scanner la 1re étiquette !`,
+      type: 'success'
+    });
+  };
+
+  // Remettre la Zebra en attente du Top Départ TV (idle)
+  const handleZebraSetWaitingForTv = () => {
+    try {
+      sessionStorage.removeItem(`zebra_match_${stationIdRef.current}`);
+    } catch {}
+    setCurrentMissionIndex(0);
+    setShiftSecondsRemaining(appConfigRef.current.shiftDurationSeconds || 180);
+    setIsShiftTimerRunning(false);
+    setLastScannedCode(null);
+    setLastScanStatus(null);
+    setIsDiplomeOpen(false);
+    setCombo(0);
+    validScansCountRef.current = 0;
+    errorScansCountRef.current = 0;
+    setMissions((prev) =>
+      prev.map((m) => ({
+        ...m,
+        steps: m.steps.map((st) => ({ ...st, completed: false, scannedCount: 0 }))
+      }))
+    );
+    setOperator((prev) => ({
+      ...prev,
+      score: 0,
+      completedMissions: 0,
+      accuracy: 100
+    }));
+
+    updateStationLive({
+      station_id: stationIdRef.current,
+      station_name: stationNameRef.current,
+      client_guest: 'En attente...',
+      team_name: `${stationNameRef.current.split(' ')[0]} Prêt`,
+      current_mission_title: 'En attente du Top Départ TV...',
+      progress_percent: 0,
+      current_step_index: 0,
+      score: 0,
+      combo: 0,
+      status: 'idle',
+      last_scan_code: null,
+      last_scan_status: null
+    });
+
+    showToast({
+      title: '📡 Poste en attente du Top Départ TV',
+      message: 'Prêt à recevoir le prochain duel lancé depuis l\'Arène TV.',
+      type: 'info'
     });
   };
 
@@ -1291,7 +1692,7 @@ export const App: React.FC = () => {
     m1Index: number = 0,
     m2Index: number = 1
   ) => {
-    const activeMissionsPool = missionsRef.current && missionsRef.current.length > 0 ? missionsRef.current : MISSIONS;
+    const activeMissionsPool = missionsRef.current || [];
     const m1 = getStationMissions(activeMissionsPool, 'poste-1', m1Index);
     const m2 = getStationMissions(activeMissionsPool, 'poste-2', m2Index);
 
@@ -1308,7 +1709,9 @@ export const App: React.FC = () => {
       current_step_index: 0,
       total_steps: m1[0]?.steps?.length || 7,
       current_mission_title: m1[0]?.title || 'Préparation Commande',
-      status: 'in_progress'
+      status: 'in_progress',
+      last_scan_code: null,
+      last_scan_status: null
     });
 
     await updateStationLive({
@@ -1323,7 +1726,9 @@ export const App: React.FC = () => {
       current_step_index: 0,
       total_steps: m2[0]?.steps?.length || 7,
       current_mission_title: m2[0]?.title || 'Collecte Client',
-      status: 'in_progress'
+      status: 'in_progress',
+      last_scan_code: null,
+      last_scan_status: null
     });
 
     // 2. Local state initialization for this active machine
@@ -1333,6 +1738,9 @@ export const App: React.FC = () => {
     setOperatorCea(activeDuo.cea);
     setClientGuest(activeDuo.client);
     setShiftSecondsRemaining(appConfig.shiftDurationSeconds || 180);
+    setIsShiftTimerRunning(true);
+    setLastScannedCode(null);
+    setLastScanStatus(null);
     setCombo(0);
     setCurrentMissionIndex(0);
     setLogs([]);
@@ -1365,6 +1773,9 @@ export const App: React.FC = () => {
     setOperatorCea(duo.cea);
     setClientGuest(duo.client);
     setShiftSecondsRemaining(appConfig.shiftDurationSeconds || 180);
+    setIsShiftTimerRunning(true);
+    setLastScannedCode(null);
+    setLastScanStatus(null);
     setCombo(0);
     setCurrentMissionIndex(0);
     setLogs([]);
@@ -1374,7 +1785,7 @@ export const App: React.FC = () => {
     errorScansCountRef.current = 0;
     lastStepStartTimeRef.current = Date.now();
 
-    const activeMissionsPool = missionsRef.current && missionsRef.current.length > 0 ? missionsRef.current : MISSIONS;
+    const activeMissionsPool = missionsRef.current || [];
     const ordered = getStationMissions(activeMissionsPool, targetStationId, mIndex);
 
     setMissions(
@@ -1413,8 +1824,21 @@ export const App: React.FC = () => {
   };
 
   const handleUpdateLogo = (logoUrl: string) => {
-    setAppConfig((prev) => ({ ...prev, customLogoUrl: logoUrl }));
+    const updated = { ...appConfig, customLogoUrl: logoUrl };
+    handleUpdateAppConfig(updated);
   };
+
+  if (isDbLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center gap-4 font-sans">
+        <div className="w-12 h-12 rounded-2xl border-4 border-sky-500/30 border-t-sky-400 animate-spin" />
+        <div className="text-center">
+          <p className="text-sm font-black uppercase tracking-widest text-sky-400">Connexion Supabase temps réel</p>
+          <p className="text-xs text-slate-400 mt-1">Chargement du stock, des emplacements et des missions...</p>
+        </div>
+      </div>
+    );
+  }
 
   // DEDICATED HANDHELD ZEBRA PURE GAME MODE (NO HEADER, NO ADMIN/ERP TABS, LOCKED TO GAMEPLAY)
   if (currentView === 'play') {
@@ -1427,10 +1851,12 @@ export const App: React.FC = () => {
           clientGuest={clientGuest}
           score={operator.score}
           combo={combo}
+          accuracy={operator.accuracy}
           shiftSecondsRemaining={shiftSecondsRemaining}
           missions={missions}
           currentMissionIndex={currentMissionIndex}
           lastScannedCode={lastScannedCode}
+          lastScanStatus={lastScanStatus}
           flashState={flashState}
           activeHazard={activeHazard}
           hazardSecondsRemaining={hazardSecondsRemaining}
@@ -1441,6 +1867,8 @@ export const App: React.FC = () => {
           onBarcodeScanned={handleBarcodeScanned}
           onNextMission={advanceToNextMission}
           onRestartShift={handleStartNewShift}
+          onStartNextDuo={handleZebraStartNextDuo}
+          onSetWaitingForTv={handleZebraSetWaitingForTv}
           onOpenDiplome={() => setIsDiplomeOpen(true)}
         />
         {/* Celebration Diploma Modal */}
@@ -1454,6 +1882,16 @@ export const App: React.FC = () => {
           appConfig={appConfig}
           hasGoldenTicket={hasFoundGoldenTicket}
         />
+
+        {/* Easter Egg Golden Ticket 25 Ans Modal (aussi actif sur les Zebra !) */}
+        <GoldenTicketModal
+          isOpen={isGoldenTicketOpen}
+          duoName={`${clientGuest} (avec ${operatorCea})`}
+          onClose={() => setIsGoldenTicketOpen(false)}
+        />
+
+        {/* Global Toast Notifications (aussi visibles sur les Zebra !) */}
+        <ToastContainer />
       </div>
     );
   }
@@ -1534,7 +1972,7 @@ export const App: React.FC = () => {
         {currentView === 'erp' && (
           <StockERPView
             inventory={inventory}
-            locations={appConfig.locations || INITIAL_LOCATIONS}
+            locations={locations}
             onUpdateQuantity={handleUpdateQuantity}
             onUpdateInventory={handleUpdateInventory}
             onNavigateToAdminLocations={() => handleSelectView('admin')}
@@ -1544,9 +1982,10 @@ export const App: React.FC = () => {
         {currentView === 'print' && (
           <PlancheEtiquettesView
             inventory={inventory}
-            locations={appConfig.locations || INITIAL_LOCATIONS}
+            locations={locations}
             missions={missions}
             distractions={distractions}
+            goldenTicketBarcode={appConfig.goldenTicketBarcode}
             onOpenGoldenTicket={() => setIsGoldenTicketOpen(true)}
           />
         )}
@@ -1565,6 +2004,8 @@ export const App: React.FC = () => {
           <AdminConfigView
             appConfig={appConfig}
             onUpdateAppConfig={handleUpdateAppConfig}
+            locations={locations}
+            onUpdateLocations={handleUpdateLocations}
             missions={missions}
             onUpdateMissions={handleUpdateMissions}
             inventory={inventory}

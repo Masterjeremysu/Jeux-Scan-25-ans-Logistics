@@ -39,7 +39,12 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { 
-  saveAppConfig, 
+  saveAppConfig,
+  syncLocations,
+  syncInventory,
+  syncMissions,
+  moveStockLoop,
+  resetInventoryToNominal,
   resetAllScores, 
   resetLiveActivity,
   resetAllLiveStations,
@@ -52,15 +57,16 @@ import {
   deleteScoreById,
   RemoteScore
 } from '../services/supabaseClient';
-import { INITIAL_INVENTORY, INITIAL_LOCATIONS } from '../data/initialData';
-import { MISSIONS } from '../data/missions';
 import { ConfirmModal } from './ConfirmModal';
 import { showToast } from './ToastNotification';
+import { generateAutoBalancedMissions } from '../services/autoLoopMissionGenerator';
 import { Mission, MissionStep, InventoryItem, AppConfig, Distraction, LiveHazard, WarehouseLocation } from '../types';
 
 interface AdminConfigViewProps {
   appConfig: AppConfig;
   onUpdateAppConfig: (config: AppConfig) => void;
+  locations: WarehouseLocation[];
+  onUpdateLocations: (locations: WarehouseLocation[]) => void;
   missions: Mission[];
   onUpdateMissions: (missions: Mission[]) => void;
   inventory: InventoryItem[];
@@ -70,6 +76,8 @@ interface AdminConfigViewProps {
 export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
   appConfig,
   onUpdateAppConfig,
+  locations,
+  onUpdateLocations,
   missions,
   onUpdateMissions,
   inventory,
@@ -79,24 +87,29 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
   const [localConfig, setLocalConfig] = useState<AppConfig>(appConfig);
   const [localMissions, setLocalMissions] = useState<Mission[]>(missions);
   const [localInventory, setLocalInventory] = useState<InventoryItem[]>(inventory);
-  const [localLocations, setLocalLocations] = useState<WarehouseLocation[]>(
-    () => appConfig.locations && appConfig.locations.length > 0 ? appConfig.locations : INITIAL_LOCATIONS
-  );
+  const [localLocations, setLocalLocations] = useState<WarehouseLocation[]>(locations);
   const [selectedMissionIndex, setSelectedMissionIndex] = useState<number>(0);
   const [manualBarcodeSteps, setManualBarcodeSteps] = useState<Record<number, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isLocalEditingMissionsRef = useRef(false);
+  const isLocalEditingLocationsRef = useRef(false);
+  const isLocalEditingInventoryRef = useRef(false);
 
-  // Synchronisation avec les props quand les données distantes Supabase sont chargées
+  // Synchronisation temps réel avec les props Supabase
   useEffect(() => {
-    if (inventory && inventory.length > 0) {
+    if (!isLocalEditingInventoryRef.current) {
       setLocalInventory(inventory);
     }
   }, [inventory]);
 
   useEffect(() => {
-    // Only overwrite local missions if not currently actively modifying them locally
-    if (missions && missions.length > 0 && !isLocalEditingMissionsRef.current) {
+    if (!isLocalEditingLocationsRef.current) {
+      setLocalLocations(locations);
+    }
+  }, [locations]);
+
+  useEffect(() => {
+    if (!isLocalEditingMissionsRef.current) {
       setLocalMissions(missions);
     }
   }, [missions]);
@@ -105,7 +118,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     setLocalConfig(appConfig);
   }, [appConfig]);
 
-  // Auto-Save debounced en temps réel : toute modification se propage automatiquement à tous les écrans sans saut d'affichage
+  // Auto-Save debounced en temps réel vers les tables dédiées Supabase
   const isInitialMount = useRef(true);
   useEffect(() => {
     if (isInitialMount.current) {
@@ -114,20 +127,14 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     }
 
     const timer = setTimeout(() => {
-      const configWithLocs = {
-        ...localConfig,
-        locations: localLocations
-      };
-      onUpdateAppConfig(configWithLocs);
+      onUpdateAppConfig(localConfig);
+      onUpdateLocations(localLocations);
       onUpdateMissions(localMissions);
       onUpdateInventory(localInventory);
-      saveAppConfig({
-        ...configWithLocs,
-        missions: localMissions,
-        inventory: localInventory
-      });
       setTimeout(() => {
         isLocalEditingMissionsRef.current = false;
+        isLocalEditingLocationsRef.current = false;
+        isLocalEditingInventoryRef.current = false;
       }, 500);
     }, 800);
 
@@ -143,8 +150,8 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     title: '',
     description: '',
     severity: 'critical',
-    expected_barcode: 'ART-KF40-INOX',
-    barcode_label: 'Bride KF40 Inox',
+    expected_barcode: '',
+    barcode_label: '',
     time_limit_seconds: 45,
     points_bonus: 600,
     is_active: true
@@ -236,77 +243,84 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     });
   }, []);
 
-  // Save to Cloud and local state
+  // Save all tables to Supabase in parallel
   const handleSaveAll = async () => {
-    const configWithLocs = {
-      ...localConfig,
-      locations: localLocations
-    };
-    onUpdateAppConfig(configWithLocs);
+    onUpdateAppConfig(localConfig);
+    onUpdateLocations(localLocations);
     onUpdateMissions(localMissions);
     onUpdateInventory(localInventory);
 
-    const success = await saveAppConfig({
-      ...configWithLocs,
-      missions: localMissions,
-      inventory: localInventory
-    });
+    const { locations: _ignored, ...storedCfg } = localConfig;
+    const [okCfg, okLoc, okMis, okInv] = await Promise.all([
+      saveAppConfig(storedCfg),
+      syncLocations(localLocations),
+      syncMissions(localMissions),
+      syncInventory(localInventory)
+    ]);
 
-    if (success) {
+    if (okCfg && okLoc && okMis && okInv) {
       showToast({
-        title: 'Configuration Enregistrée',
-        message: 'Synchronisée dans Supabase et répercutée en direct',
+        title: 'Base Supabase Synchronisée',
+        message: 'Config, emplacements, stock et missions enregistrés en temps réel',
         type: 'success'
       });
     } else {
       showToast({
-        title: 'Enregistré localement',
-        message: 'Stocké dans le navigateur (mode hors-ligne)',
-        type: 'info'
+        title: 'Synchronisation partielle',
+        message: 'Vérifiez la connexion Supabase pour certains éléments',
+        type: 'warning'
       });
     }
   };
 
-  // Enregistrement dédié des articles du Stock
+  // Enregistrement dédié des articles du Stock (table wms_inventory)
   const handleSaveInventory = async () => {
+    isLocalEditingInventoryRef.current = false;
     onUpdateInventory(localInventory);
-
-    const success = await saveAppConfig({
-      ...localConfig,
-      missions: localMissions,
-      inventory: localInventory
-    });
+    const success = await syncInventory(localInventory);
 
     if (success) {
       showToast({
         title: 'Stock Enregistré',
-        message: `${localInventory.length} articles sauvegardés et synchronisés`,
+        message: `${localInventory.length} articles sauvegardés dans wms_inventory`,
         type: 'success'
       });
     } else {
       showToast({
-        title: 'Enregistré localement',
-        message: 'Stocké dans le navigateur (mode hors-ligne)',
-        type: 'info'
+        title: 'Erreur Sauvegarde Stock',
+        message: 'Impossible de synchroniser wms_inventory avec Supabase',
+        type: 'warning'
       });
     }
   };
 
-  // Import Template CEA
-  const handleLoadCeaTemplate = () => {
+  // Générer automatiquement une boucle Livraison (-1 bac/+1 table) + Collecte (+1 bac/-1 table) depuis le stock réel Supabase
+  const handleGenerateAutoLoopMissions = () => {
+    const autoMissions = generateAutoBalancedMissions(localInventory, localLocations, localConfig, 2);
+    if (autoMissions.length === 0) {
+      showToast({
+        title: 'Stock insuffisant',
+        message: 'Ajoutez au moins un article avec quantité > 0 et un emplacement pour générer la boucle automatique.',
+        type: 'warning'
+      });
+      return;
+    }
     setConfirmConfig({
       isOpen: true,
-      title: 'Charger les modèles du CEA ?',
-      message: 'Voulez-vous charger le catalogue officiel des 6 missions multi-lignes et 20 articles réels (Silicium, Wafers, Salle Blanche & Pièces Détachées) ?',
-      confirmLabel: 'Charger le modèle',
+      title: 'Générer une Boucle Auto-Équilibrée ?',
+      message: `Cette action crée ${autoMissions.length} missions (Livraison + Collecte) 100 % basées sur vos bacs réels en stock (${localInventory.filter((i) => i.quantity > 0).length} articles dispo) et les pièces sur table (${localInventory.filter((i) => (i.onTableQty || 0) > 0).length} sur table). Voulez-vous remplacer les missions actuelles ?`,
+      confirmLabel: '⚡ Générer la Boucle',
       variant: 'info',
-      action: () => {
-        setLocalMissions(MISSIONS);
-        setLocalInventory(INITIAL_INVENTORY);
+      action: async () => {
+        isLocalEditingMissionsRef.current = false;
+        setLocalMissions(autoMissions);
+        setSelectedMissionIndex(0);
+        onUpdateMissions(autoMissions);
+        await syncMissions(autoMissions);
         showToast({
-          title: 'Modèle GT Logistics Chargé',
-          message: '6 missions multi-lignes et 20 articles réels chargés dans l\'éditeur',
-          type: 'info'
+          title: '⚡ Boucle Livraison + Collecte Générée !',
+          message: `${autoMissions.length} missions synchronisées avec vos vrais bacs Supabase (0 collision Poste 1 / Poste 2)`,
+          type: 'success'
         });
       }
     });
@@ -351,7 +365,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
       variant: 'danger',
       action: async () => {
         const ok = await resetAllScores();
-        await resetAllLiveStations();
+        await resetAllLiveStations(localConfig.availableStations);
         if (ok) {
           setAdminScores([]);
         }
@@ -390,11 +404,12 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     });
   };
 
-  // Export JSON configuration file
+  // Export JSON configuration file (complet avec emplacements)
   const handleExportJson = () => {
     const payload = {
       exportDate: new Date().toISOString(),
       config: localConfig,
+      locations: localLocations,
       missions: localMissions,
       inventory: localInventory
     };
@@ -417,12 +432,13 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
       try {
         const parsed = JSON.parse(event.target?.result as string);
         if (parsed.config) setLocalConfig(parsed.config);
+        if (Array.isArray(parsed.locations)) setLocalLocations(parsed.locations);
         if (Array.isArray(parsed.missions)) setLocalMissions(parsed.missions);
         if (Array.isArray(parsed.inventory)) setLocalInventory(parsed.inventory);
         setSelectedMissionIndex(0);
         showToast({
           title: 'Import Réussi',
-          message: 'Fichier JSON importé avec succès dans l\'éditeur',
+          message: 'Fichier JSON importé avec succès dans l\'éditeur (sauvegarde auto en cours)',
           type: 'success'
         });
       } catch {
@@ -440,26 +456,22 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // Dedicated Save Missions Handler
+  // Dedicated Save Missions Handler (table wms_missions)
   const handleSaveMissions = async () => {
     isLocalEditingMissionsRef.current = false;
     onUpdateMissions(localMissions);
-    const success = await saveAppConfig({
-      ...localConfig,
-      missions: localMissions,
-      inventory: localInventory
-    });
+    const success = await syncMissions(localMissions);
     if (success) {
       showToast({
         title: 'Missions Sauvegardées !',
-        message: `${localMissions.length} scénario(s) synchronisé(s) avec Supabase, les Scannettes et l'Arène TV`,
+        message: `${localMissions.length} scénario(s) synchronisé(s) dans wms_missions`,
         type: 'success'
       });
     } else {
       showToast({
-        title: 'Missions enregistrées en local',
-        message: 'Sauvegardé dans le cache local (mode hors-ligne)',
-        type: 'info'
+        title: 'Erreur Sauvegarde Missions',
+        message: 'Impossible de synchroniser wms_missions avec Supabase',
+        type: 'warning'
       });
     }
   };
@@ -674,120 +686,72 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
       return;
     }
 
-    // 3. Documents & expéditions
-    if (rawCode === 'DOC-TRANSPORT-INTL') {
-      setLocalMissions(prev => prev.map((m, mIdx) => {
-        if (mIdx !== missionIdx) return m;
-        const newSteps = m.steps.map((st, i) => i === stepIdx ? {
-          ...st,
-          expectedBarcode: 'DOC-TRANSPORT-INTL',
-          targetLabel: 'Document de Transport International',
-          lrCode: 'DOC_TRP',
-          crLabel: 'DOCUMENT TRANSPORT EXPEDITION',
-          barcodeType: 'package' as const,
-          instruction: 'Contrôlez le document de transport rempli et scannez le bordereau.',
-          hint: 'Visez le document de transport fixé sur le colis.'
-        } : st);
-        return { ...m, steps: newSteps };
-      }));
-      setManualBarcodeSteps(prev => ({ ...prev, [stepIdx]: false }));
-      return;
-    }
-
-    if (rawCode === 'ART-CARTON-EXP') {
-      setLocalMissions(prev => prev.map((m, mIdx) => {
-        if (mIdx !== missionIdx) return m;
-        const newSteps = m.steps.map((st, i) => i === stepIdx ? {
-          ...st,
-          expectedBarcode: 'ART-CARTON-EXP',
-          targetLabel: 'Colis Carton Double Cannelure CEA',
-          lrCode: 'CTN_DBL1',
-          crLabel: 'CARTON DOUBLE CANNELURE CEA',
-          barcodeType: 'package' as const,
-          instruction: 'Vérifiez la conformité du colis et scannez le code-barres du carton.',
-          hint: 'Scannez le carton d\'expédition homologué.'
-        } : st);
-        return { ...m, steps: newSteps };
-      }));
-      setManualBarcodeSteps(prev => ({ ...prev, [stepIdx]: false }));
-      return;
-    }
-
-    if (rawCode === 'ZONE_RECEPTION_CENTRALE') {
-      setLocalMissions(prev => prev.map((m, mIdx) => {
-        if (mIdx !== missionIdx) return m;
-        const newSteps = m.steps.map((st, i) => i === stepIdx ? {
-          ...st,
-          expectedBarcode: 'ZONE_RECEPTION_CENTRALE',
-          targetLabel: 'La Réception Centrale (Départs Étranger)',
-          lrCode: 'REC_CENT',
-          crLabel: 'LA RECEPTION CENTRALE DEPARTS',
-          barcodeType: 'dock' as const,
-          instruction: 'Déposez le colis à La Réception Centrale et validez l\'expédition.',
-          hint: 'Scannez le panneau « La Réception Centrale » pour clôturer.'
-        } : st);
-        return { ...m, steps: newSteps };
-      }));
-      setManualBarcodeSteps(prev => ({ ...prev, [stepIdx]: false }));
-      return;
-    }
-
     // Fallback valeur personnalisée
     updateStepField(stepIdx, 'expectedBarcode', rawCode);
   };
 
-  // Add new mission from scratch
+  // Add new mission from scratch (100 % basé sur les vrais emplacements & articles de la BDD)
   const handleAddMission = () => {
     isLocalEditingMissionsRef.current = true;
     const num = localMissions.length + 1;
+    const firstLoc = localLocations[0];
+    const lastLoc = localLocations[localLocations.length - 1] || firstLoc;
+    const firstItem = localInventory[0];
+
     const newMission: Mission = {
       id: `mission-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       title: `Mission ${num} • Préparation Expédition`,
       code: `ORD-${Date.now().toString().slice(-4)}`,
-      client: 'CEA LETI • Salle Blanche / Bâtiment 17',
+      client: (localConfig.clientsCatalog && localConfig.clientsCatalog[0]) || localConfig.eventTitle || 'Client',
       priority: 'STANDARD',
-      description: 'Préparez les articles demandés dans les casiers et validez sur le quai d\'expédition.',
+      description: 'Préparez les articles demandés dans les emplacements configurés et validez l\'expédition.',
       timeLimitSeconds: 120,
       basePoints: 1200,
       steps: [
         {
           id: `step-${Date.now()}-1`,
-          instruction: 'Rendez-vous à l\'armoire de stockage et scannez l\'emplacement.',
-          expectedBarcode: 'LOC-B01-T03',
+          instruction: firstLoc
+            ? `Rendez-vous à l'emplacement ${firstLoc.label} et scannez l'étiquette.`
+            : 'Rendez-vous à l\'emplacement de stockage et scannez l\'étiquette.',
+          expectedBarcode: firstLoc?.barcode || 'LOC-01',
           barcodeType: 'location',
-          targetLabel: 'Armoire Stockage (Allée B - Casier B01)',
-          lrCode: 'LOC_B01',
-          crLabel: 'ARMOIRE ALLEE B CASIER B01',
+          targetLabel: firstLoc?.label || 'Emplacement 01',
+          lrCode: firstLoc?.lrCode || '',
+          crLabel: firstLoc?.crLabel || (firstLoc?.label || 'EMPLACEMENT 01').toUpperCase(),
           quantity: 1,
           scannedCount: 0,
           completed: false,
-          hint: 'Visez l\'étiquette du casier de préparation.'
+          hint: 'Scannez l\'étiquette d\'emplacement.'
         },
         {
           id: `step-${Date.now()}-2`,
-          instruction: 'Prélevez et scannez l\'article demandé.',
-          expectedBarcode: 'ART-KF40-INOX',
+          instruction: firstItem
+            ? `Prélevez et scannez ${firstItem.name} (${firstItem.sku}).`
+            : 'Prélevez et scannez l\'article demandé.',
+          expectedBarcode: firstItem?.sku || 'ART-01',
           barcodeType: 'article',
-          targetLabel: 'Bride à Vide KF40 Inox 316L',
-          lrCode: 'BRD_KF40',
-          crLabel: 'BRIDE A VIDE KF40 INOX',
+          targetLabel: firstItem?.name || 'Article 01',
+          lrCode: firstItem?.lrCode || '',
+          crLabel: firstItem?.crLabel || (firstItem?.name || 'ARTICLE 01').toUpperCase(),
           quantity: 1,
           scannedCount: 0,
           completed: false,
-          hint: 'Scannez le code-barres sur le sachet de la pièce.'
+          hint: 'Scannez le code-barres de l\'article.'
         },
         {
           id: `step-${Date.now()}-3`,
-          instruction: 'Déposez la commande sur l\'étagère de livraison et validez le départ.',
-          expectedBarcode: 'LOC-ETAGERE-LIVRAISON',
-          barcodeType: 'location',
-          targetLabel: 'Étagère de Livraison & Dépôt Client',
-          lrCode: 'ETA_LIVR',
-          crLabel: 'ETAGERE LIVRAISON CLIENT',
+          instruction: lastLoc
+            ? `Déposez la commande à ${lastLoc.label} et validez.`
+            : 'Déposez la commande en zone de livraison et validez.',
+          expectedBarcode: lastLoc?.barcode || 'LOC-LIVRAISON',
+          barcodeType: 'dock',
+          targetLabel: lastLoc?.label || 'Zone Livraison',
+          lrCode: lastLoc?.lrCode || '',
+          crLabel: lastLoc?.crLabel || (lastLoc?.label || 'ZONE LIVRAISON').toUpperCase(),
           quantity: 1,
           scannedCount: 0,
           completed: false,
-          hint: 'Scannez le panneau de livraison pour clore la mission.'
+          hint: 'Scannez l\'emplacement final pour clôturer la mission.'
         }
       ]
     };
@@ -796,7 +760,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     setSelectedMissionIndex(updated.length - 1);
     showToast({
       title: 'Nouvelle Mission Créée',
-      message: `Mission #${num} initialisée avec 3 étapes prêtes à l'emploi`,
+      message: `Mission #${num} initialisée depuis votre catalogue Supabase`,
       type: 'success'
     });
   };
@@ -850,10 +814,19 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
   // Trigger Surprise Client Rush Order
   const handleTriggerSurpriseOrder = async () => {
-    const clients = localConfig.clientsCatalog || ['CEA LETI - Bât. 17 (Nano)', 'Minatec Salle Blanche ISO 5'];
+    const clients = localConfig.clientsCatalog && localConfig.clientsCatalog.length > 0
+      ? localConfig.clientsCatalog
+      : [localConfig.eventTitle || 'Client Urgent'];
     const randomClient = clients[Math.floor(Math.random() * clients.length)];
-    const items = localInventory.length > 0 ? localInventory : INITIAL_INVENTORY;
-    const randomItem = items[Math.floor(Math.random() * items.length)];
+    if (localInventory.length === 0) {
+      showToast({
+        title: 'Stock vide',
+        message: 'Ajoutez au moins un article dans le stock avant de déclencher une commande urgente.',
+        type: 'warning'
+      });
+      return;
+    }
+    const randomItem = localInventory[Math.floor(Math.random() * localInventory.length)];
 
     setHazardFeedback(`Génération d'une commande imprévue pour "${randomClient}"...`);
 
@@ -1030,42 +1003,79 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     });
   };
 
-  // Reset Locations to default
-  const handleResetLocations = () => {
-    setConfirmConfig({
-      isOpen: true,
-      title: 'Réinitialiser aux emplacements standards ?',
-      message: 'Cette action restaurera la liste standard des emplacements GT Logistics / CEA Minatec.',
-      confirmLabel: 'Réinitialiser',
-      variant: 'warning',
-      action: () => {
-        setLocalLocations(INITIAL_LOCATIONS);
-        showToast({
-          title: 'Emplacements Réinitialisés',
-          message: `${INITIAL_LOCATIONS.length} emplacements rétablis`,
-          type: 'success'
+  // Auto-détecter les emplacements présents dans le Stock & les Missions et les ajouter à wms_locations
+  const handleSyncLocationsFromStock = () => {
+    const existingCodes = new Set(localLocations.map((l) => l.barcode.trim().toUpperCase()));
+    const discovered: WarehouseLocation[] = [];
+
+    localInventory.forEach((it) => {
+      const code = (it.location || '').trim();
+      if (code && !existingCodes.has(code.toUpperCase())) {
+        existingCodes.add(code.toUpperCase());
+        discovered.push({
+          id: `loc-${Date.now()}-${discovered.length}`,
+          barcode: code,
+          label: code,
+          lrCode: code.toUpperCase().replace(/[^A-Z0-9]+/g, '_'),
+          crLabel: code.toUpperCase(),
+          zone: 'Magasin Central'
         });
       }
     });
+
+    localMissions.forEach((m) => {
+      m.steps.forEach((s) => {
+        if ((s.barcodeType === 'location' || s.barcodeType === 'dock') && s.expectedBarcode) {
+          const code = s.expectedBarcode.trim();
+          if (code && !existingCodes.has(code.toUpperCase())) {
+            existingCodes.add(code.toUpperCase());
+            discovered.push({
+              id: `loc-${Date.now()}-${discovered.length}`,
+              barcode: code,
+              label: s.targetLabel || code,
+              lrCode: s.lrCode || code.toUpperCase().replace(/[^A-Z0-9]+/g, '_'),
+              crLabel: s.crLabel || (s.targetLabel || code).toUpperCase(),
+              zone: s.barcodeType === 'dock' ? 'Expédition / Quais' : 'Zone Missions'
+            });
+          }
+        }
+      });
+    });
+
+    if (discovered.length === 0) {
+      showToast({
+        title: 'Tout est déjà synchronisé',
+        message: 'Tous les emplacements du stock et des missions existent déjà dans wms_locations.',
+        type: 'info'
+      });
+      return;
+    }
+
+    isLocalEditingLocationsRef.current = true;
+    setLocalLocations((prev) => [...prev, ...discovered]);
+    showToast({
+      title: `${discovered.length} emplacement(s) détecté(s)`,
+      message: 'Ajoutés automatiquement depuis votre stock et vos missions.',
+      type: 'success'
+    });
   };
 
-  // Dedicated Save Locations
+  // Dedicated Save Locations (table wms_locations)
   const handleSaveLocations = async () => {
-    const configWithLocs = {
-      ...localConfig,
-      locations: localLocations
-    };
-    onUpdateAppConfig(configWithLocs);
-    const ok = await saveAppConfig({
-      ...configWithLocs,
-      missions: localMissions,
-      inventory: localInventory
-    });
+    isLocalEditingLocationsRef.current = false;
+    onUpdateLocations(localLocations);
+    const ok = await syncLocations(localLocations);
     if (ok) {
       showToast({
         title: 'Emplacements Enregistrés',
-        message: `${localLocations.length} emplacements physiques synchronisés dans Supabase`,
+        message: `${localLocations.length} emplacements physiques synchronisés dans wms_locations`,
         type: 'success'
+      });
+    } else {
+      showToast({
+        title: 'Erreur Emplacements',
+        message: 'Impossible de synchroniser wms_locations avec Supabase',
+        type: 'warning'
       });
     }
   };
@@ -1098,6 +1108,242 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* 🎯 ASSISTANT RÉGIE : COACH ANIMATEUR JOUR J (GUIDE PAS-À-PAS + ACTIONS 1-CLIC) */}
+      {(() => {
+        const knownCodes = new Set<string>();
+        localLocations.forEach((l) => {
+          if (l.barcode) knownCodes.add(l.barcode.trim().toUpperCase());
+          if (l.lrCode) knownCodes.add(l.lrCode.trim().toUpperCase());
+          (l.aliases || []).forEach((a) => knownCodes.add(a.trim().toUpperCase()));
+        });
+        localInventory.forEach((it) => {
+          if (it.sku) knownCodes.add(it.sku.trim().toUpperCase());
+          if (it.lrCode) knownCodes.add(it.lrCode.trim().toUpperCase());
+          (it.aliases || []).forEach((a) => knownCodes.add(a.trim().toUpperCase()));
+        });
+
+        const missionWarnings: string[] = [];
+        localMissions.forEach((m) => {
+          m.steps.forEach((s, idx) => {
+            const code = (s.expectedBarcode || '').trim().toUpperCase();
+            if (code && !knownCodes.has(code)) {
+              missionWarnings.push(`Mission « ${m.title} » (étape ${idx + 1}) : code « ${s.expectedBarcode} » introuvable dans le stock/emplacements.`);
+            }
+          });
+        });
+
+        const distractionWarnings: string[] = [];
+        distractions.forEach((d) => {
+          const code = (d.expected_barcode || '').trim().toUpperCase();
+          if (d.is_active && code && !knownCodes.has(code)) {
+            distractionWarnings.push(`Aléa « ${d.title} » : code « ${d.expected_barcode} » absent du stock/emplacements.`);
+          }
+        });
+
+        const itemsOnTable = localInventory.filter((it) => (it.onTableQty || 0) > 0);
+        const totalOnTable = itemsOnTable.reduce((acc, it) => acc + (it.onTableQty || 0), 0);
+        const itemsInBins = localInventory.filter((it) => it.quantity > 0 && it.location);
+        const zeroStockItems = localInventory.filter((it) => it.quantity <= 0);
+        const deliveryCode = localConfig.deliveryTableBarcode || 'LOC-ETAGERE-LIVRAISON';
+        const collectCode = localConfig.collectTableBarcode || 'LOC-ETAGERE-COLLECTE';
+
+        // Suggestions d'amorçage : les 2 premiers articles dispo en bac
+        const seedCandidates = itemsInBins.slice(0, 2);
+
+        const handleSeedTable = async () => {
+          if (seedCandidates.length === 0) return;
+          isLocalEditingInventoryRef.current = true;
+          const seededIds = new Set(seedCandidates.map((c) => c.id));
+          const updatedInv = localInventory.map((it) =>
+            seededIds.has(it.id)
+              ? { ...it, quantity: Math.max(0, it.quantity - 1), onTableQty: (it.onTableQty || 0) + 1 }
+              : it
+          );
+          setLocalInventory(updatedInv);
+          onUpdateInventory(updatedInv);
+          await Promise.all(seedCandidates.map((c) => moveStockLoop(c.id, 'out')));
+          showToast({
+            title: '📦 Table de Collecte Amorcée !',
+            message: `Posez physiquement ${seedCandidates.map((c) => c.name).join(' + ')} sur la table ${collectCode}`,
+            type: 'success',
+            duration: 6000
+          });
+          setTimeout(() => {
+            isLocalEditingInventoryRef.current = false;
+          }, 600);
+        };
+
+        const allWarnings = [...missionWarnings, ...distractionWarnings];
+        const isFullyReady = allWarnings.length === 0 && localMissions.length > 0 && itemsInBins.length > 0;
+
+        // Recommandation principale temps réel pour l'animateur
+        let coachHeadline = '🚀 Stand 100 % prêt ! Saisissez les prénoms du prochain Duo ci-dessous et lancez le duel.';
+        let coachTone: 'emerald' | 'amber' | 'sky' = 'emerald';
+
+        if (missionWarnings.length > 0 || localMissions.length === 0) {
+          coachHeadline = '⚡ Action recommandée : vos missions ne pointent pas toutes vers vos vrais produits en stock. Cliquez sur « Auto-Boucle » pour les aligner en 1 clic.';
+          coachTone = 'amber';
+        } else if (totalOnTable === 0 && seedCandidates.length > 0) {
+          coachHeadline = `💡 Conseil d'amorçage : posez 2 pièces sur la Table de Collecte (${collectCode}) pour que la boucle Livraison ↔ Collecte tourne toute seule dès le 1er duel !`;
+          coachTone = 'sky';
+        } else if (totalOnTable >= 4) {
+          coachHeadline = `📥 ${totalOnTable} pièces sont posées sur la table ! Cliquez sur « Auto-Boucle » pour envoyer le prochain Duo les ranger automatiquement dans leurs bacs.`;
+          coachTone = 'amber';
+        } else if (zeroStockItems.length > 0) {
+          coachHeadline = `⚠️ ${zeroStockItems.length} article(s) sont à 0 en bac : lancez une Collecte ou réinitialisez le stock nominal.`;
+          coachTone = 'amber';
+        }
+
+        const toneStyles =
+          coachTone === 'emerald'
+            ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+            : coachTone === 'sky'
+            ? 'bg-sky-50/90 border-sky-300 text-sky-950'
+            : 'bg-amber-50/90 border-amber-300 text-amber-950';
+
+        return (
+          <div className={`rounded-3xl p-5 border-2 shadow-sm space-y-4 ${toneStyles}`}>
+            {/* Ligne titre + statut */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                {isFullyReady ? (
+                  <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
+                ) : (
+                  <Sparkles className="w-6 h-6 text-amber-600 shrink-0" />
+                )}
+                <div>
+                  <span className="text-[10px] font-mono font-black uppercase tracking-widest opacity-75 block">
+                    Assistant Régie • Guide Animateur Jour J
+                  </span>
+                  <p className="text-xs sm:text-sm font-black">{coachHeadline}</p>
+                </div>
+              </div>
+              <span className="text-[11px] font-mono font-bold px-3 py-1 rounded-full bg-white/80 border border-slate-200 text-slate-700">
+                {itemsInBins.length} en bacs • {totalOnTable} sur table • {localMissions.length} missions
+              </span>
+            </div>
+
+            {/* Guide physique : Quoi positionner sur le stand */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              {/* Carte 1 : Étagères / Bacs */}
+              <div className="bg-white/90 rounded-2xl p-3.5 border border-slate-200/80 space-y-1.5 text-slate-800">
+                <div className="font-black text-[11px] uppercase font-mono text-blue-800 flex items-center justify-between">
+                  <span>1. Étagères & Bacs</span>
+                  <span className="text-emerald-700">{itemsInBins.length}/{localInventory.length} OK</span>
+                </div>
+                <p className="text-[11px] text-slate-600">
+                  Collez les <strong>{localLocations.length} étiquettes d'emplacements</strong> sur vos 2 étagères et vérifiez que chaque pièce est dans son bac.
+                </p>
+                {zeroStockItems.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await resetInventoryToNominal();
+                      showToast({ title: 'Stock remis au nominal', message: 'Toutes les quantités en bac sont restaurées', type: 'success' });
+                    }}
+                    className="mt-1 w-full py-1.5 px-2.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-[11px] cursor-pointer"
+                  >
+                    🔄 Remettre les {zeroStockItems.length} bac(s) à 0 au nominal
+                  </button>
+                )}
+              </div>
+
+              {/* Carte 2 : Table Collecte & Table Livraison */}
+              <div className="bg-white/90 rounded-2xl p-3.5 border border-slate-200/80 space-y-1.5 text-slate-800">
+                <div className="font-black text-[11px] uppercase font-mono text-amber-800 flex items-center justify-between">
+                  <span>2. Tables Livraison & Collecte</span>
+                  <span className="text-amber-700">{totalOnTable} pièce(s)</span>
+                </div>
+                {totalOnTable === 0 ? (
+                  <>
+                    <p className="text-[11px] text-slate-600">
+                      Étiquetez <strong>{deliveryCode}</strong> et <strong>{collectCode}</strong> côte à côte. Pour amorcer la boucle dès le 1er duel, posez sur la table Collecte :
+                    </p>
+                    {seedCandidates.length > 0 && (
+                      <div className="text-[11px] font-mono bg-amber-50 border border-amber-200 rounded-lg p-2 space-y-0.5 text-amber-950">
+                        {seedCandidates.map((c) => (
+                          <div key={c.id} className="truncate">• <strong>{c.name}</strong> ({c.location})</div>
+                        ))}
+                      </div>
+                    )}
+                    {seedCandidates.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleSeedTable}
+                        className="w-full py-1.5 px-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[11px] cursor-pointer shadow-sm"
+                      >
+                        📦 Je les pose sur la table (Sync ERP)
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-[11px] text-emerald-700 font-bold">
+                      Pièces actuellement sur la table (prêtes à être collectées) :
+                    </p>
+                    <div className="text-[11px] font-mono bg-emerald-50 border border-emerald-200 rounded-lg p-2 space-y-0.5 max-h-24 overflow-y-auto text-emerald-950">
+                      {itemsOnTable.map((it) => (
+                        <div key={it.id} className="truncate">
+                          • <strong>{it.onTableQty}×</strong> {it.name} → <span className="text-blue-700">{it.location}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Carte 3 : Actions rapides Animateur */}
+              <div className="bg-white/90 rounded-2xl p-3.5 border border-slate-200/80 space-y-2 text-slate-800">
+                <div className="font-black text-[11px] uppercase font-mono text-emerald-800 flex items-center justify-between">
+                  <span>3. Pilotage Rapide</span>
+                  <span className={localConfig.strictScanOnly ? 'text-emerald-700' : 'text-slate-500'}>
+                    {localConfig.strictScanOnly ? '🔒 Jour J' : '🔓 Test'}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleGenerateAutoLoopMissions}
+                  className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-[11px] cursor-pointer shadow-sm"
+                >
+                  ⚡ Générer / Actualiser Boucle Auto
+                </button>
+
+                {!localConfig.strictScanOnly && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLocalConfig({ ...localConfig, strictScanOnly: true });
+                      showToast({ title: '🔒 Mode Jour J activé', message: 'Seuls les vrais scans Zebra/Caméra sont acceptés', type: 'success' });
+                    }}
+                    className="w-full py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] cursor-pointer"
+                  >
+                    🔒 Activer le Mode Compétition Jour J
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Alertes détaillées s'il reste des incohérences */}
+            {allWarnings.length > 0 && (
+              <div className="bg-white/80 rounded-2xl p-3 border border-amber-300 text-xs text-amber-950">
+                <span className="font-black text-[11px] uppercase font-mono block mb-1">
+                  ⚠️ {allWarnings.length} incohérence(s) détectée(s) :
+                </span>
+                <ul className="space-y-0.5 pl-5 list-disc text-[11px]">
+                  {allWarnings.slice(0, 5).map((w, i) => (
+                    <li key={i}>{w}</li>
+                  ))}
+                  {allWarnings.length > 5 && (
+                    <li className="font-bold">… et {allWarnings.length - 5} autre(s).</li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* MATCH & ZEBRA QR DISPATCHER */}
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-md space-y-4">
@@ -1431,12 +1677,6 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                   >
                     + Créer une Mission
                   </button>
-                  <button
-                    onClick={handleLoadCeaTemplate}
-                    className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold border border-slate-300 cursor-pointer"
-                  >
-                    Charger Modèle CEA
-                  </button>
                 </div>
               </div>
             ) : (
@@ -1469,21 +1709,29 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
             )}
 
             {/* Quick Actions */}
-            <div className="pt-2 border-t border-slate-200 flex gap-2">
+            <div className="pt-2 border-t border-slate-200 flex flex-col gap-2">
               <button
-                onClick={handleLoadCeaTemplate}
-                className="flex-1 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold border border-slate-300 cursor-pointer transition-colors"
-                title="Rétablir les scénarios CEA de référence"
+                onClick={handleGenerateAutoLoopMissions}
+                className="w-full py-2 px-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-[11px] font-black shadow-sm cursor-pointer transition-all"
+                title="Génère automatiquement des missions Livraison (-1 bac/+1 table) et Collecte (+1 bac/-1 table) depuis vos vrais bacs Supabase"
               >
-                Template CEA
+                ⚡ Auto-Boucle (Livraison + Collecte)
               </button>
-              <button
-                onClick={handleClearAllMissions}
-                className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-[11px] cursor-pointer transition-colors"
-                title="Tout vider"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAddMission}
+                  className="flex-1 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-bold border border-blue-200 cursor-pointer transition-colors"
+                >
+                  + Nouvelle Mission
+                </button>
+                <button
+                  onClick={handleClearAllMissions}
+                  className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-[11px] cursor-pointer transition-colors"
+                  title="Tout vider"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1580,6 +1828,18 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                 </div>
 
                 <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="text-xs text-slate-700 block mb-1 font-bold">Sens de Stock (Boucle Auto) :</label>
+                    <select
+                      value={localMissions[selectedMissionIndex].stockDirection || 'out'}
+                      onChange={(e) => updateMissionField('stockDirection', e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-3 py-2 rounded-xl text-xs text-slate-900 font-bold focus:outline-none"
+                    >
+                      <option value="out">📤 Livraison (Bac -1 → Table +1)</option>
+                      <option value="in">📥 Collecte (Table -1 → Bac +1)</option>
+                      <option value="none">🔄 Manutention (Stock neutre 0)</option>
+                    </select>
+                  </div>
                   <div className="flex-1">
                     <label className="text-xs text-slate-700 block mb-1 font-bold">Priorité :</label>
                     <select
@@ -1715,11 +1975,6 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                                 <option key={item.id || item.sku} value={item.sku}>📦 {item.name} ({item.sku})</option>
                               ))}
                             </optgroup>
-                            <optgroup label="📋 Documents & Colis">
-                              <option value="DOC-TRANSPORT-INTL">📋 DOC-TRANSPORT-INTL • Doc Transport</option>
-                              <option value="ART-CARTON-EXP">📦 ART-CARTON-EXP • Carton Expédition</option>
-                              <option value="ZONE_RECEPTION_CENTRALE">⚓ ZONE_RECEPTION_CENTRALE • Réception Centrale</option>
-                            </optgroup>
                           </select>
 
                           {/* Step Actions: Duplicate, Move Up, Move Down, Delete */}
@@ -1830,18 +2085,11 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                                   </option>
                                 ))}
                               </optgroup>
-                              <optgroup label="📋 Documents & Expéditions">
-                                <option value="DOC-TRANSPORT-INTL">📋 DOC-TRANSPORT-INTL — Document de Transport International</option>
-                                <option value="ART-CARTON-EXP">📦 ART-CARTON-EXP — Colis Carton Double Cannelure CEA</option>
-                                <option value="ZONE_RECEPTION_CENTRALE">⚓ ZONE_RECEPTION_CENTRALE — La Réception Centrale (Départs)</option>
-                                <option value="SCEL-SEC-RED">🔒 SCEL-SEC-RED — Scellé de Sécurité Rouge</option>
-                              </optgroup>
                               {step.expectedBarcode &&
                                !localLocations.some(l => l.barcode === step.expectedBarcode) &&
-                               !localInventory.some(i => i.sku === step.expectedBarcode) &&
-                               !['DOC-TRANSPORT-INTL', 'ART-CARTON-EXP', 'ZONE_RECEPTION_CENTRALE', 'SCEL-SEC-RED'].includes(step.expectedBarcode) && (
-                                <optgroup label="🏷️ Code actuel">
-                                  <option value={step.expectedBarcode}>🏷️ {step.expectedBarcode} (Personnalisé)</option>
+                               !localInventory.some(i => i.sku === step.expectedBarcode) && (
+                                <optgroup label="🏷️ Code actuel (hors catalogue)">
+                                  <option value={step.expectedBarcode}>⚠️ {step.expectedBarcode} (Personnalisé)</option>
                                 </optgroup>
                               )}
                               <option value="__custom__">✏️ + Saisie manuelle d'un autre code...</option>
@@ -1935,12 +2183,6 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                 <span>Enregistrer le Stock</span>
               </button>
               <button
-                onClick={handleLoadCeaTemplate}
-                className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-bold transition-colors cursor-pointer"
-              >
-                Template CEA
-              </button>
-              <button
                 onClick={handleClearAllInventory}
                 className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs transition-colors cursor-pointer"
                 title="Vider le stock"
@@ -1955,9 +2197,10 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                     lrCode: 'REF_NEW',
                     crLabel: 'NOUVEL ARTICLE INDUSTRIEL',
                     name: 'NOUVEL ARTICLE INDUSTRIEL',
-                    category: 'Vide & Cryo',
-                    location: 'ZONE_POMPE_GRILLE_41',
+                    category: 'Consommables',
+                    location: localLocations[0]?.barcode || '',
                     quantity: 10,
+                    nominalQuantity: 10,
                     unit: 'pcs',
                     critical: false,
                     batch: 'LOT-2026',
@@ -2182,11 +2425,11 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
 
               <button
                 type="button"
-                onClick={handleResetLocations}
+                onClick={handleSyncLocationsFromStock}
                 className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-300 transition-colors cursor-pointer"
-                title="Rétablir la liste standard GT Logistics"
+                title="Détecter automatiquement les emplacements utilisés dans le stock et les missions"
               >
-                Réinitialiser Standards
+                🔍 Détecter depuis le Stock
               </button>
 
               <button
@@ -2209,6 +2452,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                   <th className="p-3">Réf Courte (Ticket L/R)</th>
                   <th className="p-3">Désignation (Ticket C/R)</th>
                   <th className="p-3">Zone / Secteur</th>
+                  <th className="p-3">Aliases Scan (séparés par ,)</th>
                   <th className="p-3 text-center">Actions</th>
                 </tr>
               </thead>
@@ -2267,6 +2511,26 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                         onChange={(e) => handleUpdateLocationField(loc.id, 'zone', e.target.value)}
                         placeholder="Magasin Central"
                         className="bg-slate-50 border border-slate-300 focus:bg-white focus:border-slate-500 px-2.5 py-1.5 rounded-lg text-slate-700 text-xs w-36 focus:outline-none"
+                      />
+                    </td>
+
+                    {/* 5b. Aliases de scan tolérés */}
+                    <td className="p-2.5 min-w-[160px]">
+                      <input
+                        type="text"
+                        value={(loc.aliases || []).join(', ')}
+                        onChange={(e) =>
+                          handleUpdateLocationField(
+                            loc.id,
+                            'aliases',
+                            e.target.value
+                              .split(',')
+                              .map((s) => s.trim())
+                              .filter(Boolean)
+                          )
+                        }
+                        placeholder="ex: CODE_ALT1, CODE_ALT2"
+                        className="bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-500 px-2.5 py-1.5 rounded-lg text-slate-700 font-mono text-[11px] w-full focus:outline-none"
                       />
                     </td>
 
@@ -2423,6 +2687,60 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                 />
                 <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
               </label>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="text-xs font-bold text-amber-700 uppercase font-mono block mb-1">
+                🎟️ Code-Barres du Ticket d'Or (+2 500 pts Easter Egg) :
+              </label>
+              <input
+                type="text"
+                value={localConfig.goldenTicketBarcode || 'ART-GT25-VIP'}
+                onChange={(e) => setLocalConfig({ ...localConfig, goldenTicketBarcode: e.target.value.trim().toUpperCase() })}
+                placeholder="ART-GT25-VIP"
+                className="w-full bg-amber-50/70 border border-amber-300 focus:bg-white focus:border-amber-500 px-3.5 py-2.5 rounded-xl text-sm text-amber-900 font-mono font-bold focus:outline-none"
+              />
+              <span className="text-[11px] text-slate-500 mt-1 block">Synchronisé automatiquement avec la Planche d'Étiquettes et les scannettes Zebra</span>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-700 uppercase font-mono block mb-1">
+                📤 Code-Barres Table de Livraison (Boucle Auto) :
+              </label>
+              <select
+                value={localConfig.deliveryTableBarcode || 'LOC-ETAGERE-LIVRAISON'}
+                onChange={(e) => setLocalConfig({ ...localConfig, deliveryTableBarcode: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-3 py-2.5 rounded-xl text-xs text-slate-900 font-mono font-bold focus:outline-none"
+              >
+                {localLocations.map((l) => (
+                  <option key={l.id} value={l.barcode}>{l.barcode} — {l.label}</option>
+                ))}
+                {!localLocations.some((l) => l.barcode === (localConfig.deliveryTableBarcode || 'LOC-ETAGERE-LIVRAISON')) && (
+                  <option value={localConfig.deliveryTableBarcode || 'LOC-ETAGERE-LIVRAISON'}>
+                    {localConfig.deliveryTableBarcode || 'LOC-ETAGERE-LIVRAISON'}
+                  </option>
+                )}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-700 uppercase font-mono block mb-1">
+                📥 Code-Barres Table de Collecte (Boucle Auto) :
+              </label>
+              <select
+                value={localConfig.collectTableBarcode || 'LOC-ETAGERE-COLLECTE'}
+                onChange={(e) => setLocalConfig({ ...localConfig, collectTableBarcode: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-3 py-2.5 rounded-xl text-xs text-slate-900 font-mono font-bold focus:outline-none"
+              >
+                {localLocations.map((l) => (
+                  <option key={l.id} value={l.barcode}>{l.barcode} — {l.label}</option>
+                ))}
+                {!localLocations.some((l) => l.barcode === (localConfig.collectTableBarcode || 'LOC-ETAGERE-COLLECTE')) && (
+                  <option value={localConfig.collectTableBarcode || 'LOC-ETAGERE-COLLECTE'}>
+                    {localConfig.collectTableBarcode || 'LOC-ETAGERE-COLLECTE'}
+                  </option>
+                )}
+              </select>
             </div>
 
             <div className="md:col-span-2 pt-3 border-t border-slate-200">
@@ -2727,73 +3045,52 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
               </div>
             </div>
 
-            {/* Quick Template Chips */}
-            <div className="flex flex-wrap gap-2 pt-1">
-              <span className="text-[11px] text-slate-500 font-mono block w-full">Suggestions d'urgences d'entrepôt prêtes à charger :</span>
-              <button
-                type="button"
-                onClick={() => setNewDistraction({
-                  title: '🚨 URGENCE FLASH : Arrêt Banc Dépôt Bât. 17 !',
-                  expected_barcode: 'ART-KF40-INOX',
-                  barcode_label: 'Bride KF40 Inox (Casier Allée B)',
-                  description: 'Ligne PVD stoppée : amenez d\'urgence la bride KF40 inox pour reprise du vide.',
-                  time_limit_seconds: 40,
-                  points_bonus: 750,
-                  severity: 'critical',
-                  is_active: true
-                })}
-                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-[11px] text-slate-800 rounded-lg border border-slate-300 font-medium cursor-pointer transition-colors"
+            {/* Sélecteur intelligent 100 % BDD pour pré-remplir un aléa depuis le stock ou les emplacements */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center gap-2">
+              <span className="text-[11px] font-mono font-bold text-slate-600 uppercase shrink-0">
+                ⚡ Pré-remplir depuis votre BDD :
+              </span>
+              <select
+                value=""
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val) return;
+                  const inv = localInventory.find((it) => it.sku === val);
+                  if (inv) {
+                    setNewDistraction((prev) => ({
+                      ...prev,
+                      title: prev.title || `🚨 URGENCE FLASH : Prélèvement ${inv.name}`,
+                      expected_barcode: inv.sku,
+                      barcode_label: inv.name,
+                      description: prev.description || `Besoin urgent : scannez ${inv.name} (${inv.sku}) à l'emplacement ${inv.location || 'indiqué'}.`
+                    }));
+                    return;
+                  }
+                  const loc = localLocations.find((l) => l.barcode === val);
+                  if (loc) {
+                    setNewDistraction((prev) => ({
+                      ...prev,
+                      title: prev.title || `⚠️ CONTRÔLE ZONE : ${loc.label}`,
+                      expected_barcode: loc.barcode,
+                      barcode_label: loc.label,
+                      description: prev.description || `Contrôle immédiat requis : rendez-vous à ${loc.label} et scannez l'emplacement.`
+                    }));
+                  }
+                }}
+                className="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-600"
               >
-                🚨 Arrêt Banc Dépôt (Bride KF40)
-              </button>
-              <button
-                type="button"
-                onClick={() => setNewDistraction({
-                  title: '⚠️ CONTRÔLE QUALITÉ : Scellé de sécurité transport',
-                  expected_barcode: 'ART-SCEL-SECURITE',
-                  barcode_label: 'Scellé de Sécurité Transport',
-                  description: 'Audit inopiné ISO 9001 : scannez le scellé de sécurité pour valider la conformité.',
-                  time_limit_seconds: 50,
-                  points_bonus: 500,
-                  severity: 'warning',
-                  is_active: true
-                })}
-                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-[11px] text-slate-800 rounded-lg border border-slate-300 font-medium cursor-pointer transition-colors"
-              >
-                ⚠️ Contrôle Qualité (Scellé)
-              </button>
-              <button
-                type="button"
-                onClick={() => setNewDistraction({
-                  title: '🚚 ARRIVÉE TRANSPORTEUR : Camion à quai',
-                  expected_barcode: 'DOCK-INTL-FRET',
-                  barcode_label: 'Quai Départs Fret International',
-                  description: 'Le transporteur international attend au quai : validez la prise en charge immédiate.',
-                  time_limit_seconds: 45,
-                  points_bonus: 600,
-                  severity: 'critical',
-                  is_active: true
-                })}
-                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-[11px] text-slate-800 rounded-lg border border-slate-300 font-medium cursor-pointer transition-colors"
-              >
-                🚚 Camion à Quai (Fret Intl)
-              </button>
-              <button
-                type="button"
-                onClick={() => setNewDistraction({
-                  title: '❄️ ALERTE CRYO : Contrôle vanne Zone Pompe 41',
-                  expected_barcode: 'ZONE_POMPE_GRILLE_41',
-                  barcode_label: 'Zone Pompe Grille 41',
-                  description: 'Variation de pression détectée sur le circuit cryo : scannez l\'emplacement Zone Pompe 41.',
-                  time_limit_seconds: 45,
-                  points_bonus: 650,
-                  severity: 'critical',
-                  is_active: true
-                })}
-                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-[11px] text-slate-800 rounded-lg border border-slate-300 font-medium cursor-pointer transition-colors"
-              >
-                ❄️ Alerte Cryo (Zone Pompe 41)
-              </button>
+                <option value="">-- Choisir un article ou un emplacement réel dans Supabase --</option>
+                <optgroup label="📦 Articles en Stock (wms_inventory)">
+                  {localInventory.map((it) => (
+                    <option key={it.id} value={it.sku}>📦 {it.sku} — {it.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="📍 Emplacements (wms_locations)">
+                  {localLocations.map((l) => (
+                    <option key={l.id} value={l.barcode}>📍 {l.barcode} — {l.label}</option>
+                  ))}
+                </optgroup>
+              </select>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">

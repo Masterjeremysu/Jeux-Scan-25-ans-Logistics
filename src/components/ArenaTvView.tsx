@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { DuoStation, AppConfig, Mission, OperatorProfile } from '../types';
-import { MISSIONS } from '../data/missions';
 import { 
   getStationsLive, 
   subscribeToStationsLive, 
@@ -472,9 +471,11 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
       combo: 0,
       progress_percent: 0,
       current_step_index: 0,
-      total_steps: m1Selected.steps.length,
+      total_steps: m1Selected?.steps?.length || 0,
       status: 'in_progress',
-      current_mission_title: m1Selected.title
+      current_mission_title: m1Selected?.title || 'En attente...',
+      last_scan_code: null,
+      last_scan_status: null
     });
 
     await updateStationLive({
@@ -487,9 +488,11 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
       combo: 0,
       progress_percent: 0,
       current_step_index: 0,
-      total_steps: m2Selected.steps.length,
+      total_steps: m2Selected?.steps?.length || 0,
       status: 'in_progress',
-      current_mission_title: m2Selected.title
+      current_mission_title: m2Selected?.title || 'En attente...',
+      last_scan_code: null,
+      last_scan_status: null
     });
 
     setMatchSeconds(appConfig.shiftDurationSeconds || 180);
@@ -506,7 +509,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
     if (!station) return ['Étape 1', 'Étape 2', 'Étape 3', 'Livraison'];
     
     const missionTitle = station.current_mission_title?.toLowerCase() || '';
-    const pool = (propMissions && propMissions.length > 0) ? propMissions : MISSIONS;
+    const pool: Mission[] = propMissions || [];
     const foundMission = pool.find(m => 
       missionTitle.includes(m.title.toLowerCase().substring(0, 15)) ||
       m.title.toLowerCase().includes(missionTitle.substring(0, 15)) ||
@@ -514,43 +517,9 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
     );
 
     if (foundMission && foundMission.steps.length > 0) {
-      return foundMission.steps.map((step: any) => {
-        if (step.expectedBarcode === 'LOC-B01-T03') return 'Armoire B01';
-        if (step.expectedBarcode === 'LOC-B01-T04') return 'Armoire T04';
-        if (step.expectedBarcode === 'ART-KF40-INOX') return 'Bride KF40';
-        if (step.expectedBarcode === 'REF191000007490') return 'Joint Kalrez';
-        if (step.expectedBarcode === 'LOC-ETAGERE-LIVRAISON') return 'Livraison Client';
-        if (step.expectedBarcode === 'LOC-ETAGERE-COLLECTE') return 'Étagère Collecte';
-        if (step.expectedBarcode === 'ZONE_POMPE_GRILLE_41') return 'Zone Pompe 41';
-        if (step.expectedBarcode === 'LOC-ETA1-NIV1') return 'Étagère 1';
-        if (step.expectedBarcode === 'LOC-ETA1-NIV2') return 'Étagère 1 N2';
-        if (step.expectedBarcode === 'LOC-ETA1-NIV3') return 'Étagère 1 N3';
-        if (step.expectedBarcode === 'LOC-ETA2-NIV1') return 'Étagère 2 N1';
-        if (step.expectedBarcode === 'LOC-ETA2-NIV2') return 'Étagère 2 N2';
-        if (step.expectedBarcode === 'LOC-ETA2-NIV3') return 'Étagère 2 N3';
-        if (step.expectedBarcode === 'DOC-TRANSPORT-INTL') return 'Doc Transport';
-        if (step.expectedBarcode === 'ART-CARTON-EXP') return 'Carton Double';
-        if (step.expectedBarcode === 'ZONE_RECEPTION_CENTRALE') return 'Réception Cent.';
-        if (step.expectedBarcode === 'ART-WAFER-300MM') return 'Wafer 300mm';
-        if (step.expectedBarcode === 'ART-WAFER-200MM') return 'Wafer 200mm';
-        if (step.expectedBarcode === 'ART-CASSETTE-FOUP') return 'FOUP 300mm';
-        if (step.expectedBarcode === 'ART-PINCE-TEFLON') return 'Pince Téflon';
-        if (step.expectedBarcode === 'ART-CARRIER-QUARTZ') return 'Nacelle Quartz';
-        if (step.expectedBarcode === 'ART-TARGET-TITANE') return 'Cible Titane';
-        if (step.expectedBarcode === 'ART-RESINE-PHOTORESIST') return 'Résine Litho';
-        if (step.expectedBarcode === 'ART-GEL-PACK-MEMS') return 'Gel-Pak MEMS';
-        if (step.expectedBarcode === 'ART-SACHET-ESD') return 'Sachet ESD';
-        if (step.expectedBarcode === 'ART-BOITE-PETRI-SB') return 'Boîte Pétri';
-        if (step.expectedBarcode === 'ART-VITON-KF40') return 'Joint Viton';
-        if (step.expectedBarcode === 'ART-CLAMP-KF25') return 'Collier KF25';
-        if (step.expectedBarcode === 'ART-PUMP-EDWARDS') return 'Pompe Edwards';
-        if (step.expectedBarcode === 'ART-ELECTROVANNE-PNEU') return 'Vanne SMC';
-        if (step.expectedBarcode === 'ART-SCEL-SECURITE') return 'Scellé IATA';
-        if (step.expectedBarcode === 'DOCK-EXPED-01') return 'Quai A';
-        if (step.expectedBarcode === 'DOCK-EXPED-02') return 'Quai B';
-        if (step.expectedBarcode === 'LOC-SB-C01') return 'Sas SB C01';
-        if (step.expectedBarcode === 'LOC-PACK-ZONE') return 'Zone Emballage';
-        return step.crLabel?.slice(0, 14) || step.targetLabel?.split('(')[0].trim() || 'Étape';
+      return foundMission.steps.map((step: any, idx: number) => {
+        const raw = (step.targetLabel || step.crLabel || step.expectedBarcode || `Étape ${idx + 1}`).split('(')[0].trim();
+        return raw.length > 18 ? `${raw.slice(0, 17)}…` : raw;
       });
     }
 
@@ -563,7 +532,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
   const isStation1Finished = (station1?.progress_percent ?? 0) >= 100 || station1?.status === 'completed';
   const isStation2Finished = (station2?.progress_percent ?? 0) >= 100 || station2?.status === 'completed';
 
-  const missionsPool = (propMissions && propMissions.length > 0) ? propMissions : MISSIONS;
+  const missionsPool: Mission[] = propMissions || [];
   const station1Missions = missionsPool;
   // Poste 2 exécute les missions dans l'ordre inversé pour éviter que les deux binômes soient sur la même étagère
   const station2Missions = missionsPool.slice().reverse();
@@ -626,7 +595,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
               </span>
             </div>
             <p className="text-[11px] text-slate-300 font-sans flex items-center gap-1.5">
-              <span>CEA Grenoble 25 Ans</span>
+              <span>{appConfig.eventTitle || 'GT LOGISTICS'} • {appConfig.badgeLabel || 'ÉDITION 25 ANS'}</span>
               <span className="text-red-500 font-bold">•</span>
               <span className="italic text-slate-400">« Vous êtes unique, nos prestations <strong className="text-red-400 not-italic">aussi.</strong> »</span>
             </p>
@@ -855,7 +824,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
               </h2>
               <div className="mt-1.5 flex flex-wrap gap-2 text-xs font-mono">
                 <span className="bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-800 text-sky-300 font-semibold">
-                  GT : <strong>{station1?.operator_cea || 'Jeremy'}</strong>
+                  GT : <strong>{station1?.operator_cea || 'Collaborateur 1'}</strong>
                 </span>
                 <span className="bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-800 text-amber-300 font-semibold">
                   Invité : <strong>{station1?.client_guest || 'Thomas'}</strong>
@@ -1106,7 +1075,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
               </h2>
               <div className="mt-1.5 flex flex-wrap gap-2 text-xs font-mono">
                 <span className="bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-800 text-sky-300 font-semibold">
-                  GT : <strong>{station2?.operator_cea || 'Sarah'}</strong>
+                  GT : <strong>{station2?.operator_cea || 'Collaborateur 2'}</strong>
                 </span>
                 <span className="bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-800 text-amber-300 font-semibold">
                   Invité : <strong>{station2?.client_guest || 'Alexandre'}</strong>
@@ -1726,7 +1695,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
             {/* Header */}
             <div className="text-center pb-4 mb-6 border-b border-slate-800">
               <span className="text-xs font-mono font-bold tracking-widest uppercase text-amber-400 block mb-1">
-                CHALLENGE LOGISTIQUE 25 ANS • CEA GRENOBLE
+                CHALLENGE LOGISTIQUE • {appConfig.eventTitle || 'GT LOGISTICS'} ({appConfig.badgeLabel || '25 ANS'})
               </span>
               <h2 className="text-3xl sm:text-4xl font-display font-black text-white tracking-wide">
                 FIN DE POSTE • PROCLAMATION DU DUEL

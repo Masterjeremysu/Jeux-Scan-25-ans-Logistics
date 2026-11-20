@@ -33,10 +33,12 @@ interface ZebraPlayViewProps {
   clientGuest: string;
   score: number;
   combo: number;
+  accuracy?: number;
   shiftSecondsRemaining: number;
   missions: Mission[];
   currentMissionIndex: number;
   lastScannedCode: string | null;
+  lastScanStatus?: 'valid' | 'invalid' | null;
   flashState: 'green' | 'red' | null;
   activeHazard: LiveHazard | null;
   hazardSecondsRemaining: number;
@@ -47,6 +49,8 @@ interface ZebraPlayViewProps {
   onBarcodeScanned?: (code: string) => void;
   onNextMission?: () => void;
   onRestartShift?: () => void;
+  onStartNextDuo?: (cea: string, guest: string, missionIndex: number) => void;
+  onSetWaitingForTv?: () => void;
   onOpenDiplome?: () => void;
 }
 
@@ -57,10 +61,12 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
   clientGuest,
   score,
   combo,
+  accuracy = 100,
   shiftSecondsRemaining,
   missions,
   currentMissionIndex,
   lastScannedCode,
+  lastScanStatus = null,
   flashState,
   activeHazard,
   hazardSecondsRemaining,
@@ -71,6 +77,8 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
   onBarcodeScanned,
   onNextMission,
   onRestartShift,
+  onStartNextDuo,
+  onSetWaitingForTv,
   onOpenDiplome
 }) => {
   const isPoste1 = stationId === 'poste-1';
@@ -79,6 +87,22 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
   const [isAnomalyModalOpen, setIsAnomalyModalOpen] = useState(false);
   const [anomalyQty, setAnomalyQty] = useState(0);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isNextDuoModalOpen, setIsNextDuoModalOpen] = useState(false);
+  const [nextCea, setNextCea] = useState(operatorCea);
+  const [nextGuest, setNextGuest] = useState('');
+  const [nextMissionIdx, setNextMissionIdx] = useState(0);
+  const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Visible WMS scan input for Zebra hardware Douchette & Keystroke injection
   const scanInputRef = useRef<HTMLInputElement>(null);
@@ -108,7 +132,7 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
   // Keep scan input permanently focused for Zebra DataWedge hardware trigger
   useEffect(() => {
     const focusScanInput = () => {
-      if (scanInputRef.current && !isAnomalyModalOpen && !isCameraOpen) {
+      if (scanInputRef.current && !isAnomalyModalOpen && !isCameraOpen && !isNextDuoModalOpen) {
         scanInputRef.current.focus({ preventScroll: true });
       }
     };
@@ -127,7 +151,7 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
       window.removeEventListener('click', handleTap);
       window.removeEventListener('touchstart', handleTap);
     };
-  }, [isAnomalyModalOpen, isCameraOpen]);
+  }, [isAnomalyModalOpen, isCameraOpen, isNextDuoModalOpen]);
 
   // Keyboard shortcut Spacebar for quick test (uniquement si le mode strict Jour J est désactivé)
   useEffect(() => {
@@ -229,21 +253,38 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
             <span className="text-xs font-bold text-white block truncate">
               {operatorCea} 🤝 {clientGuest}
             </span>
-            <span className="text-[10px] font-mono text-emerald-300 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
-              <span>Connecté en direct</span>
+            <span className={`text-[10px] font-mono flex items-center gap-1 ${isOnline ? 'text-emerald-300' : 'text-rose-400 animate-pulse'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full inline-block ${isOnline ? 'bg-emerald-400 animate-ping' : 'bg-rose-500'}`} />
+              <span>{isOnline ? 'Connecté en direct' : 'Hors-ligne (Reconnexion...)'}</span>
             </span>
           </div>
         </div>
 
         {/* Center: Match Countdown */}
-        <div className="flex items-center space-x-1.5 bg-[#071224] px-3 py-1 rounded-xl border border-slate-700 font-mono text-sm font-black text-amber-300 shrink-0">
-          <Clock className="w-4 h-4 text-amber-400 animate-pulse" />
+        <div className={`flex items-center space-x-1.5 bg-[#071224] px-3 py-1 rounded-xl border font-mono text-sm font-black shrink-0 ${
+          shiftSecondsRemaining === 0 ? 'border-rose-500 text-rose-400' : 'border-slate-700 text-amber-300'
+        }`}>
+          <Clock className={`w-4 h-4 ${shiftSecondsRemaining === 0 ? 'text-rose-400' : 'text-amber-400 animate-pulse'}`} />
           <span>{formatTime(shiftSecondsRemaining)}</span>
         </div>
 
-        {/* Right: Score, Combo & Diplome Button */}
+        {/* Right: Score, Combo, Prochain Duo & Diplome Button */}
         <div className="flex items-center space-x-2 shrink-0">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setNextCea(operatorCea);
+              setNextGuest('');
+              setNextMissionIdx(0);
+              setIsNextDuoModalOpen(true);
+            }}
+            className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl transition-all cursor-pointer flex items-center gap-1 text-xs font-mono font-bold"
+            title="Changer de binôme / Prochain Duo"
+          >
+            <Users className="w-3.5 h-3.5 text-sky-300" />
+            <span className="hidden sm:inline">Prochain Duo</span>
+          </button>
           {onOpenDiplome && score > 0 && (
             <button
               type="button"
@@ -337,6 +378,45 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
 
       {/* 4. MAIN ACTION CARD : CURRENT PICKING ORDER */}
       <main className="my-auto py-3 flex flex-col items-center justify-center max-w-2xl mx-auto w-full">
+        {shiftSecondsRemaining === 0 && currentStep && (
+          <div className="w-full mb-3 bg-rose-50 border-2 border-rose-500 rounded-2xl p-4 shadow-md flex flex-col sm:flex-row items-center justify-between gap-3 text-slate-900">
+            <div className="flex items-center gap-2.5">
+              <Clock className="w-6 h-6 text-rose-600 shrink-0" />
+              <div>
+                <h3 className="text-sm font-black text-rose-900">⏱️ Temps du Shift écoulé (00:00) !</h3>
+                <p className="text-xs text-rose-800">Vous pouvez consulter le diplôme ou enchaîner directement avec le prochain binôme.</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {onOpenDiplome && score > 0 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenDiplome();
+                  }}
+                  className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs cursor-pointer"
+                >
+                  📜 Diplôme
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setNextCea(operatorCea);
+                  setNextGuest('');
+                  setNextMissionIdx(0);
+                  setIsNextDuoModalOpen(true);
+                }}
+                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs cursor-pointer flex items-center gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Prochain Duo</span>
+              </button>
+            </div>
+          </div>
+        )}
         {currentStep ? (
           <div className="w-full bg-white rounded-3xl p-4 sm:p-7 border border-slate-200 shadow-xl space-y-4">
             {/* Mission Header */}
@@ -556,7 +636,7 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
                   Précision
                 </span>
                 <span className="text-xl sm:text-2xl font-black font-mono text-blue-700">
-                  100%
+                  {accuracy}%
                 </span>
               </div>
             </div>
@@ -615,20 +695,21 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
                       </button>
                     )}
 
-                    {/* Reset for New Duo Button */}
-                    {onRestartShift && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRestartShift();
-                        }}
-                        className="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono font-bold text-xs sm:text-sm rounded-xl border border-slate-300 flex items-center justify-center gap-1.5 cursor-pointer transition-all"
-                      >
-                        <RotateCcw className="w-4 h-4 text-slate-500" />
-                        <span>Nouveau Binôme (Remise à zéro)</span>
-                      </button>
-                    )}
+                    {/* Reset for New Duo Button (ouvre la fenêtre Prochain Duo sans quitter la Zebra) */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setNextCea(operatorCea);
+                        setNextGuest('');
+                        setNextMissionIdx(0);
+                        setIsNextDuoModalOpen(true);
+                      }}
+                      className="py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-black text-xs sm:text-sm rounded-xl shadow-md flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                    >
+                      <Users className="w-4 h-4" />
+                      <span>Prochain Duo (Enchaîner)</span>
+                    </button>
                   </div>
                 </div>
               )}
@@ -640,9 +721,16 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
       {/* 5. FOOTER FEEDBACK (Last scan log) */}
       <footer className="mt-auto pt-2 shrink-0 text-center font-mono text-xs text-slate-500">
         {lastScannedCode ? (
-          <div className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-xl border border-slate-200 shadow-sm">
+          <div className={`inline-flex items-center gap-2 bg-white px-3 py-1 rounded-xl border shadow-sm ${
+            lastScanStatus === 'invalid' ? 'border-rose-300' : 'border-slate-200'
+          }`}>
             <span className="text-slate-600">Dernier code flashé :</span>
-            <strong className="text-emerald-700 font-bold">{lastScannedCode}</strong>
+            <strong className={`font-bold ${
+              lastScanStatus === 'invalid' ? 'text-rose-600' : 'text-emerald-700'
+            }`}>
+              {lastScanStatus === 'invalid' ? '✗ ' : '✓ '}
+              {lastScannedCode}
+            </strong>
           </div>
         ) : (
           <span>Visez les étiquettes avec le laser de la douchette ou le scanner caméra.</span>
@@ -656,6 +744,119 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
         onScan={(code) => triggerScan(code)}
         expectedCodeHint={activeHazard ? activeHazard.expected_barcode : currentStep?.expectedBarcode}
       />
+
+      {/* PROCHAIN DUO / ENCHAÎNEMENT RAPIDE MODAL (ZEBRA STANDALONE) */}
+      {isNextDuoModalOpen && (
+        <div
+          className="fixed inset-0 z-[9999] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="bg-white border-2 border-[#0c1e3a] rounded-3xl p-5 max-w-md w-full shadow-2xl space-y-4 text-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-black ${isPoste1 ? 'bg-sky-600' : 'bg-amber-500'}`}>
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-mono font-bold uppercase text-slate-500 block">
+                    {stationName} • Enchaînement Rapide
+                  </span>
+                  <h3 className="text-base font-black text-slate-900">Préparer le Prochain Duo</h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsNextDuoModalOpen(false)}
+                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold cursor-pointer"
+              >
+                Fermer
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-[11px] font-mono font-bold uppercase text-slate-600 block mb-1">
+                  Collaborateur GT :
+                </label>
+                <input
+                  type="text"
+                  value={nextCea}
+                  onChange={(e) => setNextCea(e.target.value)}
+                  placeholder="Prénom du collaborateur"
+                  className="w-full bg-slate-50 border-2 border-slate-300 focus:border-blue-600 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-900 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-mono font-bold uppercase text-slate-600 block mb-1">
+                  Prénom de l'Invité (Prochain Joueur) :
+                </label>
+                <input
+                  type="text"
+                  value={nextGuest}
+                  onChange={(e) => setNextGuest(e.target.value)}
+                  placeholder="Ex: Camille, Lucas..."
+                  autoFocus
+                  className="w-full bg-slate-50 border-2 border-slate-300 focus:border-blue-600 rounded-xl px-3 py-2.5 text-sm font-black text-slate-900 focus:outline-none"
+                />
+              </div>
+
+              {missions.length > 0 && (
+                <div>
+                  <label className="text-[11px] font-mono font-bold uppercase text-slate-600 block mb-1">
+                    Mission de départ :
+                  </label>
+                  <select
+                    value={nextMissionIdx}
+                    onChange={(e) => setNextMissionIdx(Number(e.target.value))}
+                    className="w-full bg-slate-50 border-2 border-slate-300 focus:border-blue-600 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 focus:outline-none"
+                  >
+                    {missions.map((m, idx) => (
+                      <option key={m.id || idx} value={idx}>
+                        #{idx + 1} • {m.title} ({m.steps.length} étapes)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2 pt-2 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => {
+                  const cea = nextCea.trim() || operatorCea || 'Collaborateur GT';
+                  const guest = nextGuest.trim() || 'Invité';
+                  if (onStartNextDuo) {
+                    onStartNextDuo(cea, guest, nextMissionIdx);
+                  } else if (onRestartShift) {
+                    onRestartShift();
+                  }
+                  setIsNextDuoModalOpen(false);
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Zap className="w-4 h-4" />
+                <span>Lancer ce Duo immédiatement</span>
+              </button>
+
+              {onSetWaitingForTv && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSetWaitingForTv();
+                    setIsNextDuoModalOpen(false);
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Radio className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Mettre ce poste en attente du Top Départ TV</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ANOMALIE DE STOCK MODAL (ZEBRA COMPACT) */}
       {isAnomalyModalOpen && currentStep && (
