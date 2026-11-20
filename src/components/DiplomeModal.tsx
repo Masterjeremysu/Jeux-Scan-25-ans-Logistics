@@ -234,9 +234,13 @@ export const DiplomeModal: React.FC<DiplomeModalProps> = ({
                 <span className="h-[2px] w-12 bg-gradient-to-l from-transparent to-amber-600" />
               </div>
 
-              {/* Gold Medal Badge */}
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300 text-slate-950 shadow-md border-2 border-amber-600/60 my-1">
-                <Award className="w-8 h-8 text-amber-950" />
+              {/* Official Round 25th Anniversary Emblem */}
+              <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white p-1 shadow-md ring-2 ring-amber-500/70 my-1 overflow-hidden">
+                <img
+                  src="/logo-gt-25ans.png"
+                  alt="Logo Officiel 25 Ans GT Logistics"
+                  className="w-full h-full object-contain rounded-full"
+                />
               </div>
 
               <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-950 uppercase font-serif mt-1">

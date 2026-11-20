@@ -23,9 +23,11 @@ export const GameLogo: React.FC<GameLogoProps> = ({
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [tempUrl, setTempUrl] = useState('');
 
-  // Utilise l'URL personnalisée si explicitement définie, sinon rendu vectoriel SVG GT/CEA (évite toute erreur 404 sur /logo.png)
+  // Logo officiel 25 Ans GT Logistics par défaut (surchargé si logo personnalisé défini)
   const explicitUrl = customLogoUrl || (typeof window !== 'undefined' ? localStorage.getItem('gt_cea_logo_url') : null);
-  const activeLogoUrl = !imgError && explicitUrl && explicitUrl.trim() !== '' ? explicitUrl : null;
+  const activeLogoUrl = !imgError
+    ? (explicitUrl && explicitUrl.trim() !== '' ? explicitUrl : '/logo-gt-25ans.png')
+    : null;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -54,25 +56,25 @@ export const GameLogo: React.FC<GameLogoProps> = ({
 
   const sizeClasses = {
     sm: {
-      img: 'h-8 max-w-[140px]',
+      circle: 'w-9 h-9 p-0.5',
       icon: 'w-7 h-7',
       title: 'text-sm font-extrabold',
       subtitle: 'text-[9px]'
     },
     md: {
-      img: 'h-11 max-w-[200px]',
+      circle: 'w-11 h-11 p-0.5',
       icon: 'w-10 h-10',
       title: 'text-base sm:text-lg font-black',
       subtitle: 'text-[11px]'
     },
     lg: {
-      img: 'h-16 max-w-[280px]',
+      circle: 'w-16 h-16 p-1',
       icon: 'w-14 h-14',
       title: 'text-2xl sm:text-3xl font-black',
       subtitle: 'text-xs sm:text-sm'
     },
     hero: {
-      img: 'h-24 sm:h-28 max-w-[380px]',
+      circle: 'w-24 h-24 sm:w-28 sm:h-28 p-1.5',
       icon: 'w-20 h-20 sm:w-24 sm:h-24',
       title: 'text-3xl sm:text-5xl font-black tracking-tight',
       subtitle: 'text-sm sm:text-lg'
@@ -81,15 +83,35 @@ export const GameLogo: React.FC<GameLogoProps> = ({
 
   return (
     <div className={`relative group inline-flex items-center gap-3 ${className}`}>
-      {/* If custom image provided and loads successfully */}
+      {/* Official Round 25th Anniversary Emblem + Sleek Title */}
       {activeLogoUrl && !imgError ? (
-        <div className="relative flex items-center justify-center">
-          <img
-            src={activeLogoUrl}
-            alt="Logo GT Logistics & CEA 25 Ans"
-            className={`${sizeClasses.img} object-contain drop-shadow-[0_4px_16px_rgba(14,165,233,0.3)]`}
-            onError={() => setImgError(true)}
-          />
+        <div className="flex items-center gap-3">
+          <div className={`${sizeClasses.circle} rounded-full bg-white ring-2 ring-white/85 shadow-lg shadow-sky-900/25 flex items-center justify-center overflow-hidden shrink-0 aspect-square group-hover:scale-105 transition-transform duration-300`}>
+            <img
+              src={activeLogoUrl}
+              alt="Logo Officiel 25 Ans GT Logistics"
+              className="w-full h-full object-contain rounded-full"
+              onError={() => setImgError(true)}
+            />
+          </div>
+          {size !== 'sm' && (
+            <div>
+              <div className="flex items-center gap-2">
+                <span className={`${sizeClasses.title} text-white tracking-wide uppercase`}>
+                  GT LOGISTICS
+                </span>
+                <span className="text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full bg-gradient-to-r from-red-600 to-amber-500 text-white shadow-md shrink-0 font-mono">
+                  25 ANS
+                </span>
+              </div>
+              {showSubtitle && (
+                <p className={`${sizeClasses.subtitle} text-sky-300 font-semibold tracking-wider font-mono flex items-center gap-1.5`}>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>WMS SHIFT CHALLENGE • ÉDITION OFFICIELLE</span>
+                </p>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         /* Fallback: Ultra-sleek vector arcade badge - Logo 25 Ans officiel */

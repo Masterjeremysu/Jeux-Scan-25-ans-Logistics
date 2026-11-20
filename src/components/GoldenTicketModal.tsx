@@ -105,6 +105,15 @@ export const GoldenTicketModal: React.FC<GoldenTicketModalProps> = ({
               <Sparkles className="w-4 h-4 fill-current animate-spin" style={{ animationDuration: '6s' }} />
             </div>
 
+            {/* Official Round 25th Anniversary Emblem */}
+            <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white p-1 shadow-lg ring-2 ring-[#b4801e] overflow-hidden mx-auto">
+              <img
+                src="/logo-gt-25ans.png"
+                alt="Logo Officiel 25 Ans GT Logistics"
+                className="w-full h-full object-contain rounded-full"
+              />
+            </div>
+
             {/* Giant Title Header */}
             <div>
               <h1

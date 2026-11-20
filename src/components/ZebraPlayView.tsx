@@ -244,6 +244,13 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
       <header className="bg-[#0c1e3a] text-white rounded-2xl p-3 border-b-2 border-red-600 shadow-lg flex items-center justify-between gap-2 shrink-0">
         {/* Station Badge & Duo Name */}
         <div className="flex items-center space-x-2 min-w-0">
+          <div className="w-8 h-8 rounded-full bg-white p-0.5 ring-1 ring-white/70 shadow-sm overflow-hidden shrink-0 flex items-center justify-center">
+            <img
+              src="/logo-gt-25ans.png"
+              alt="GT Logistics 25 Ans"
+              className="w-full h-full object-contain rounded-full"
+            />
+          </div>
           <span className={`text-[11px] font-black font-mono px-2.5 py-1 rounded-xl uppercase shrink-0 shadow-sm ${
             isPoste1 ? 'bg-sky-500 text-white' : 'bg-amber-500 text-white'
           }`}>
