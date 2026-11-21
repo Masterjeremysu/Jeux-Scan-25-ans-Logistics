@@ -686,22 +686,7 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
                     </button>
                   )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                    {/* New Wave Button (if time remaining) */}
-                    {onNextMission && shiftSecondsRemaining > 10 && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onNextMission();
-                        }}
-                        className="py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-mono font-bold text-xs sm:text-sm rounded-xl border border-blue-500 flex items-center justify-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
-                      >
-                        <Zap className="w-4 h-4 text-amber-300" />
-                        <span>NOUVELLE VAGUE (+BONUS)</span>
-                      </button>
-                    )}
-
+                  <div className="pt-1">
                     {/* Reset for New Duo Button (ouvre la fenêtre Prochain Duo sans quitter la Zebra) */}
                     <button
                       type="button"
@@ -712,7 +697,7 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
                         setNextMissionIdx(0);
                         setIsNextDuoModalOpen(true);
                       }}
-                      className="py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-black text-xs sm:text-sm rounded-xl shadow-md flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                      className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-black text-xs sm:text-sm rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all"
                     >
                       <Users className="w-4 h-4" />
                       <span>Prochain Duo (Enchaîner)</span>

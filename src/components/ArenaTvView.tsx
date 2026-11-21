@@ -63,7 +63,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
   const [stations, setStations] = useState<DuoStation[]>([]);
   const [topScores, setTopScores] = useState<RemoteScore[]>([]);
   const [lastEventMsg, setLastEventMsg] = useState<string>('En attente du départ du duel...');
-  const [matchSeconds, setMatchSeconds] = useState<number>(180);
+  const [matchSeconds, setMatchSeconds] = useState<number>(appConfig.shiftDurationSeconds || 180);
   const [isMatchRunning, setIsMatchRunning] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
@@ -116,6 +116,13 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
       }
     }, 1000);
   };
+
+  // Sync chronometer when shiftDurationSeconds changes in Admin/Supabase while idle
+  useEffect(() => {
+    if (!isMatchRunning && appConfig.shiftDurationSeconds) {
+      setMatchSeconds(appConfig.shiftDurationSeconds);
+    }
+  }, [appConfig.shiftDurationSeconds]);
 
   // Match Countdown Timer with Audio Cues
   useEffect(() => {
@@ -612,7 +619,9 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
             <span className={`text-[9px] uppercase font-mono tracking-widest font-bold block ${
               matchSeconds <= 30 && matchSeconds > 0 && isMatchRunning ? 'text-red-400 font-black' : 'text-slate-400'
             }`}>
-              {matchSeconds <= 30 && matchSeconds > 0 && isMatchRunning ? '🔥 SPRINT FINAL (MONEY TIME)' : 'CHRONO DUEL (3 MIN)'}
+              {matchSeconds <= 30 && matchSeconds > 0 && isMatchRunning
+                ? '🔥 SPRINT FINAL (MONEY TIME)'
+                : `CHRONO DUEL (${Math.max(1, Math.round((appConfig.shiftDurationSeconds || 180) / 60))} MIN)`}
             </span>
             <div className={`font-display font-black text-3xl sm:text-5xl tracking-wider ${
               matchSeconds <= 30 && matchSeconds > 0 && isMatchRunning
@@ -640,7 +649,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
             <button
               onClick={handleResetMatchTime}
               className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
-              title="Remettre le chrono à 03:00"
+              title={`Remettre le chrono à ${formatMatchTime(appConfig.shiftDurationSeconds || 180)}`}
             >
               <RotateCcw className="w-4 h-4" />
             </button>
@@ -1635,7 +1644,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
       <ConfirmModal
         isOpen={isResetConfirmOpen}
         title="Réinitialiser l'Arène TV 55'' ?"
-        message="Voulez-vous remettre l'arène en direct à zéro (vider les 2 stations et remettre le chronomètre à 03:00 pour le prochain duel) ?"
+        message={`Voulez-vous remettre l'arène en direct à zéro (vider les 2 stations et remettre le chronomètre à ${formatMatchTime(appConfig.shiftDurationSeconds || 180)} pour le prochain duel) ?`}
         confirmLabel="Oui, réinitialiser l'arène"
         variant="warning"
         onCancel={() => setIsResetConfirmOpen(false)}

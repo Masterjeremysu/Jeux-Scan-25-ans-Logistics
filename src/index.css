@@ -27,6 +27,54 @@
   animation: scan-flash-red 0.5s ease-out;
 }
 
+/* Futuristic Arena & Splash Animations */
+@keyframes laser-scan {
+  0% { top: -2%; opacity: 0; }
+  10% { opacity: 0.85; }
+  90% { opacity: 0.85; }
+  100% { top: 102%; opacity: 0; }
+}
+
+@keyframes orbit-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes orbit-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+@keyframes float-gentle {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-laser-scan {
+  animation: laser-scan 4.2s ease-in-out infinite;
+}
+
+.animate-orbit-slow {
+  animation: orbit-slow 18s linear infinite;
+}
+
+.animate-orbit-reverse {
+  animation: orbit-reverse 6s linear infinite;
+}
+
+.animate-shimmer-sweep {
+  animation: shimmer-sweep 2.2s ease-in-out infinite;
+}
+
+.animate-float-gentle {
+  animation: float-gentle 4.5s ease-in-out infinite;
+}
+
 /* Custom modern scrollbar for ERP tables */
 ::-webkit-scrollbar {
   width: 8px;

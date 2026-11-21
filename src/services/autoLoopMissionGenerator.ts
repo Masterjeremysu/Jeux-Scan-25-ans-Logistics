@@ -1,9 +1,17 @@
 import { AppConfig, InventoryItem, Mission, MissionStep, WarehouseLocation } from '../types';
 
 /**
- * Génère automatiquement des missions de Livraison (Sortie Bac -1 / Table +1)
- * et de Collecte (Retour Table -1 / Bac +1) 100 % cohérentes avec l'état physique
- * réel du stock Supabase (quantity en bac & onTableQty sur table).
+ * Génère automatiquement une boucle fermée de STRICTEMENT 3 missions 100 % équilibrées
+ * avec le stock réel Supabase (zéro remplissage physique requis par l'animateur) :
+ *
+ *  - Mission 1 (Livraison • Lot A, stockDirection: 'out') :
+ *      Prélèvement en bac (-1) -> dépôt sur la Table de Livraison (+1)
+ *  - Mission 2 (Collecte & Réintégration • Lot A, stockDirection: 'in') :
+ *      Reprise de ces MÊMES articles sur la Table (-1) -> rangement dans leur bac (+1)
+ *      => Bilan physique net = 0 !
+ *  - Mission 3 (Contrôle Inventaire Express • Lot B, stockDirection: 'none') :
+ *      Scan bac + contrôle pièce sur place (sans déplacer la pièce) -> validation quai
+ *      => Bilan physique net = 0, aucune collision avec le Lot A !
  */
 export function generateAutoBalancedMissions(
   inventory: InventoryItem[],
@@ -25,7 +33,7 @@ export function generateAutoBalancedMissions(
     (it) => it.quantity > 0 && it.location && it.itemType !== 'golden_ticket'
   );
 
-  // Articles réellement posés sur la table prêts à être réintégrés (onTableQty >= 1)
+  // Articles déjà posés sur la table prêts à être réintégrés (onTableQty >= 1)
   const tableItems = inventory.filter(
     (it) => (it.onTableQty || 0) > 0 && it.location && it.itemType !== 'golden_ticket'
   );
@@ -85,13 +93,13 @@ export function generateAutoBalancedMissions(
 
     const itemNames = chosenItems.map((i) => i.name).join(' + ');
     return {
-      id: `mission-auto-livraison-${slotLabel}-${nowId}`,
-      code: `LIV-${slotLabel.toUpperCase()}-${String(nowId).slice(-3)}`,
+      id: `mission-auto-livraison-${slotLabel.toLowerCase().replace(/\s+/g, '-')}-${nowId}`,
+      code: `LIV-${slotLabel.toUpperCase().replace(/\s+/g, '')}-${String(nowId).slice(-3)}`,
       title: `Livraison Client • ${slotLabel} (${chosenItems.length} réf.)`,
       client: (appConfig.clientsCatalog && appConfig.clientsCatalog[index % appConfig.clientsCatalog.length]) || appConfig.eventTitle || 'Client Labo',
       priority: 'URGENCE CRITIQUE',
       description: `Prélèvement en bac et dépôt sur la Table de Livraison : ${itemNames}. (Sortie -1 bac / +1 table)`,
-      timeLimitSeconds: 150,
+      timeLimitSeconds: 180,
       basePoints: 1200,
       stockDirection: 'out',
       isActive: true,
@@ -152,13 +160,13 @@ export function generateAutoBalancedMissions(
 
     const itemNames = chosenItems.map((i) => i.name).join(' + ');
     return {
-      id: `mission-auto-collecte-${slotLabel}-${nowId}`,
-      code: `COL-${slotLabel.toUpperCase()}-${String(nowId).slice(-3)}`,
-      title: `Collecte & Rangement Stock • ${slotLabel} (${chosenItems.length} réf.)`,
+      id: `mission-auto-collecte-${slotLabel.toLowerCase().replace(/\s+/g, '-')}-${nowId}`,
+      code: `COL-${slotLabel.toUpperCase().replace(/\s+/g, '')}-${String(nowId).slice(-3)}`,
+      title: `Collecte & Réintégration • ${slotLabel} (${chosenItems.length} réf.)`,
       client: `Retour Client → Magasin (${appConfig.eventTitle || 'GT Logistics'})`,
       priority: 'STANDARD',
-      description: `Récupérer sur la Table de Collecte et réintégrer en bac : ${itemNames}. (Entrée +1 bac / -1 table)`,
-      timeLimitSeconds: 150,
+      description: `Récupérer sur la table et remettre en bac : ${itemNames}. (Entrée +1 bac / -1 table — boucle équilibrée)`,
+      timeLimitSeconds: 180,
       basePoints: 1200,
       stockDirection: 'in',
       isActive: true,
@@ -166,23 +174,91 @@ export function generateAutoBalancedMissions(
     };
   };
 
-  // Partitionne les articles en 2 lots disjoints (Étagère A / Étagère B) pour éviter toute collision entre Poste 1 et Poste 2
+  const buildInventoryAuditMission = (
+    chosenItems: InventoryItem[],
+    slotLabel: string,
+    index: number
+  ): Mission => {
+    const steps: MissionStep[] = [];
+    chosenItems.forEach((item, idx) => {
+      const binLoc = findLoc(item.location);
+      steps.push({
+        id: `auto-inv-loc-${nowId}-${index}-${idx}`,
+        instruction: `Contrôle inventaire : rendez-vous au bac ${binLoc?.label || item.location} et scannez l'emplacement.`,
+        expectedBarcode: item.location,
+        barcodeType: 'location',
+        targetLabel: binLoc?.label || item.location,
+        lrCode: binLoc?.lrCode || item.location.toUpperCase().replace(/[^A-Z0-9]+/g, '_'),
+        crLabel: binLoc?.crLabel || item.location.toUpperCase(),
+        quantity: 1,
+        scannedCount: 0,
+        completed: false,
+        hint: `Scannez l'étiquette du bac ${item.location}.`
+      });
+      steps.push({
+        id: `auto-inv-art-${nowId}-${index}-${idx}`,
+        instruction: `Contrôlez sur place (sans retirer du bac) et scannez ${item.name} (${item.sku}).`,
+        expectedBarcode: item.sku,
+        barcodeType: 'article',
+        targetLabel: item.name,
+        lrCode: item.lrCode || '',
+        crLabel: item.crLabel || item.name.toUpperCase(),
+        quantity: 1,
+        scannedCount: 0,
+        completed: false,
+        hint: `Scannez ${item.sku} puis laissez la pièce dans son bac.`
+      });
+    });
+
+    steps.push({
+      id: `auto-inv-end-${nowId}-${index}`,
+      instruction: `Validez votre rapport de contrôle qualité sur la ${deliveryLoc?.label || 'Table de Livraison'}.`,
+      expectedBarcode: deliveryBarcode,
+      barcodeType: 'dock',
+      targetLabel: deliveryLoc?.label || 'Validation Contrôle Qualité',
+      lrCode: deliveryLoc?.lrCode || 'ETA_LIVR',
+      crLabel: deliveryLoc?.crLabel || 'VALIDATION CONTROLE',
+      quantity: 1,
+      scannedCount: 0,
+      completed: false,
+      hint: `Scannez l'étiquette ${deliveryBarcode} pour valider le contrôle.`
+    });
+
+    const itemNames = chosenItems.map((i) => i.name).join(' + ');
+    return {
+      id: `mission-auto-inventaire-${slotLabel.toLowerCase().replace(/\s+/g, '-')}-${nowId}`,
+      code: `INV-${slotLabel.toUpperCase().replace(/\s+/g, '')}-${String(nowId).slice(-3)}`,
+      title: `Contrôle Qualité & Inventaire • ${slotLabel} (${chosenItems.length} réf.)`,
+      client: `Audit Traçabilité 25 Ans (${appConfig.eventTitle || 'GT Logistics'})`,
+      priority: 'EXPÉDITION INTERNATIONALE',
+      description: `Vérification physique sur place sans déplacement de stock : ${itemNames}. (Stock inchangé)`,
+      timeLimitSeconds: 180,
+      basePoints: 1200,
+      stockDirection: 'none',
+      isActive: true,
+      steps
+    };
+  };
+
+  // Partitionne les articles en 2 lots disjoints (Lot A / Lot B) pour éviter toute collision entre Poste 1 et Poste 2
   const lotA = shelfItems.filter((_, i) => i % 2 === 0);
   const lotB = shelfItems.filter((_, i) => i % 2 === 1);
 
-  if (lotA.length > 0) {
-    generated.push(buildDeliveryMission(lotA.slice(0, itemsPerMission), 'Lot A', 0));
+  const mission1Items = lotA.slice(0, itemsPerMission);
+  const mission2Items = tableItems.length > 0 ? tableItems.slice(0, itemsPerMission) : mission1Items;
+  const mission3Items = (lotB.length > 0 ? lotB : lotA).slice(0, itemsPerMission);
+
+  // Mission 1 : Livraison Lot A (Bac -> Table)
+  if (mission1Items.length > 0) {
+    generated.push(buildDeliveryMission(mission1Items, 'Lot A', 0));
   }
-  if (tableItems.length > 0) {
-    generated.push(buildCollectMission(tableItems.slice(0, itemsPerMission), 'Retour Table', 1));
+  // Mission 2 : Collecte & Réintégration des MÊMES articles (Table -> Bac : bilan net = 0 !)
+  if (mission2Items.length > 0) {
+    generated.push(buildCollectMission(mission2Items, 'Retour Lot A', 1));
   }
-  if (lotB.length > 0) {
-    generated.push(buildDeliveryMission(lotB.slice(0, itemsPerMission), 'Lot B', 2));
-  }
-  // Si aucune pièce n'est encore sur la table, on génère une Collecte prête basée sur les premiers articles du lot A
-  // (ils seront justement posés sur la table par la Mission 1 !)
-  if (tableItems.length === 0 && lotA.length > 0) {
-    generated.push(buildCollectMission(lotA.slice(0, itemsPerMission), 'Réintégration Lot A', 3));
+  // Mission 3 : Contrôle Inventaire sur place Lot B (bilan net = 0, aucune collision physique)
+  if (mission3Items.length > 0) {
+    generated.push(buildInventoryAuditMission(mission3Items, 'Lot B', 2));
   }
 
   return generated;

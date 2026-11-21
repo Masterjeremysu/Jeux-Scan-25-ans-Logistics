@@ -11,6 +11,7 @@ import { DiplomeModal } from './components/DiplomeModal';
 import { GoldenTicketModal } from './components/GoldenTicketModal';
 import { ZebraPlayView } from './components/ZebraPlayView';
 import { HomeLauncherView } from './components/HomeLauncherView';
+import { SplashBootScreen } from './components/SplashBootScreen';
 import { ToastContainer, showToast } from './components/ToastNotification';
 import { barcodeListener } from './services/barcodeListener';
 import { soundService } from './services/soundService';
@@ -222,6 +223,7 @@ export const App: React.FC = () => {
   });
   const validScansCountRef = useRef<number>(0);
   const errorScansCountRef = useRef<number>(0);
+  const autoAdvanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [operator, setOperator] = useState<OperatorProfile>({
     name: 'Duo ' + clientGuest,
@@ -229,7 +231,7 @@ export const App: React.FC = () => {
     score: 0,
     completedMissions: 0,
     accuracy: 100,
-    shiftDurationSeconds: 300
+    shiftDurationSeconds: 180
   });
 
   // Load 100% of data from Supabase relational tables on startup + subscribe to Realtime
@@ -530,6 +532,10 @@ export const App: React.FC = () => {
     document.addEventListener('visibilitychange', handleResyncOnReconnect);
 
     return () => {
+      if (autoAdvanceTimerRef.current) {
+        clearTimeout(autoAdvanceTimerRef.current);
+        autoAdvanceTimerRef.current = null;
+      }
       unsubConfig();
       unsubLocations();
       unsubInventory();
@@ -637,12 +643,13 @@ export const App: React.FC = () => {
     return () => clearInterval(timer);
   }, [isShiftTimerRunning]);
 
-  // Open Diploma at the end of the shift (3 minutes) if the team was active and scored
+  // Open Diploma at the end of the shift if the team was active and scored
   useEffect(() => {
     if (shiftSecondsRemaining === 0 && operator.score > 0 && !isDiplomeOpen) {
       soundService.playMissionComplete();
+      const totalMins = Math.max(1, Math.round((appConfigRef.current.shiftDurationSeconds || 180) / 60));
       showToast({
-        title: '🏁 FIN DU QUART DE TRAVAIL (3 MIN) !',
+        title: `🏁 FIN DU QUART DE TRAVAIL (${totalMins} MIN) !`,
         message: `Félicitations au binôme pour les commandes expédiées !`,
         type: 'success',
         duration: 5000
@@ -727,8 +734,13 @@ export const App: React.FC = () => {
     });
   };
 
-  // Advance to next mission or trigger fresh wave of orders
+  // Advance to next mission (strictly capped to the configured missions pool — no 4th loop mission)
   const advanceToNextMission = useCallback(() => {
+    if (autoAdvanceTimerRef.current) {
+      clearTimeout(autoAdvanceTimerRef.current);
+      autoAdvanceTimerRef.current = null;
+    }
+
     const activeIdx = currentMissionIndexRef.current;
     const currentMissions = missionsRef.current || missions;
     const nextIdx = activeIdx + 1;
@@ -750,37 +762,14 @@ export const App: React.FC = () => {
         status: 'in_progress'
       });
       showToast({
-        title: `📦 COMMANDE SUIVANTE : ${nextMission.title}`,
+        title: `📦 COMMANDE SUIVANTE (${nextIdx + 1}/${currentMissions.length}) : ${nextMission.title}`,
         message: 'Prenez connaissance de la consigne et préparez les pièces !',
         type: 'info'
       });
     } else {
-      // Loop a fresh wave of missions with all steps refreshed, keeping accumulated score!
-      setMissions((prev) =>
-        prev.map((m) => ({
-          ...m,
-          steps: m.steps.map((st) => ({ ...st, completed: false, scannedCount: 0 }))
-        }))
-      );
-      setCurrentMissionIndex(0);
-      const firstMission = currentMissions[0];
-      updateStationLive({
-        station_id: stationIdRef.current,
-        station_name: stationNameRef.current,
-        operator_cea: operatorCeaRef.current,
-        client_guest: clientGuestRef.current,
-        team_name: `Duo ${clientGuestRef.current}`,
-        current_mission_title: firstMission.title,
-        progress_percent: 0,
-        current_step_index: 0,
-        total_steps: firstMission.steps.length,
-        status: 'in_progress'
-      });
-      showToast({
-        title: '⚡ NOUVELLE VAGUE DE COMMANDES DÉCLENCHÉE !',
-        message: 'Bravo pour votre rapidité ! Continuez à engranger des points !',
-        type: 'success'
-      });
+      // All missions finished for this duo: stop cleanly and open Diploma (no infinite 4th mission loop)
+      setIsShiftTimerRunning(false);
+      setIsDiplomeOpen(true);
     }
   }, [missions]);
 
@@ -1218,15 +1207,24 @@ export const App: React.FC = () => {
             duration: 4000
           });
 
-          // Transition to next mission after celebration
-          setTimeout(() => {
+          // Transition to next mission after celebration (cancellable if user clicks Next manually)
+          if (autoAdvanceTimerRef.current) {
+            clearTimeout(autoAdvanceTimerRef.current);
+          }
+          autoAdvanceTimerRef.current = setTimeout(() => {
+            autoAdvanceTimerRef.current = null;
             advanceToNextMission();
           }, 2500);
         } else {
           // ALL MISSIONS COMPLETED!
+          if (autoAdvanceTimerRef.current) {
+            clearTimeout(autoAdvanceTimerRef.current);
+            autoAdvanceTimerRef.current = null;
+          }
+          setIsShiftTimerRunning(false);
           showToast({
-            title: '🏆 TOUTES LES MISSIONS ACCOMPLIES !',
-            message: `Performance légendaire ! Vous pouvez consulter votre diplôme ou lancer une nouvelle vague !`,
+            title: `🏆 TOUTES LES ${currentMissions.length} MISSIONS ACCOMPLIES !`,
+            message: `Performance légendaire ! Découvrez votre diplôme d'honneur !`,
             type: 'success',
             duration: 5000
           });
@@ -1521,6 +1519,10 @@ export const App: React.FC = () => {
 
   // Start new shift / match with shuffled randomized missions
   const handleStartNewShift = () => {
+    if (autoAdvanceTimerRef.current) {
+      clearTimeout(autoAdvanceTimerRef.current);
+      autoAdvanceTimerRef.current = null;
+    }
     try {
       sessionStorage.removeItem(`zebra_match_${stationIdRef.current}`);
     } catch {}
@@ -1574,6 +1576,10 @@ export const App: React.FC = () => {
 
   // Enchaînement direct du prochain Duo depuis la Zebra (sans quitter le mode #play)
   const handleZebraStartNextDuo = (nextCea: string, nextGuest: string, preferredMissionIdx: number = 0) => {
+    if (autoAdvanceTimerRef.current) {
+      clearTimeout(autoAdvanceTimerRef.current);
+      autoAdvanceTimerRef.current = null;
+    }
     try {
       sessionStorage.removeItem(`zebra_match_${stationIdRef.current}`);
     } catch {}
@@ -1829,15 +1835,7 @@ export const App: React.FC = () => {
   };
 
   if (isDbLoading) {
-    return (
-      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center gap-4 font-sans">
-        <div className="w-12 h-12 rounded-2xl border-4 border-sky-500/30 border-t-sky-400 animate-spin" />
-        <div className="text-center">
-          <p className="text-sm font-black uppercase tracking-widest text-sky-400">Connexion Supabase temps réel</p>
-          <p className="text-xs text-slate-400 mt-1">Chargement du stock, des emplacements et des missions...</p>
-        </div>
-      </div>
-    );
+    return <SplashBootScreen logoUrl={appConfig.customLogoUrl} />;
   }
 
   // DEDICATED HANDHELD ZEBRA PURE GAME MODE (NO HEADER, NO ADMIN/ERP TABS, LOCKED TO GAMEPLAY)

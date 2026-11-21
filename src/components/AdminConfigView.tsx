@@ -1310,18 +1310,31 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                   ⚡ Générer / Actualiser Boucle Auto
                 </button>
 
-                {!localConfig.strictScanOnly && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLocalConfig({ ...localConfig, strictScanOnly: true });
-                      showToast({ title: '🔒 Mode Jour J activé', message: 'Seuls les vrais scans Zebra/Caméra sont acceptés', type: 'success' });
-                    }}
-                    className="w-full py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] cursor-pointer"
-                  >
-                    🔒 Activer le Mode Compétition Jour J
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextStrict = !localConfig.strictScanOnly;
+                    const updated = { ...localConfig, strictScanOnly: nextStrict };
+                    setLocalConfig(updated);
+                    onUpdateAppConfig(updated);
+                    showToast({
+                      title: nextStrict ? '🔒 Mode Jour J ACTIVÉ' : '🔓 Mode Test / Virtuel ACTIVÉ',
+                      message: nextStrict
+                        ? 'Bouton « FLASHER » masqué partout — seuls les vrais scans Zebra/Caméra valident !'
+                        : 'Bouton virtuel « FLASHER » réaffiché sur les postes et Zebra.',
+                      type: nextStrict ? 'success' : 'info'
+                    });
+                  }}
+                  className={`w-full py-2 px-3 rounded-xl font-bold text-[11px] cursor-pointer transition-all shadow-sm ${
+                    localConfig.strictScanOnly
+                      ? 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40'
+                      : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                  }`}
+                >
+                  {localConfig.strictScanOnly
+                    ? '🔓 Repasser en Mode Test (Afficher « FLASHER »)'
+                    : '🔒 Activer Mode Jour J (Masquer « FLASHER »)'}
+                </button>
               </div>
             </div>
 
@@ -2675,14 +2688,26 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                   </span>
                 </div>
                 <p className="text-xs text-slate-600 mt-1">
-                  Empêche les participants d'avancer virtuellement en cliquant sur l'écran. Seuls les vrais scans au laser Zebra ou à la caméra smartphone valident les étapes.
+                  Masque instantanément le bouton virtuel <strong>« FLASHER »</strong> (et bloque la touche Espace) sur tous les Zebra et Postes Opérateurs. Seuls les vrais scans au laser Zebra ou à la caméra valident les étapes.
                 </p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer shrink-0">
                 <input
                   type="checkbox"
                   checked={localConfig.strictScanOnly ?? false}
-                  onChange={(e) => setLocalConfig({ ...localConfig, strictScanOnly: e.target.checked })}
+                  onChange={(e) => {
+                    const nextStrict = e.target.checked;
+                    const updated = { ...localConfig, strictScanOnly: nextStrict };
+                    setLocalConfig(updated);
+                    onUpdateAppConfig(updated);
+                    showToast({
+                      title: nextStrict ? '🔒 Mode Jour J ACTIVÉ' : '🔓 Mode Test / Virtuel ACTIVÉ',
+                      message: nextStrict
+                        ? 'Bouton « FLASHER » masqué en temps réel sur tous les terminaux !'
+                        : 'Bouton virtuel « FLASHER » réactivé sur tous les terminaux.',
+                      type: nextStrict ? 'success' : 'info'
+                    });
+                  }}
                   className="sr-only peer"
                 />
                 <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>

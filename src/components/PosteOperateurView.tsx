@@ -105,8 +105,9 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
   // Opponent station in duel
   const opponentStation = liveStations.find((s) => s.station_id !== stationId);
 
-  // Global shortcut: Spacebar triggers the current target scan if not typing
+  // Global shortcut: Spacebar triggers the current target scan if not typing (disabled in strictScanOnly / Jour J mode)
   useEffect(() => {
+    if (strictScanOnly) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeTag = (document.activeElement?.tagName || '').toLowerCase();
       if (activeTag === 'input' || activeTag === 'textarea') return;
@@ -119,7 +120,7 @@ export const PosteOperateurView: React.FC<PosteOperateurViewProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentStep]);
+  }, [currentStep, strictScanOnly]);
 
   const handleSaveDuo = (e: React.FormEvent) => {
     e.preventDefault();
