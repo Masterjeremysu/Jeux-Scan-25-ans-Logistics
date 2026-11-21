@@ -5,6 +5,7 @@ export type BarcodeSymbology = 'code128' | 'hybrid' | 'qr';
 
 export interface GtStockLabelProps {
   barcode: string;
+  displayName?: string;
   lrCode?: string;
   crLabel?: string;
   type?: string;
@@ -24,7 +25,7 @@ export const sanitizeForCode128 = (raw: string): string =>
     .replace(/[^\x20-\x7E]/g, '')
     .trim();
 
-// Authentic GT Logistics Logo (Vector SVG reproduction - can be re-enabled when logo is finalized)
+// Authentic GT Logistics Logo (Vector SVG reproduction)
 export const GtLogisticsLogo: React.FC<{ className?: string }> = ({ className = 'h-5 sm:h-6' }) => (
   <svg
     viewBox="0 0 140 45"
@@ -53,6 +54,7 @@ export const GtLogisticsLogo: React.FC<{ className?: string }> = ({ className = 
 
 export const GtStockLabel: React.FC<GtStockLabelProps> = ({
   barcode,
+  displayName,
   lrCode,
   crLabel,
   type = 'article',
@@ -66,7 +68,6 @@ export const GtStockLabel: React.FC<GtStockLabelProps> = ({
   const cleanCode = barcode.trim();
   const safeCode128 = sanitizeForCode128(cleanCode) || 'CODE-INVALIDE';
 
-  // Détection du type emplacement (aucune mention superflue, uniquement code-barres + texte)
   const isLocation =
     type === 'location' ||
     cleanCode.startsWith('LOC-') ||
@@ -74,7 +75,10 @@ export const GtStockLabel: React.FC<GtStockLabelProps> = ({
     cleanCode.startsWith('ETA') ||
     cleanCode.startsWith('DOCK');
 
-  // Valeurs par défaut de référence et désignation
+  const isGolden = type === 'golden_ticket' || cleanCode === 'ART-GT25-VIP';
+  const isHazard = type === 'seal';
+  const isDockOrPackage = type === 'dock' || type === 'package';
+
   const computedLr =
     lrCode ||
     (cleanCode.startsWith('LOC-')
@@ -105,12 +109,36 @@ export const GtStockLabel: React.FC<GtStockLabelProps> = ({
                       ? 'SCELLE NUMEROTE INVIOLABLE IATA'
                       : cleanCode.toUpperCase());
 
+  // Clean human-readable title shown prominently on QR labels (strips trailing "[SKU]" if redundant)
+  const cleanTitle = (displayName || computedCr || cleanCode)
+    .replace(/\s*\[[^\]]+\]\s*$/, '')
+    .trim();
+
+  const categoryBadge = isGolden
+    ? 'TICKET D\'OR 25 ANS'
+    : isHazard
+      ? 'ALÉA URGENT'
+      : isLocation
+        ? 'EMPLACEMENT'
+        : isDockOrPackage
+          ? 'QUAI / COLIS'
+          : 'ARTICLE STOCK';
+
+  const headerBgClass = isGolden
+    ? 'bg-amber-500 text-black'
+    : isHazard
+      ? 'bg-red-700 text-white'
+      : isLocation
+        ? 'bg-[#0c1e3a] text-white'
+        : isDockOrPackage
+          ? 'bg-slate-800 text-white'
+          : 'bg-black text-white';
+
   useEffect(() => {
     if (symbology === 'qr') return;
     if (svgRef.current && safeCode128) {
       try {
         const len = safeCode128.length;
-        // Dynamic bar width: shorter codes get thicker bars, longer codes avoid sub-pixel squishing
         let baseWidth =
           size === 'compact' ? 1.7 : size === 'large' ? 2.5 : size === 'zebra' ? 2.0 : 2.1;
         if (len > 22) {
@@ -119,7 +147,6 @@ export const GtStockLabel: React.FC<GtStockLabelProps> = ({
           baseWidth = size === 'large' ? 2.0 : 1.6;
         }
 
-        // Taller bars make laser sweeps much more forgiving
         const barHeight = isLocation
           ? size === 'compact'
             ? 46
@@ -143,14 +170,12 @@ export const GtStockLabel: React.FC<GtStockLabelProps> = ({
           width: baseWidth,
           height: barHeight,
           displayValue: false,
-          // Mandatory Code-128 Quiet Zone (>= 10x module width on left & right) for instant Zebra laser read
           marginTop: 4,
           marginBottom: 4,
           marginLeft: 14,
           marginRight: 14
         });
 
-        // Enforce razor-sharp edges for 203 DPI thermal printers (Zebra ZD421d) & A4 laser
         svgRef.current.setAttribute('shape-rendering', 'crispEdges');
       } catch (err) {
         console.error('Barcode render error:', err);
@@ -158,10 +183,93 @@ export const GtStockLabel: React.FC<GtStockLabelProps> = ({
     }
   }, [safeCode128, size, isLocation, symbology]);
 
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&ecc=M&margin=6&data=${encodeURIComponent(
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&ecc=M&margin=8&data=${encodeURIComponent(
     safeCode128
   )}`;
 
+  // =========================================================================
+  // PREMIUM QR CODE INDUSTRIAL CARD LAYOUT (ULTRA-SCANNABLE + CLEAN DESIGN)
+  // =========================================================================
+  if (symbology === 'qr') {
+    const isZebra = size === 'zebra';
+    const isLarge = size === 'large';
+
+    return (
+      <div
+        className={`bg-white text-black rounded-xl border-2 border-black overflow-hidden flex flex-col justify-between select-none shadow-xs ${
+          isZebra ? 'w-full h-full max-w-none rounded-lg' : 'w-full'
+        } ${className}`}
+      >
+        {/* Top Brand & Type Strip */}
+        <div
+          className={`${headerBgClass} px-2.5 py-1 flex items-center justify-between gap-2 text-[9px] sm:text-[10px] font-mono font-black uppercase tracking-wider`}
+        >
+          <span className="truncate">{categoryBadge}</span>
+          <span className="shrink-0 opacity-90">GT LOGISTICS • 25 ANS</span>
+        </div>
+
+        {/* Main Horizontal Split: Crisp QR Left + Bold Name & Ref Right */}
+        <div className={`flex items-center gap-3 ${isZebra ? 'p-2' : 'p-3 sm:p-3.5'} flex-1`}>
+          {/* QR Code Box with Guaranteed White Quiet Zone */}
+          <div className="bg-white p-1 rounded-lg border border-gray-300 shrink-0 flex items-center justify-center">
+            <img
+              src={qrUrl}
+              alt={`QR ${safeCode128}`}
+              className={`${
+                isLarge
+                  ? 'w-28 h-28 sm:w-32 sm:h-32'
+                  : isZebra
+                    ? 'w-24 h-24'
+                    : 'w-24 h-24 sm:w-28 sm:h-28'
+              } object-contain block`}
+              style={{ imageRendering: 'pixelated' }}
+            />
+          </div>
+
+          {/* Right Info Column: Big Readable Name + Scanned Code + L/R */}
+          <div className="flex-1 min-w-0 flex flex-col justify-between text-left space-y-1.5">
+            <div>
+              <div
+                className={`font-sans font-black text-black leading-tight uppercase line-clamp-2 ${
+                  isLarge ? 'text-base sm:text-lg' : isZebra ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'
+                }`}
+              >
+                {cleanTitle}
+              </div>
+              {computedCr && computedCr.toUpperCase() !== cleanTitle.toUpperCase() && !isLocation && (
+                <div className="text-[10px] font-sans font-semibold text-gray-600 truncate mt-0.5">
+                  {computedCr}
+                </div>
+              )}
+            </div>
+
+            {/* Scanned Barcode Value Pill */}
+            <div className="bg-gray-100 border border-gray-400 rounded-md px-2 py-1 font-mono font-black text-black text-[11px] sm:text-xs tracking-wide break-all">
+              {cleanCode}
+            </div>
+
+            {/* Footer Metadata */}
+            <div className="flex items-center justify-between gap-2 text-[10px] font-mono text-gray-700 pt-0.5 border-t border-gray-200">
+              <span className="truncate font-bold">
+                {isLocation ? 'ZONE WMS' : `L/R : ${computedLr}`}
+              </span>
+              <span className="shrink-0 font-black text-black">QR 2D</span>
+            </div>
+          </div>
+        </div>
+
+        {showCutLine && (
+          <div className="text-[8px] text-gray-400 py-1 border-t border-dashed border-gray-300 text-center uppercase tracking-widest font-sans">
+            ✂️ Découper selon le cadre
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // CLASSIC CODE-128 & HYBRID (CODE-128 + QR) LAYOUT
+  // =========================================================================
   return (
     <div
       className={`bg-white text-black p-3 sm:p-4 rounded-xl border-2 border-black flex flex-col justify-between select-none shadow-xs transition-all ${
@@ -182,24 +290,18 @@ export const GtStockLabel: React.FC<GtStockLabelProps> = ({
         <div className="flex items-center justify-between mb-1.5 w-full">
           <GtLogisticsLogo className={size === 'compact' ? 'h-4' : 'h-6'} />
           <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 font-sans">
-            {isLocation ? 'Emplacement' : 'Stock'}
+            {categoryBadge}
           </span>
         </div>
       )}
 
-      {/* Zone Code-Barres / QR Code Haute Netteté */}
-      {symbology === 'qr' ? (
-        <div className="w-full flex items-center justify-center py-1 bg-white">
-          <img
-            src={qrUrl}
-            alt={`QR ${safeCode128}`}
-            className={`${
-              size === 'large' ? 'w-32 h-32' : size === 'zebra' ? 'w-24 h-24' : 'w-28 h-28'
-            } object-contain`}
-            style={{ imageRendering: 'pixelated' }}
-          />
-        </div>
-      ) : symbology === 'hybrid' ? (
+      {/* Nom clair au-dessus du code-barres */}
+      <div className="text-center font-sans font-black text-xs sm:text-sm text-black uppercase truncate mb-1">
+        {cleanTitle}
+      </div>
+
+      {/* Zone Code-Barres / Hybride */}
+      {symbology === 'hybrid' ? (
         <div className="w-full flex items-center justify-between gap-2 py-1 bg-white">
           <div className="flex-1 min-w-0 flex items-center justify-center">
             <svg
@@ -229,7 +331,7 @@ export const GtStockLabel: React.FC<GtStockLabelProps> = ({
 
       {/* Rendu spécifique selon type : Emplacement VS Article */}
       {isLocation ? (
-        <div className="text-center font-bold text-xs sm:text-base tracking-wider text-black mt-1.5 font-mono uppercase break-all">
+        <div className="text-center font-bold text-xs sm:text-sm tracking-wider text-black mt-1 font-mono uppercase break-all">
           {cleanCode}
         </div>
       ) : (

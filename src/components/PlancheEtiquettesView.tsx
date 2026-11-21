@@ -61,7 +61,7 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
   const [filterType, setFilterType] = useState<string>('all');
   const [printerMode, setPrinterMode] = useState<'a4' | 'zebra'>('zebra');
   const [a4Columns, setA4Columns] = useState<2 | 3>(2); // 2 colonnes par défaut en A4 = codes longs 100% scannables
-  const [symbology, setSymbology] = useState<BarcodeSymbology>('code128');
+  const [symbology, setSymbology] = useState<BarcodeSymbology>('qr'); // QR Code 2D par défaut : 100% scannable + étiquette design avec le nom
   const [zebraFormatId, setZebraFormatId] = useState<string>('100x50');
   const [selectedCodes, setSelectedCodes] = useState<Set<string>>(new Set());
   const [singleItemToPrint, setSingleItemToPrint] = useState<BarcodeItem | null>(null);
@@ -477,35 +477,35 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
               <div className="flex flex-wrap items-center rounded-xl bg-white p-1 border border-slate-300 gap-1 text-xs">
                 <button
                   type="button"
-                  onClick={() => setSymbology('code128')}
+                  onClick={() => setSymbology('qr')}
                   className={`px-3 py-1 rounded-lg font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
-                    symbology === 'code128' ? 'bg-[#0c1e3a] text-white' : 'text-slate-600 hover:bg-slate-100'
+                    symbology === 'qr' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  <ScanBarcode className="w-3.5 h-3.5" />
-                  <span>Code-128 (Haute Netteté)</span>
+                  <QrCode className="w-3.5 h-3.5" />
+                  <span>QR Code Design (Recommandé • 100% Scannable)</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setSymbology('hybrid')}
                   className={`px-3 py-1 rounded-lg font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
                     symbology === 'hybrid'
-                      ? 'bg-emerald-600 text-white shadow-xs'
+                      ? 'bg-blue-600 text-white shadow-xs'
                       : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
                   <QrCode className="w-3.5 h-3.5" />
-                  <span>Code-128 + QR (Secours 100%)</span>
+                  <span>Code-128 + QR</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSymbology('qr')}
+                  onClick={() => setSymbology('code128')}
                   className={`px-3 py-1 rounded-lg font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
-                    symbology === 'qr' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+                    symbology === 'code128' ? 'bg-[#0c1e3a] text-white' : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  <QrCode className="w-3.5 h-3.5" />
-                  <span>QR Code seul (Ultra-rapide)</span>
+                  <ScanBarcode className="w-3.5 h-3.5" />
+                  <span>Code-128 Classique</span>
                 </button>
               </div>
             </div>
@@ -776,6 +776,7 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
                 {/* Authentic GT Stock Label Component */}
                 <GtStockLabel
                   barcode={item.code}
+                  displayName={item.label}
                   lrCode={item.lrCode}
                   crLabel={item.crLabel}
                   type={item.type}
@@ -846,6 +847,7 @@ export const PlancheEtiquettesView: React.FC<PlancheEtiquettesViewProps> = ({
             >
               <GtStockLabel
                 barcode={singleItemToPrint.code}
+                displayName={singleItemToPrint.label}
                 lrCode={singleItemToPrint.lrCode}
                 crLabel={singleItemToPrint.crLabel}
                 type={singleItemToPrint.type}
