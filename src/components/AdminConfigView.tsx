@@ -58,6 +58,7 @@ import {
   RemoteScore
 } from '../services/supabaseClient';
 import { ConfirmModal } from './ConfirmModal';
+import { SmartImportModal } from './SmartImportModal';
 import { showToast } from './ToastNotification';
 import { generateAutoBalancedMissions } from '../services/autoLoopMissionGenerator';
 import { Mission, MissionStep, InventoryItem, AppConfig, Distraction, LiveHazard, WarehouseLocation } from '../types';
@@ -90,6 +91,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
   const [localLocations, setLocalLocations] = useState<WarehouseLocation[]>(locations);
   const [selectedMissionIndex, setSelectedMissionIndex] = useState<number>(0);
   const [manualBarcodeSteps, setManualBarcodeSteps] = useState<Record<number, boolean>>({});
+  const [isSmartImportOpen, setIsSmartImportOpen] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isLocalEditingMissionsRef = useRef(false);
   const isLocalEditingLocationsRef = useRef(false);
@@ -1301,6 +1303,14 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                     {localConfig.strictScanOnly ? '🔒 Jour J' : '🔓 Test'}
                   </span>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsSmartImportOpen(true)}
+                  className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-black text-[11px] cursor-pointer shadow-sm transition-all"
+                >
+                  📊 Modèle & Import Excel / CSV
+                </button>
 
                 <button
                   type="button"
@@ -3367,6 +3377,36 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Smart Excel / CSV Template & Import Modal */}
+      <SmartImportModal
+        isOpen={isSmartImportOpen}
+        onClose={() => setIsSmartImportOpen(false)}
+        inventory={localInventory}
+        locations={localLocations}
+        missions={localMissions}
+        appConfig={localConfig}
+        onApplyStockImport={(nextInv, nextLocs, nextMissions) => {
+          isLocalEditingInventoryRef.current = false;
+          isLocalEditingLocationsRef.current = false;
+          setLocalInventory(nextInv);
+          setLocalLocations(nextLocs);
+          onUpdateLocations(nextLocs);
+          onUpdateInventory(nextInv);
+          if (nextMissions && nextMissions.length > 0) {
+            isLocalEditingMissionsRef.current = false;
+            setLocalMissions(nextMissions);
+            setSelectedMissionIndex(0);
+            onUpdateMissions(nextMissions);
+          }
+        }}
+        onApplyMissionsImport={(nextMissions) => {
+          isLocalEditingMissionsRef.current = false;
+          setLocalMissions(nextMissions);
+          setSelectedMissionIndex(0);
+          onUpdateMissions(nextMissions);
+        }}
+      />
 
       {/* Modern In-App Confirmation Modal */}
       <ConfirmModal
