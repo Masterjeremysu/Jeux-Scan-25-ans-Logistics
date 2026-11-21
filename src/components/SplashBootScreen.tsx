@@ -114,10 +114,10 @@ export const SplashBootScreen: React.FC<SplashBootScreenProps> = ({ logoUrl }) =
             <span>GT LOGISTICS • 25 ANS D&apos;EXCELLENCE</span>
           </div>
           <h1 className="font-display text-3xl sm:text-5xl font-black tracking-tight uppercase bg-gradient-to-r from-white via-sky-200 to-white bg-clip-text text-transparent drop-shadow-[0_2px_18px_rgba(56,189,248,0.35)]">
-            WMS SHIFT CHALLENGE
+            LE GRAND DÉFI LOGISTIQUE
           </h1>
           <p className="text-xs sm:text-sm font-mono text-sky-300/80 uppercase tracking-[0.22em] mt-2">
-            CONNEXION ARÈNE TEMPS RÉEL
+            VIS MA VIE AU SCANNER • ARÈNE TEMPS RÉEL
           </p>
         </div>
 

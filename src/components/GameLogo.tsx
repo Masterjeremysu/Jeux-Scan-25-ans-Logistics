@@ -96,18 +96,18 @@ export const GameLogo: React.FC<GameLogoProps> = ({
           </div>
           {size !== 'sm' && (
             <div>
-              <div className="flex items-center gap-2">
-                <span className={`${sizeClasses.title} text-white tracking-wide uppercase`}>
+              <div className="flex items-center gap-2.5">
+                <span className={`${sizeClasses.title} font-display text-white tracking-wide uppercase`}>
                   GT LOGISTICS
                 </span>
-                <span className="text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full bg-gradient-to-r from-red-600 to-amber-500 text-white shadow-md shrink-0 font-mono">
+                <span className="text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.45)] shrink-0 font-mono">
                   25 ANS
                 </span>
               </div>
               {showSubtitle && (
-                <p className={`${sizeClasses.subtitle} text-sky-300 font-semibold tracking-wider font-mono flex items-center gap-1.5`}>
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span>WMS SHIFT CHALLENGE • ÉDITION OFFICIELLE</span>
+                <p className={`${sizeClasses.subtitle} text-sky-300 font-bold tracking-[0.14em] uppercase font-display flex items-center gap-1.5 mt-0.5`}>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>LE GRAND DÉFI LOGISTIQUE • VIS MA VIE AU SCANNER</span>
                 </p>
               )}
             </div>

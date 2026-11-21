@@ -1,20 +1,18 @@
 import React, { useState } from 'react';
 import { ViewMode, OperatorProfile, AppConfig } from '../types';
-import { 
-  Barcode, 
-  Printer, 
-  Trophy, 
-  Volume2, 
-  VolumeX, 
-  Maximize2, 
-  Minimize2, 
-  Clock, 
-  User, 
-  Sliders, 
-  Tv, 
-  ExternalLink, 
+import {
+  Barcode,
+  Printer,
+  Trophy,
+  Volume2,
+  VolumeX,
+  Maximize2,
+  Minimize2,
+  Clock,
+  Sliders,
+  Tv,
+  ExternalLink,
   Sparkles,
-  Wifi,
   ChevronDown,
   Layers,
   Award
@@ -65,29 +63,36 @@ export const Header: React.FC<HeaderProps> = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Clean operator display name
   const cleanOperatorName = operator.name.replace(/\(Invité\)/gi, '').replace(/^Duo\s+/i, '').trim();
 
-  const navItems: { id: ViewMode; label: string; icon: React.FC<{ className?: string }>; badge?: string; badgeColor?: string }[] = [
+  const navItems: {
+    id: ViewMode;
+    label: string;
+    icon: React.FC<{ className?: string }>;
+    isLive?: boolean;
+  }[] = [
     { id: 'home', label: 'Accueil', icon: Sparkles },
     { id: 'kiosk', label: 'Poste Scanner', icon: Barcode },
-    { id: 'arena', label: 'Arène TV 55"', icon: Tv, badge: 'DIRECT', badgeColor: 'bg-rose-500 text-white' },
-    { id: 'podium', label: 'Podium & Records', icon: Trophy },
+    { id: 'arena', label: 'Arène TV 55"', icon: Tv, isLive: true },
+    { id: 'podium', label: 'Podium', icon: Trophy },
     { id: 'print', label: 'Étiquettes', icon: Printer },
-    { id: 'admin', label: 'Régie & ERP', icon: Sliders },
+    { id: 'admin', label: 'Régie & ERP', icon: Sliders }
   ];
 
   return (
-    <header className="no-print bg-[#0c1e3a] text-white border-b-2 border-red-600 shadow-md px-3 sm:px-5 py-2.5 flex items-center justify-between gap-4 select-none sticky top-0 z-40 relative">
-      {/* 1. BRAND & IDENTITY (Left) */}
-      <div className="flex items-center space-x-3 shrink-0">
+    <header className="no-print bg-[#060d1e]/95 backdrop-blur-xl text-white px-3 sm:px-5 py-2 flex items-center justify-between gap-3 select-none sticky top-0 z-40 relative">
+      {/* Subtle Luminous Gradient Bottom Accent Line */}
+      <div className="absolute bottom-0 inset-x-0 h-[2px] bg-gradient-to-r from-sky-500/40 via-red-600 to-amber-500/50 pointer-events-none" />
+
+      {/* 1. BRAND & LIVE STATUS (Left) */}
+      <div className="flex items-center shrink-0">
         <button
           onClick={() => {
             soundService.playScanBeep();
             onSelectView('home');
           }}
-          className="flex items-center space-x-3 text-left cursor-pointer group transition-all"
-          title="Accueil du jeu"
+          className="flex items-center gap-2.5 text-left cursor-pointer group transition-all"
+          title="Retour à l'accueil"
         >
           <GameLogo
             customLogoUrl={appConfig.customLogoUrl}
@@ -95,22 +100,27 @@ export const Header: React.FC<HeaderProps> = ({
             showSubtitle={false}
             allowUpload={false}
           />
-          <div className="hidden lg:flex flex-col">
-            <div className="flex items-center space-x-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-emerald-400">
-                WMS CONNECTÉ
+          <div className="hidden lg:flex flex-col leading-tight">
+            <div className="flex items-center gap-1.5">
+              <span className="font-display font-black text-xs tracking-wider uppercase text-white group-hover:text-sky-300 transition-colors">
+                GT LOGISTICS
+              </span>
+              <span className="text-[9px] font-mono font-black px-1.5 py-0.2 rounded bg-red-600/90 text-white">
+                25 ANS
               </span>
             </div>
-            <span className="text-[11px] font-semibold text-slate-300 tracking-tight">
-              25 Ans de Partenariat CEA
-            </span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[10px] font-mono text-slate-400">
+                Temps Réel • CEA
+              </span>
+            </div>
           </div>
         </button>
       </div>
 
-      {/* 2. DOCK-STYLE CENTER NAVIGATION (Center) */}
-      <nav className="flex items-center p-1 bg-[#071224]/80 rounded-2xl border border-slate-700/80 shadow-inner overflow-x-auto scrollbar-none">
+      {/* 2. SLEEK GLASS NAVIGATION DOCK (Center) */}
+      <nav className="flex items-center gap-0.5 p-1 bg-slate-900/80 rounded-2xl border border-slate-700/70 shadow-inner overflow-x-auto scrollbar-none">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentView === item.id;
@@ -121,21 +131,18 @@ export const Header: React.FC<HeaderProps> = ({
                 soundService.playScanBeep();
                 onSelectView(item.id);
               }}
-              className={`relative flex items-center space-x-2 px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-150 cursor-pointer ${
+              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-150 cursor-pointer ${
                 isActive
-                  ? 'bg-white text-[#0c1e3a] font-black shadow-md border border-white/50'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                  ? 'bg-gradient-to-r from-sky-500/25 via-blue-600/25 to-indigo-500/25 text-white border border-sky-400/50 shadow-[0_0_16px_rgba(56,189,248,0.2)]'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/70 border border-transparent'
               }`}
             >
-              <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#0c1e3a]' : 'text-slate-400'}`} />
+              <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-sky-300' : 'text-slate-400'}`} />
               <span className="tracking-tight">{item.label}</span>
-              {item.badge && (
-                <span
-                  className={`text-[9px] font-extrabold uppercase font-mono px-1.5 py-0.2 rounded-full leading-tight shrink-0 ${
-                    item.badgeColor || 'bg-red-600 text-white'
-                  }`}
-                >
-                  {item.badge}
+              {item.isLive && (
+                <span className="inline-flex items-center gap-1 text-[9px] font-mono font-black uppercase px-1.5 py-0.5 rounded-full bg-rose-600/90 text-white leading-none shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                  LIVE
                 </span>
               )}
             </button>
@@ -143,73 +150,63 @@ export const Header: React.FC<HeaderProps> = ({
         })}
       </nav>
 
-      {/* 3. COCKPIT CONTROLS & PLAYER IDENTITY (Right) */}
-      <div className="flex items-center space-x-2 shrink-0">
-        {/* Active Shift Timer */}
-        <div className="hidden sm:flex items-center space-x-1.5 bg-slate-900/80 px-2.5 py-1.5 rounded-xl border border-slate-800 text-xs font-mono font-bold text-amber-400 shadow-xs">
-          <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-          <span>{formatTime(shiftSecondsRemaining)}</span>
+      {/* 3. COMPACT COCKPIT CONTROLS (Right) */}
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {/* Unified Chrono + Diplôme Pill */}
+        <div className="hidden sm:flex items-center bg-slate-900/90 rounded-xl border border-slate-700/70 overflow-hidden shadow-xs">
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono font-black text-amber-400 border-r border-slate-800">
+            <Clock className="w-3.5 h-3.5 text-amber-400" />
+            <span>{formatTime(shiftSecondsRemaining)}</span>
+          </div>
+          <button
+            onClick={onOpenDiplome}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-slate-800 transition-colors cursor-pointer group"
+            title="Consulter et imprimer le Diplôme d'Honneur"
+          >
+            <Award className="w-3.5 h-3.5 text-sky-400 group-hover:scale-110 transition-transform" />
+            <span className="text-[11px] font-bold text-slate-200 max-w-[90px] truncate hidden xl:inline">
+              {cleanOperatorName || 'Diplôme'}
+            </span>
+            {operator.score > 0 && (
+              <span className="text-[10px] font-mono font-black text-emerald-400">
+                +{operator.score}
+              </span>
+            )}
+          </button>
         </div>
 
-        {/* Player Profile & Diplome Button */}
-        <button
-          onClick={onOpenDiplome}
-          className="flex items-center space-x-2 bg-slate-900 hover:bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700/80 transition-all cursor-pointer group shadow-xs"
-          title="Consulter et imprimer le Diplôme d'Honneur"
-        >
-          <div className="w-5 h-5 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-[10px]">
-            <Award className="w-3.5 h-3.5" />
-          </div>
-          <div className="flex flex-col text-left">
-            <span className="text-[11px] font-bold text-slate-200 group-hover:text-white max-w-[120px] truncate leading-tight">
-              {cleanOperatorName || 'Invité'}
-            </span>
-            <span className="text-[10px] font-mono font-extrabold text-emerald-400 leading-tight">
-              +{operator.score} pts
-            </span>
-          </div>
-        </button>
+        {/* Audio & Fullscreen Compact Group */}
+        <div className="flex items-center bg-slate-900/90 rounded-xl border border-slate-700/70 p-0.5">
+          <button
+            onClick={onToggleSound}
+            className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+            title={soundEnabled ? 'Couper les effets sonores' : 'Activer les bips scannette'}
+          >
+            {soundEnabled ? (
+              <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+            ) : (
+              <VolumeX className="w-3.5 h-3.5 text-rose-400" />
+            )}
+          </button>
 
-        {/* Live Realtime Cloud & Multi-tab Pulse */}
-        <div 
-          className="hidden xl:flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-emerald-950/50 border border-emerald-500/40 text-[10px] font-mono text-emerald-400 font-bold select-none"
-          title="Synchronisation temps réel active (Supabase Cloud + Multi-onglets 0ms)"
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>TEMPS RÉEL ACTIF</span>
+          <button
+            onClick={toggleFullscreen}
+            className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer hidden md:flex"
+            title="Plein Écran (Mode Borne Kiosque)"
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-3.5 h-3.5 text-sky-400" />
+            ) : (
+              <Maximize2 className="w-3.5 h-3.5" />
+            )}
+          </button>
         </div>
-
-        {/* Audio Toggle */}
-        <button
-          onClick={onToggleSound}
-          className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors border border-slate-800 cursor-pointer"
-          title={soundEnabled ? 'Couper les effets sonores' : 'Activer les bips scannette'}
-        >
-          {soundEnabled ? (
-            <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
-          ) : (
-            <VolumeX className="w-3.5 h-3.5 text-rose-400" />
-          )}
-        </button>
-
-        {/* Fullscreen Toggle */}
-        <button
-          onClick={toggleFullscreen}
-          className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors border border-slate-800 cursor-pointer hidden md:flex"
-          title="Basculer en Plein Écran (Mode Borne Kiosque)"
-        >
-          {isFullscreen ? (
-            <Minimize2 className="w-3.5 h-3.5 text-sky-400" />
-          ) : (
-            <Maximize2 className="w-3.5 h-3.5" />
-          )}
-        </button>
 
         {/* Multi-screen Manager Dropdown */}
         <div className="relative">
           <button
             onClick={() => setIsMultiScreenOpen(!isMultiScreenOpen)}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-950 to-slate-900 hover:from-indigo-900 hover:to-slate-850 text-indigo-300 border border-indigo-700/40 text-xs font-semibold cursor-pointer transition-all shadow-xs"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-200 border border-indigo-500/40 text-xs font-bold cursor-pointer transition-all"
             title="Ouvrir les fenêtres autonomes (Écran TV 55'', Scannette Zebra 1 & 2)"
           >
             <Layers className="w-3.5 h-3.5 text-indigo-400" />
@@ -218,7 +215,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {isMultiScreenOpen && (
-            <div className="absolute right-0 mt-2 w-72 bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl p-2.5 z-50 flex flex-col gap-1 text-xs">
+            <div className="absolute right-0 mt-2 w-72 bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl shadow-2xl p-2.5 z-50 flex flex-col gap-1 text-xs">
               <div className="px-3 py-1.5 text-[10px] text-slate-400 font-bold uppercase tracking-wider font-mono border-b border-slate-800 mb-1">
                 Ouvrir un Écran Dédié :
               </div>
@@ -232,7 +229,7 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <div className="flex items-center space-x-2">
                   <Tv className="w-4 h-4 text-rose-400" />
-                  <span>Grande TV 55" (Arène Spectateurs)</span>
+                  <span>Grande TV 55&quot; (Arène Spectateurs)</span>
                 </div>
                 <ExternalLink className="w-3 h-3 text-slate-500" />
               </a>
