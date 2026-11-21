@@ -195,6 +195,16 @@
     gap: 10px !important;
   }
 
+  #printable-sheet .grid.a4-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 14px !important;
+  }
+
+  #printable-sheet .print-exclude,
+  body.printing-zebra-roll .print-exclude {
+    display: none !important;
+  }
+
   #printable-sheet .group {
     display: flex !important;
     flex-direction: column !important;
@@ -207,7 +217,8 @@
     break-inside: avoid !important;
   }
 
-  /* Force all Barcode SVGs to be crisp and visible */
+  /* Force all Barcode SVGs to be crisp and visible (zero anti-aliasing blur on thermal/laser) */
+  svg.gt-barcode-svg,
   svg[id^="barcode-svg-"],
   svg[id^="single-barcode-svg-"] {
     display: block !important;
@@ -215,6 +226,7 @@
     max-width: 100% !important;
     height: auto !important;
     margin: 0 auto !important;
+    shape-rendering: crispEdges !important;
   }
 
   /* ----------------------------------------------------
