@@ -191,9 +191,7 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
   };
 
   useEffect(() => {
-    if (activeTab === 'database') {
-      loadAdminScores();
-    }
+    loadAdminScores();
   }, [activeTab]);
 
   const baseUrl = (localConfig.publicUrl || 'https://jeux-scan-25-ans-logistics.vercel.app').replace(/\/$/, '');
@@ -279,6 +277,63 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
       title: '📡 Les 2 Zebras sont en veille',
       message: 'Elles attendent le prochain Top Départ depuis l\'Admin ou l\'Arène TV.',
       type: 'info'
+    });
+  };
+
+  // Remise à zéro complète "PRÊT POUR LE JOUR J" en 1 clic (Stock nominal + Table à 0 + Scores/Logs vidés + Missions A/B neuves + Mode Jour J)
+  const handleFullJourJReset = () => {
+    setConfirmConfig({
+      isOpen: true,
+      title: '🚀 Préparer le Stand pour le JOUR J (Reset Propre) ?',
+      message:
+        'Cette action va tout remettre à zéro proprement pour démarrer l\'événement :\n• Remet tous les bacs au stock nominal et vide la table (0 pièce sur table)\n• Efface les scores et logs de test\n• Met les 2 Zebras en veille prêtes au départ\n• Génère 6 missions neuves 0-collision (Étagère A + Étagère B)\n• Active le Mode Jour J (bouton virtuel « FLASHER » masqué)',
+      confirmLabel: '🚀 Tout remettre à zéro (Jour J)',
+      variant: 'warning',
+      action: async () => {
+        // 1. Remise au nominal du stock + table à 0
+        await resetInventoryToNominal();
+        const freshInv = await fetchInventory();
+        const invToUse = freshInv.length > 0 ? freshInv : localInventory.map((it) => ({
+          ...it,
+          quantity: it.nominalQuantity ?? it.quantity,
+          onTableQty: 0
+        }));
+        isLocalEditingInventoryRef.current = false;
+        setLocalInventory(invToUse);
+        onUpdateInventory(invToUse);
+
+        // 2. Nettoyage scores de test, logs et mise en veille des 2 Zebras
+        await Promise.all([
+          resetAllScores(),
+          resetLiveActivity(),
+          resetAllLiveStations()
+        ]);
+        setAdminScores([]);
+
+        // 3. Activation Mode Jour J (strictScanOnly = true)
+        const nextConfig: AppConfig = { ...localConfig, strictScanOnly: true, autoLoopEnabled: true };
+        setLocalConfig(nextConfig);
+        onUpdateAppConfig(nextConfig);
+        const { locations: _ignored, ...storedCfg } = nextConfig;
+        await saveAppConfig(storedCfg);
+
+        // 4. Génération d'un pack tout neuf de 6 missions 0-collision (Étagère A + Étagère B)
+        const freshMissions = generateAutoBalancedMissions(invToUse, localLocations, nextConfig, 2);
+        if (freshMissions.length > 0) {
+          isLocalEditingMissionsRef.current = false;
+          setLocalMissions(freshMissions);
+          setSelectedMissionIndex(0);
+          onUpdateMissions(freshMissions);
+          await syncMissions(freshMissions);
+        }
+
+        showToast({
+          title: '🎉 STAND 100 % PRÊT POUR LE JOUR J !',
+          message: 'Stock nominal restauré, scores de test vidés, missions Étagère A/B générées et Mode Jour J activé !',
+          type: 'success',
+          duration: 7000
+        });
+      }
     });
   };
 
@@ -1223,53 +1278,153 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         };
 
         const allWarnings = [...missionWarnings, ...distractionWarnings];
-        const isFullyReady = allWarnings.length === 0 && localMissions.length > 0 && itemsInBins.length > 0;
+        const hasLaneA = localMissions.some((m) => m.assignedStation === 'poste-1');
+        const hasLaneB = localMissions.some((m) => m.assignedStation === 'poste-2');
+        const isStockClean = totalOnTable === 0 && zeroStockItems.length === 0 && itemsInBins.length > 0;
+        const isMissionsReady = allWarnings.length === 0 && hasLaneA && hasLaneB;
+        const isScoresClean = adminScores.length === 0;
+        const isStrictModeOn = Boolean(localConfig.strictScanOnly);
 
-        // Recommandation principale temps réel pour l'animateur
-        let coachHeadline = '🚀 Stand 100 % prêt ! Saisissez les prénoms du prochain Duo ci-dessous et lancez le duel.';
-        let coachTone: 'emerald' | 'amber' | 'sky' = 'emerald';
+        const checklistItems = [
+          {
+            id: 'stock',
+            done: isStockClean,
+            title: 'Stock & Tables propres',
+            detail: isStockClean
+              ? `${itemsInBins.length} bacs prêts • 0 pièce sur table`
+              : `${totalOnTable} pièce(s) sur table • ${zeroStockItems.length} bac(s) à 0`,
+            actionLabel: '🔄 Stock à 0',
+            onAction: async () => {
+              await resetInventoryToNominal();
+              const fresh = await fetchInventory();
+              if (fresh.length > 0) {
+                setLocalInventory(fresh);
+                onUpdateInventory(fresh);
+              }
+              showToast({ title: 'Stock remis au nominal', message: 'Tous les bacs sont pleins et la table est vide.', type: 'success' });
+            }
+          },
+          {
+            id: 'missions',
+            done: isMissionsReady,
+            title: 'Missions 0-Collision (Étagère A + B)',
+            detail: isMissionsReady
+              ? `${localMissions.length} missions isolées (Poste 1 = A, Poste 2 = B)`
+              : 'Cliquez pour générer les 6 missions isolées Étagère A / B',
+            actionLabel: '⚡ Générer A + B',
+            onAction: handleGenerateAutoLoopMissions
+          },
+          {
+            id: 'scores',
+            done: isScoresClean,
+            title: 'Scores & logs de test nettoyés',
+            detail: isScoresClean
+              ? 'Classement vierge prêt pour les vrais invités'
+              : `${adminScores.length} score(s) actuellement dans le classement`,
+            actionLabel: '🧹 Vider tests',
+            onAction: () => {
+              setConfirmConfig({
+                isOpen: true,
+                title: 'Vider les scores et logs de test ?',
+                message: `Effacer les ${adminScores.length} score(s) et le flux d'activité pour repartir d'un podium vierge ?`,
+                confirmLabel: '🧹 Vider le classement',
+                variant: 'danger',
+                action: async () => {
+                  await Promise.all([resetAllScores(), resetLiveActivity()]);
+                  setAdminScores([]);
+                  showToast({ title: 'Classement nettoyé', message: 'Podium et logs remis à zéro.', type: 'success' });
+                }
+              });
+            }
+          },
+          {
+            id: 'strict',
+            done: isStrictModeOn,
+            title: 'Mode Jour J (Scan réel obligatoire)',
+            detail: isStrictModeOn
+              ? 'Bouton virtuel « FLASHER » masqué sur les Zebras'
+              : 'Mode Test actif — pensez à verrouiller avant l\'ouverture',
+            actionLabel: '🔒 Activer Jour J',
+            onAction: () => {
+              const updated = { ...localConfig, strictScanOnly: true };
+              setLocalConfig(updated);
+              onUpdateAppConfig(updated);
+              showToast({ title: '🔒 Mode Jour J activé', message: 'Seuls les vrais scans Zebra/Caméra sont acceptés.', type: 'success' });
+            }
+          }
+        ];
 
-        if (missionWarnings.length > 0 || localMissions.length === 0) {
-          coachHeadline = '⚡ Action recommandée : vos missions ne pointent pas toutes vers vos vrais produits en stock. Cliquez sur « Auto-Boucle » pour les aligner en 1 clic.';
-          coachTone = 'amber';
-        } else if (totalOnTable === 0 && seedCandidates.length > 0) {
-          coachHeadline = `💡 Conseil d'amorçage : posez 2 pièces sur la Table de Collecte (${collectCode}) pour que la boucle Livraison ↔ Collecte tourne toute seule dès le 1er duel !`;
-          coachTone = 'sky';
-        } else if (totalOnTable >= 4) {
-          coachHeadline = `📥 ${totalOnTable} pièces sont posées sur la table ! Cliquez sur « Auto-Boucle » pour envoyer le prochain Duo les ranger automatiquement dans leurs bacs.`;
-          coachTone = 'amber';
-        } else if (zeroStockItems.length > 0) {
-          coachHeadline = `⚠️ ${zeroStockItems.length} article(s) sont à 0 en bac : lancez une Collecte ou réinitialisez le stock nominal.`;
-          coachTone = 'amber';
-        }
+        const doneCount = checklistItems.filter((c) => c.done).length;
+        const allChecklistReady = doneCount === checklistItems.length;
 
-        const toneStyles =
-          coachTone === 'emerald'
-            ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
-            : coachTone === 'sky'
-            ? 'bg-sky-50/90 border-sky-300 text-sky-950'
-            : 'bg-amber-50/90 border-amber-300 text-amber-950';
+        const toneStyles = allChecklistReady
+          ? 'bg-emerald-50/90 border-emerald-400 text-emerald-950'
+          : 'bg-amber-50/90 border-amber-300 text-amber-950';
 
         return (
           <div className={`rounded-3xl p-5 border-2 shadow-sm space-y-4 ${toneStyles}`}>
-            {/* Ligne titre + statut */}
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            {/* En-tête Checklist Interactive Jour J + Bouton Master Reset */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                {isFullyReady ? (
-                  <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
+                {allChecklistReady ? (
+                  <CheckCircle2 className="w-7 h-7 text-emerald-600 shrink-0" />
                 ) : (
-                  <Sparkles className="w-6 h-6 text-amber-600 shrink-0" />
+                  <Sparkles className="w-7 h-7 text-amber-600 shrink-0" />
                 )}
                 <div>
                   <span className="text-[10px] font-mono font-black uppercase tracking-widest opacity-75 block">
-                    Assistant Régie • Guide Animateur Jour J
+                    CHECKLIST INTERACTIVE JOUR J • {doneCount}/{checklistItems.length} VALIDÉES
                   </span>
-                  <p className="text-xs sm:text-sm font-black">{coachHeadline}</p>
+                  <p className="text-xs sm:text-sm font-black">
+                    {allChecklistReady
+                      ? '🎉 Stand 100 % prêt pour le Jour J ! Vous pouvez accueillir le premier Duo.'
+                      : `⚡ ${checklistItems.length - doneCount} étape(s) restante(s) avant l'ouverture — corrigez-les ci-dessous ou lancez le Reset Propre en 1 clic.`}
+                  </p>
                 </div>
               </div>
-              <span className="text-[11px] font-mono font-bold px-3 py-1 rounded-full bg-white/80 border border-slate-200 text-slate-700">
-                {itemsInBins.length} en bacs • {totalOnTable} sur table • {localMissions.length} missions
-              </span>
+
+              <button
+                type="button"
+                onClick={handleFullJourJReset}
+                className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#0c1e3a] via-blue-900 to-indigo-900 hover:from-blue-900 hover:to-indigo-800 text-white font-black text-xs shadow-md flex items-center gap-2 cursor-pointer transition-all shrink-0"
+                title="Remet stock nominal, vide table/scores/logs, génère les missions A/B et active le Mode Jour J"
+              >
+                <RotateCcw className="w-4 h-4 text-emerald-400" />
+                <span>🚀 TOUT PRÉPARER JOUR J (RESET 1 CLIC)</span>
+              </button>
+            </div>
+
+            {/* Grille interactive des 4 vérifications Jour J */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+              {checklistItems.map((step) => (
+                <div
+                  key={step.id}
+                  className={`rounded-2xl p-3 border flex flex-col justify-between gap-2 bg-white/95 ${
+                    step.done ? 'border-emerald-300' : 'border-amber-400 shadow-sm'
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <span className="text-sm shrink-0 mt-0.5">{step.done ? '✅' : '⚠️'}</span>
+                    <div className="min-w-0">
+                      <span className={`text-xs font-black block leading-tight ${step.done ? 'text-emerald-900' : 'text-amber-950'}`}>
+                        {step.title}
+                      </span>
+                      <span className="text-[10px] text-slate-600 leading-snug block mt-0.5">
+                        {step.detail}
+                      </span>
+                    </div>
+                  </div>
+                  {!step.done && (
+                    <button
+                      type="button"
+                      onClick={step.onAction}
+                      className="w-full py-1.5 px-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[11px] cursor-pointer transition-colors"
+                    >
+                      {step.actionLabel}
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
 
             {/* Guide physique : Quoi positionner sur le stand */}
