@@ -655,17 +655,38 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({
   const completedCount1 = activeIdx1 + (isStation1Finished ? 1 : 0);
   const completedCount2 = activeIdx2 + (isStation2Finished ? 1 : 0);
 
+  // Fin de duel anticipée : si les 2 duos terminent toutes leurs missions avant 00:00, proclame le vainqueur automatiquement
+  useEffect(() => {
+    if (!isMatchRunning) return;
+    if (station1Missions.length === 0 || station2Missions.length === 0) return;
+    const bothFinishedAll =
+      completedCount1 >= station1Missions.length &&
+      completedCount2 >= station2Missions.length &&
+      isStation1Finished &&
+      isStation2Finished;
+    if (bothFinishedAll) {
+      setIsMatchRunning(false);
+      soundService.playMatchEndGong();
+      setIsEndMatchModalOpen(true);
+      setLastEventMsg('🏆 LES 2 BINÔMES ONT TERMINÉ TOUTES LEURS MISSIONS ! Proclamation en cours...');
+    }
+  }, [isMatchRunning, completedCount1, completedCount2, station1Missions.length, station2Missions.length, isStation1Finished, isStation2Finished]);
+
   return (
     <div className="w-full min-h-screen bg-gradient-to-b from-[#08152c] via-[#071224] to-[#050d1a] text-slate-100 flex flex-col justify-between p-3 sm:p-5 lg:p-7 select-none relative overflow-hidden font-sans border-t-4 border-t-red-600">
-      {/* Dynamic Ambient Background Glows GT Logistics (Navy & Red accents) */}
-      <div className="absolute top-0 left-0 w-[550px] h-[550px] bg-blue-600/10 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute top-0 right-0 w-[550px] h-[550px] bg-red-600/10 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-0 left-1/3 w-[650px] h-[350px] bg-indigo-900/15 rounded-full blur-[170px] pointer-events-none" />
+      {/* Ambient Navy/Red Broadcast Gradients (0 GPU blur overhead -> 60 FPS constant sur TV 55") */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(circle at 12% 10%, rgba(37, 99, 235, 0.14) 0%, transparent 45%), radial-gradient(circle at 88% 12%, rgba(220, 38, 38, 0.12) 0%, transparent 45%), radial-gradient(circle at 50% 92%, rgba(79, 70, 229, 0.14) 0%, transparent 50%)'
+        }}
+      />
 
       {/* ========================================================================= */}
       {/* 1. TOP BROADCAST BAR (Style Régie GT Logistics Officielle)                */}
       {/* ========================================================================= */}
-      <header className="z-10 bg-[#0c1e3a]/95 backdrop-blur-xl border border-slate-700/70 rounded-3xl px-5 sm:px-6 py-3.5 shadow-2xl flex flex-wrap items-center justify-between gap-3 relative overflow-hidden">
+      <header className="z-10 bg-[#0c1e3a] border border-slate-700/80 rounded-3xl px-5 sm:px-6 py-3.5 shadow-2xl flex flex-wrap items-center justify-between gap-3 relative overflow-hidden">
         {/* Subtle top GT red stripe */}
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-80" />
 
@@ -769,17 +790,6 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({
             <Radio className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Départ</span>
             <span>3-2-1</span>
-          </button>
-
-          {/* Quick Hazard Trigger */}
-          <button
-            type="button"
-            onClick={handleTriggerQuickHazardFromTv}
-            className="px-2.5 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 hover:text-white border border-rose-500/40 text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1"
-            title="Déclencher un aléa logistique inopiné"
-          >
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden md:inline">Aléa</span>
           </button>
 
           {/* Sound Toggle */}
@@ -905,7 +915,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({
                 </span>
               </div>
               <span className="text-[10px] font-mono font-bold text-sky-300 bg-sky-950 px-2.5 py-0.5 rounded-full border border-sky-800/60">
-                ÉTAGÈRE 1 • QUAI A
+                ÉTAGÈRE A
               </span>
             </div>
 
@@ -1100,45 +1110,55 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({
             </span>
           </div>
 
-          {/* Quick QR Appairage Widget */}
-          <div className="w-full bg-slate-900/90 rounded-2xl p-3 border border-slate-800 text-center shadow-xl">
-            <div className="flex items-center justify-center gap-1 mb-1.5 text-xs font-mono font-bold text-slate-300">
-              <QrCode className="w-3.5 h-3.5 text-sky-400" />
-              <span>QR SCANNETTES</span>
-            </div>
+          {/* Live Score Gap / Leader Broadcast Widget (Plus spectaculaire sur 55" que 2 mini QR) */}
+          {(() => {
+            const s1 = station1?.score || 0;
+            const s2 = station2?.score || 0;
+            const gap = Math.abs(s1 - s2);
+            const leader = s1 > s2 ? 'bleu' : s2 > s1 ? 'orange' : 'tie';
+            return (
+              <div className="w-full bg-[#0a1830] rounded-2xl p-3 border border-slate-700/80 text-center shadow-xl space-y-2">
+                <span className="text-[9px] font-mono font-black uppercase tracking-widest text-slate-400 block">
+                  ÉCART EN DIRECT
+                </span>
+                {leader === 'tie' ? (
+                  <div className="py-2 px-2 rounded-xl bg-slate-900 border border-slate-700">
+                    <span className="font-display font-black text-sm text-amber-300 block">
+                      ⚔️ ÉGALITÉ
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">
+                      {s1 === 0 ? 'Prêt au départ' : `${s1} pts partout`}
+                    </span>
+                  </div>
+                ) : (
+                  <div className={`py-2 px-2 rounded-xl border ${
+                    leader === 'bleu'
+                      ? 'bg-sky-950/80 border-sky-500/60'
+                      : 'bg-amber-950/80 border-amber-500/60'
+                  }`}>
+                    <span className={`font-display font-black text-lg block ${
+                      leader === 'bleu' ? 'text-sky-300' : 'text-amber-300'
+                    }`}>
+                      +{gap} PTS
+                    </span>
+                    <span className={`text-[10px] font-mono font-bold uppercase ${
+                      leader === 'bleu' ? 'text-sky-400' : 'text-amber-400'
+                    }`}>
+                      {leader === 'bleu' ? '🔵 Avantage Bleu' : '🟠 Avantage Orange'}
+                    </span>
+                  </div>
+                )}
 
-            <div className="grid grid-cols-2 gap-1.5">
-              <div className="bg-slate-950 p-1.5 rounded-xl border border-sky-500/30 text-center">
-                <span className="text-[8px] font-mono font-bold text-sky-400 block mb-0.5">Zebra 1</span>
-                <div className="bg-white p-1 rounded-lg inline-block">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${encodeURIComponent(qrZebra1)}`}
-                    alt="QR 1"
-                    className="w-14 h-14 object-contain"
-                  />
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsSetupModalOpen(true)}
+                  className="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-300 text-[10px] font-mono font-bold rounded-lg border border-slate-700 transition-colors cursor-pointer"
+                >
+                  ⚙️ Équipes & QR
+                </button>
               </div>
-
-              <div className="bg-slate-950 p-1.5 rounded-xl border border-amber-500/30 text-center">
-                <span className="text-[8px] font-mono font-bold text-amber-400 block mb-0.5">Zebra 2</span>
-                <div className="bg-white p-1 rounded-lg inline-block">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${encodeURIComponent(qrZebra2)}`}
-                    alt="QR 2"
-                    className="w-14 h-14 object-contain"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsSetupModalOpen(true)}
-              className="w-full mt-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-300 text-[10px] font-mono font-bold rounded-lg border border-slate-700 transition-colors cursor-pointer"
-            >
-              Équipes & QR Agrandis
-            </button>
-          </div>
+            );
+          })()}
         </div>
 
         {/* DUO 2 • POSTE ORANGE (Lg: 5 Cols) */}
@@ -1156,7 +1176,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({
                 </span>
               </div>
               <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-950 px-2.5 py-0.5 rounded-full border border-amber-800/60">
-                ÉTAGÈRE 2 • QUAI B
+                ÉTAGÈRE B
               </span>
             </div>
 
@@ -1340,10 +1360,10 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({
       {/* ========================================================================= */}
       {/* 2.5 LIVE SPEAKER / GALA COMMENTARY TICKER (Axe 3: Régie Micro Animateur)  */}
       {/* ========================================================================= */}
-      <div className="z-10 my-1 bg-[#0c1e3a]/90 border border-slate-700/80 rounded-2xl px-4 py-2.5 shadow-lg flex items-center gap-3">
+      <div className="z-10 my-1 bg-[#0c1e3a] border border-slate-700/80 rounded-2xl px-4 py-2.5 shadow-lg flex items-center gap-3">
         <div className="flex items-center gap-1.5 px-3 py-1 bg-red-600/20 text-red-300 rounded-xl border border-red-500/30 font-mono text-xs font-bold shrink-0">
-          <Mic className="w-4 h-4 text-red-400 animate-pulse" />
-          <span>SUGGESTION MICRO :</span>
+          <Mic className="w-4 h-4 text-red-400" />
+          <span>EN DIRECT :</span>
         </div>
         <p className="font-sans text-xs sm:text-sm font-semibold text-slate-200 tracking-wide truncate">
           {getSpeakerCommentary()}
@@ -1387,7 +1407,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({
       {/* ========================================================================= */}
       {/* 4. BOTTOM HALL OF FAME • TOP DUOS PODIUM (GT Logistics 25 Ans)             */}
       {/* ========================================================================= */}
-      <footer className="z-10 bg-[#0c1e3a]/95 backdrop-blur-xl border border-slate-700/80 rounded-3xl p-4 sm:p-5 shadow-2xl relative overflow-hidden">
+      <footer className="z-10 bg-[#0c1e3a] border border-slate-700/80 rounded-3xl p-4 sm:p-5 shadow-2xl relative overflow-hidden">
         <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-700/70">
           <div className="flex items-center gap-2">
             <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
