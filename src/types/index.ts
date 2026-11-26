@@ -125,6 +125,8 @@ export interface Mission {
   basePoints: number;
   steps: MissionStep[];
   stockDirection?: 'out' | 'in' | 'none'; // 'out' = Livraison (-1 bac/+1 table), 'in' = Collecte (+1 bac/-1 table), 'none' = Manutention
+  assignedStation?: 'poste-1' | 'poste-2' | 'any'; // Couloir physique dédié (poste-1 = Étagère A, poste-2 = Étagère B)
+  shelfZone?: string; // Zone / étagère ciblée (ex. 'ETAGERE A', 'ETAGERE B')
   isActive?: boolean;
   sortOrder?: number;
 }

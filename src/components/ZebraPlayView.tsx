@@ -45,6 +45,7 @@ interface ZebraPlayViewProps {
   otherStations: DuoStation[];
   inventory?: InventoryItem[];
   strictScanOnly?: boolean;
+  isWaitingForDuel?: boolean;
   onDeclareAnomaly?: (realQty: number) => void;
   onBarcodeScanned?: (code: string) => void;
   onNextMission?: () => void;
@@ -73,6 +74,7 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
   otherStations,
   inventory = [],
   strictScanOnly = false,
+  isWaitingForDuel = false,
   onDeclareAnomaly,
   onBarcodeScanned,
   onNextMission,
@@ -129,8 +131,9 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Keep scan input permanently focused for Zebra DataWedge hardware trigger
+  // Keep scan input permanently focused for Zebra DataWedge hardware trigger (sauf en mode veille ou modals)
   useEffect(() => {
+    if (isWaitingForDuel) return;
     const focusScanInput = () => {
       if (scanInputRef.current && !isAnomalyModalOpen && !isCameraOpen && !isNextDuoModalOpen) {
         scanInputRef.current.focus({ preventScroll: true });
@@ -151,7 +154,7 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
       window.removeEventListener('click', handleTap);
       window.removeEventListener('touchstart', handleTap);
     };
-  }, [isAnomalyModalOpen, isCameraOpen, isNextDuoModalOpen]);
+  }, [isWaitingForDuel, isAnomalyModalOpen, isCameraOpen, isNextDuoModalOpen]);
 
   // Keyboard shortcut Spacebar for quick test (uniquement si le mode strict Jour J est désactivé)
   useEffect(() => {
@@ -383,28 +386,95 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
         </div>
       )}
 
-      {/* 4. MAIN ACTION CARD : CURRENT PICKING ORDER */}
+      {/* 4. MAIN ACTION CARD : WAITING STANDBY / TIME-UP / ACTIVE MISSION / COMPLETED */}
       <main className="my-auto py-3 flex flex-col items-center justify-center max-w-2xl mx-auto w-full">
-        {shiftSecondsRemaining === 0 && currentStep && (
-          <div className="w-full mb-3 bg-rose-50 border-2 border-rose-500 rounded-2xl p-4 shadow-md flex flex-col sm:flex-row items-center justify-between gap-3 text-slate-900">
-            <div className="flex items-center gap-2.5">
-              <Clock className="w-6 h-6 text-rose-600 shrink-0" />
+        {isWaitingForDuel ? (
+          /* STANDBY / VEILLE : PRÊT POUR LE PROCHAIN DUO PILOTÉ PAR L'ADMIN OU LA TV */
+          <div className="w-full bg-white rounded-3xl p-6 sm:p-8 border-2 border-[#0c1e3a] text-center space-y-5 shadow-xl max-w-lg mx-auto text-slate-900">
+            <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center shadow-md ${isPoste1 ? 'bg-sky-100 text-sky-600' : 'bg-amber-100 text-amber-600'}`}>
+              <Radio className="w-9 h-9 animate-pulse" />
+            </div>
+
+            <div className="space-y-1.5">
+              <span className={`inline-block text-[11px] font-mono font-black uppercase px-3 py-1 rounded-full ${isPoste1 ? 'bg-sky-500 text-white' : 'bg-amber-500 text-white'}`}>
+                {isPoste1 ? 'POSTE 1 BLEU • ÉTAGÈRE A' : 'POSTE 2 ORANGE • ÉTAGÈRE B'}
+              </span>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 pt-1">
+                📡 Scannette Prête !
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                En attente du prochain Duo lancé depuis <strong>l'Admin</strong> ou <strong>l'Arène TV</strong>.
+                <br />
+                L'écran basculera automatiquement au Top Départ.
+              </p>
+            </div>
+
+            <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold border ${isOnline ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-rose-50 border-rose-300 text-rose-800'}`}>
+              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-ping' : 'bg-rose-500'}`} />
+              <span>{isOnline ? 'Synchronisé en direct' : 'Reconnexion Wi-Fi...'}</span>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setNextCea(operatorCea);
+                  setNextGuest('');
+                  setNextMissionIdx(0);
+                  setIsNextDuoModalOpen(true);
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-mono font-bold cursor-pointer transition-colors"
+              >
+                Lancer un Duo en manuel sur ce Zebra
+              </button>
+            </div>
+          </div>
+        ) : shiftSecondsRemaining === 0 ? (
+          /* FIN DU TEMPS (00:00) : ÉCRAN DE FIN PROPRE + BOUTON VEILLE PROCHAIN DUO */
+          <div className="w-full bg-white rounded-3xl p-5 sm:p-7 border-2 border-rose-500 text-center space-y-5 shadow-xl max-w-lg mx-auto text-slate-900">
+            <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto shadow-md">
+              <Clock className="w-9 h-9" />
+            </div>
+
+            <div>
+              <span className="text-[11px] font-mono font-black uppercase tracking-widest text-rose-600 block mb-1">
+                ⏱️ TEMPS ÉCOULÉ (00:00)
+              </span>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+                Fin de Manche — Bravo au binôme !
+              </h2>
+              <p className="text-xs text-slate-600 mt-1">
+                📺 Score enregistré ! Votre diplôme est disponible sur le <strong>Grand Écran</strong> et pourra être envoyé par mail.
+              </p>
+            </div>
+
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 flex items-center justify-around gap-2">
               <div>
-                <h3 className="text-sm font-black text-rose-900">⏱️ Temps du Shift écoulé (00:00) !</h3>
-                <p className="text-xs text-rose-800">Vous pouvez consulter le diplôme ou enchaîner directement avec le prochain binôme.</p>
+                <span className="text-[10px] font-mono uppercase text-slate-500 font-bold block">Score Final</span>
+                <span className="text-2xl font-black font-mono text-emerald-700">
+                  {score} <span className="text-xs text-slate-400 font-normal">pts</span>
+                </span>
+              </div>
+              <div className="h-8 w-px bg-slate-200" />
+              <div>
+                <span className="text-[10px] font-mono uppercase text-slate-500 font-bold block">Précision</span>
+                <span className="text-2xl font-black font-mono text-blue-700">{accuracy}%</span>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {onOpenDiplome && score > 0 && (
+
+            <div className="space-y-2.5 pt-1">
+              {onSetWaitingForTv && (
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onOpenDiplome();
+                    onSetWaitingForTv();
                   }}
-                  className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs cursor-pointer"
+                  className="w-full py-4 px-5 bg-gradient-to-r from-[#0c1e3a] to-blue-800 hover:from-blue-900 hover:to-blue-700 text-white font-display font-black text-sm sm:text-base rounded-2xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all"
                 >
-                  📜 Diplôme
+                  <Radio className="w-5 h-5 text-emerald-400" />
+                  <span>TERMINER & ATTENDRE LE PROCHAIN DUO</span>
                 </button>
               )}
               <button
@@ -416,15 +486,13 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
                   setNextMissionIdx(0);
                   setIsNextDuoModalOpen(true);
                 }}
-                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs cursor-pointer flex items-center gap-1.5"
+                className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono font-bold text-xs rounded-xl cursor-pointer transition-colors"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Prochain Duo</span>
+                Ou saisir le prochain duo en manuel
               </button>
             </div>
           </div>
-        )}
-        {currentStep ? (
+        ) : currentStep ? (
           <div className="w-full bg-white rounded-3xl p-4 sm:p-7 border border-slate-200 shadow-xl space-y-4">
             {/* Mission Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
@@ -671,38 +739,38 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
               ) : (
                 /* All Missions Finished in this wave */
                 <div className="space-y-3">
-                  {/* Big Gold Diploma Button */}
-                  {onOpenDiplome && (
+                  <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-950 font-medium">
+                    📺 <strong>Score enregistré !</strong> Votre diplôme d'honneur s'affiche à la demande sur le <strong>Grand Écran</strong> (et peut être envoyé par mail).
+                  </div>
+
+                  {onSetWaitingForTv && (
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onOpenDiplome();
+                        onSetWaitingForTv();
                       }}
-                      className="w-full py-4 px-6 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-display font-black text-base sm:text-lg rounded-2xl shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      className="w-full py-4 px-5 bg-gradient-to-r from-[#0c1e3a] to-blue-800 hover:from-blue-900 hover:to-blue-700 text-white font-display font-black text-sm sm:text-base rounded-2xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all"
                     >
-                      <Award className="w-6 h-6 text-slate-950 fill-current" />
-                      <span>DÉCOUVRIR NOTRE DIPLÔME D'HONNEUR 📜</span>
+                      <Radio className="w-5 h-5 text-emerald-400" />
+                      <span>TERMINER & ATTENDRE LE PROCHAIN DUO</span>
                     </button>
                   )}
 
-                  <div className="pt-1">
-                    {/* Reset for New Duo Button (ouvre la fenêtre Prochain Duo sans quitter la Zebra) */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setNextCea(operatorCea);
-                        setNextGuest('');
-                        setNextMissionIdx(0);
-                        setIsNextDuoModalOpen(true);
-                      }}
-                      className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-black text-xs sm:text-sm rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all"
-                    >
-                      <Users className="w-4 h-4" />
-                      <span>Prochain Duo (Enchaîner)</span>
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNextCea(operatorCea);
+                      setNextGuest('');
+                      setNextMissionIdx(0);
+                      setIsNextDuoModalOpen(true);
+                    }}
+                    className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span>Ou enchaîner en manuel sur ce Zebra</span>
+                  </button>
                 </div>
               )}
             </div>

@@ -1,21 +1,25 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { ViewMode, InventoryItem, Mission, ScanLog, OperatorProfile, AppConfig, DuoStation, Distraction, LiveHazard, WarehouseLocation } from './types';
 import { Header } from './components/Header';
-import { PosteOperateurView } from './components/PosteOperateurView';
-import { StockERPView } from './components/StockERPView';
-import { PlancheEtiquettesView } from './components/PlancheEtiquettesView';
-import { PodiumView } from './components/PodiumView';
-import { ArenaTvView } from './components/ArenaTvView';
-import { AdminConfigView } from './components/AdminConfigView';
 import { DiplomeModal } from './components/DiplomeModal';
 import { GoldenTicketModal } from './components/GoldenTicketModal';
 import { ZebraPlayView } from './components/ZebraPlayView';
-import { HomeLauncherView } from './components/HomeLauncherView';
 import { SplashBootScreen } from './components/SplashBootScreen';
 import { ToastContainer, showToast } from './components/ToastNotification';
+
+// Lazy-load des vues lourdes (Admin, Arène TV, ERP, Impression, Podium, Accueil) :
+// Les scannettes Zebra (#play) ne téléchargent plus le code de l'Admin, de la TV ni d'Excel/PDF -> démarrage ultra-rapide !
+const PosteOperateurView = React.lazy(() => import('./components/PosteOperateurView').then((m) => ({ default: m.PosteOperateurView })));
+const StockERPView = React.lazy(() => import('./components/StockERPView').then((m) => ({ default: m.StockERPView })));
+const PlancheEtiquettesView = React.lazy(() => import('./components/PlancheEtiquettesView').then((m) => ({ default: m.PlancheEtiquettesView })));
+const PodiumView = React.lazy(() => import('./components/PodiumView').then((m) => ({ default: m.PodiumView })));
+const ArenaTvView = React.lazy(() => import('./components/ArenaTvView').then((m) => ({ default: m.ArenaTvView })));
+const AdminConfigView = React.lazy(() => import('./components/AdminConfigView').then((m) => ({ default: m.AdminConfigView })));
+const HomeLauncherView = React.lazy(() => import('./components/HomeLauncherView').then((m) => ({ default: m.HomeLauncherView })));
 import { barcodeListener } from './services/barcodeListener';
 import { soundService } from './services/soundService';
 import { broadcastLocalRealtime, subscribeToLocalRealtime } from './services/realtimeSyncService';
+import { filterMissionsForStation, generateAutoBalancedMissions } from './services/autoLoopMissionGenerator';
 import { 
   submitScore, 
   broadcastScan, 
@@ -50,16 +54,7 @@ let logCounter = 0;
 const generateUniqueLogId = () => `log-${Date.now()}-${++logCounter}-${Math.random().toString(36).slice(2, 7)}`;
 
 const getStationMissions = (baseMissions: Mission[], stId: string, preferredMissionIndex?: number): Mission[] => {
-  if (!baseMissions || baseMissions.length === 0) return [];
-  if (typeof preferredMissionIndex === 'number' && preferredMissionIndex >= 0 && preferredMissionIndex < baseMissions.length) {
-    const chosen = baseMissions[preferredMissionIndex];
-    return [chosen, ...baseMissions.filter((m) => m.id !== chosen.id)];
-  }
-  if (stId === 'poste-2') {
-    // Reverse order for Poste 2 so both duos target different physical shelves during duel
-    return baseMissions.slice().reverse();
-  }
-  return baseMissions;
+  return filterMissionsForStation(baseMissions, stId, preferredMissionIndex);
 };
 
 // Clean, 100% DB-driven barcode comparator (supports scanner prefixes, L/R codes, and DB aliases)
@@ -150,6 +145,7 @@ export const App: React.FC = () => {
   const [isDbLoading, setIsDbLoading] = useState<boolean>(true);
   const [locations, setLocations] = useState<WarehouseLocation[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [allMissions, setAllMissions] = useState<Mission[]>([]);
   const [missions, setMissions] = useState<Mission[]>([]);
   const [appConfig, setAppConfig] = useState<AppConfig>({
     eventTitle: 'GT LOGISTICS',
@@ -191,6 +187,13 @@ export const App: React.FC = () => {
   activeHazardRef.current = activeHazard;
 
   // Keep fresh references to avoid closure race conditions
+  const currentViewRef = useRef(currentView);
+  currentViewRef.current = currentView;
+  const isPlayerTerminal = currentView === 'play' || currentView === 'kiosk';
+  const isPlayerTerminalRef = useRef(isPlayerTerminal);
+  isPlayerTerminalRef.current = isPlayerTerminal;
+  const allMissionsRef = useRef(allMissions);
+  allMissionsRef.current = allMissions;
   const missionsRef = useRef(missions);
   missionsRef.current = missions;
   const locationsRef = useRef(locations);
@@ -249,12 +252,14 @@ export const App: React.FC = () => {
 
         setLocations(dbLocations);
         setInventory(dbInventory);
+        setAllMissions(dbMissions);
 
         // Align initial mission order if this station already has an assigned mission in stations_live
         const myInitialStation = stList.find((s) => s.station_id === stationIdRef.current);
+        const stationBaseMissions = getStationMissions(dbMissions, stationIdRef.current);
         let initialPreferredIdx: number | undefined = undefined;
         if (myInitialStation?.current_mission_title) {
-          const foundIdx = dbMissions.findIndex(
+          const foundIdx = stationBaseMissions.findIndex(
             (m) => m.title.toLowerCase() === myInitialStation.current_mission_title.toLowerCase()
           );
           if (foundIdx !== -1) initialPreferredIdx = foundIdx;
@@ -357,6 +362,7 @@ export const App: React.FC = () => {
 
     // Realtime: wms_missions (préserve la progression locale si une mission est en cours)
     const unsubMissions = subscribeToMissions((freshMissions) => {
+      setAllMissions(freshMissions);
       const prevPool = missionsRef.current || [];
       const hasLocalProgress = prevPool.some((m) => m.steps.some((st) => st.completed || (st.scannedCount || 0) > 0));
       if (!hasLocalProgress) {
@@ -396,8 +402,8 @@ export const App: React.FC = () => {
         return [...prev, updatedStation];
       });
 
-      // If this update is for this terminal, sync identity, assigned mission and match reset
-      if (updatedStation.station_id === stationIdRef.current) {
+      // If this update is for this terminal AND we are on a player screen (Zebra/Kiosk), sync identity, assigned mission and match reset
+      if (isPlayerTerminalRef.current && updatedStation.station_id === stationIdRef.current) {
         if (updatedStation.operator_cea) setOperatorCea(updatedStation.operator_cea);
         if (updatedStation.client_guest) setClientGuest(updatedStation.client_guest);
         
@@ -425,21 +431,46 @@ export const App: React.FC = () => {
           setShiftSecondsRemaining(appConfigRef.current.shiftDurationSeconds || 180);
           setIsShiftTimerRunning(isFreshTvDuelLaunch);
 
-          const pool = missionsRef.current || [];
-          let preferredIdx: number | undefined = undefined;
-          if (updatedStation.current_mission_title) {
-            const foundIdx = pool.findIndex(
-              (m) => m.title.toLowerCase() === updatedStation.current_mission_title.toLowerCase()
+          const applyResetMissions = (sourcePool: Mission[]) => {
+            const stationPool = getStationMissions(sourcePool, stationIdRef.current);
+            let preferredIdx: number | undefined = undefined;
+            if (updatedStation.current_mission_title) {
+              const foundIdx = stationPool.findIndex(
+                (m) => m.title.toLowerCase() === updatedStation.current_mission_title.toLowerCase()
+              );
+              if (foundIdx !== -1) preferredIdx = foundIdx;
+            }
+            setMissions(
+              getStationMissions(sourcePool, stationIdRef.current, preferredIdx).map((m) => ({
+                ...m,
+                steps: m.steps.map((st) => ({ ...st, completed: false, scannedCount: 0 }))
+              }))
             );
-            if (foundIdx !== -1) preferredIdx = foundIdx;
-          }
+          };
 
-          setMissions(
-            getStationMissions(pool, stationIdRef.current, preferredIdx).map((m) => ({
-              ...m,
-              steps: m.steps.map((st) => ({ ...st, completed: false, scannedCount: 0 }))
-            }))
-          );
+          const currentPool = allMissionsRef.current.length > 0 ? allMissionsRef.current : (missionsRef.current || []);
+          const targetTitle = (updatedStation.current_mission_title || '').toLowerCase();
+          const hasMatchingMission =
+            !targetTitle ||
+            getStationMissions(currentPool, stationIdRef.current).some(
+              (m) => m.title.toLowerCase() === targetTitle
+            );
+
+          if (hasMatchingMission) {
+            applyResetMissions(currentPool);
+          } else {
+            // Évite toute race condition si stations_live arrive avant wms_missions sur la Zebra
+            fetchMissions()
+              .then((freshDbMissions) => {
+                if (freshDbMissions.length > 0) {
+                  setAllMissions(freshDbMissions);
+                  applyResetMissions(freshDbMissions);
+                } else {
+                  applyResetMissions(currentPool);
+                }
+              })
+              .catch(() => applyResetMissions(currentPool));
+          }
           setOperator((prev) => ({
             ...prev,
             score: 0,
@@ -461,8 +492,9 @@ export const App: React.FC = () => {
       }
     });
 
-    // Subscribe to live hazards & unannounced emergencies
+    // Subscribe to live hazards & unannounced emergencies (uniquement sur terminaux joueurs Zebra/Kiosk)
     const unsubHazards = subscribeToLiveHazards((hazard) => {
+      if (!isPlayerTerminalRef.current) return;
       const isForMe = hazard.target_station_id === 'all' || hazard.target_station_id === stationIdRef.current;
       if (!isForMe) return;
 
@@ -502,7 +534,8 @@ export const App: React.FC = () => {
         setLocations(msg.payload);
         setAppConfig((prev) => ({ ...prev, locations: msg.payload }));
       } else if (msg.type === 'MISSIONS_UPDATED' && Array.isArray(msg.payload)) {
-        setMissions(msg.payload);
+        setAllMissions(msg.payload);
+        setMissions(getStationMissions(msg.payload, stationIdRef.current));
       } else if (msg.type === 'CONFIG_UPDATED' && msg.payload) {
         setAppConfig((prev) => ({ ...prev, ...msg.payload }));
       } else if (msg.type === 'STATIONS_UPDATED' && Array.isArray(msg.payload)) {
@@ -549,9 +582,81 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  // Persist active match progress in sessionStorage to survive accidental Zebra refresh
+  // Filet de sécurité anti-veille Wi-Fi sur Zebra :
+  // Tant que la Zebra est en attente (idle) ou en fin de manche, vérifie toutes les 3s si l'Admin/TV a lancé un nouveau Duo
+  const lastAppliedDuelStampRef = useRef<string>('');
   useEffect(() => {
-    if (isDbLoading) return;
+    if (currentView !== 'play' || isShiftTimerRunning) return;
+
+    const pollForDuelStart = async () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+      try {
+        const freshStations = await getStationsLive();
+        if (freshStations.length === 0) return;
+        setLiveStations(freshStations);
+
+        const mine = freshStations.find((s) => s.station_id === stationIdRef.current);
+        if (!mine) return;
+
+        const isFreshStart =
+          mine.status === 'in_progress' &&
+          (mine.score || 0) === 0 &&
+          (mine.current_step_index || 0) === 0 &&
+          (mine.progress_percent || 0) === 0 &&
+          !mine.last_scan_code;
+
+        const stamp = `${mine.updated_at || ''}|${mine.client_guest || ''}|${mine.current_mission_title || ''}`;
+        if (isFreshStart && stamp !== lastAppliedDuelStampRef.current) {
+          lastAppliedDuelStampRef.current = stamp;
+          try {
+            sessionStorage.removeItem(`zebra_match_${stationIdRef.current}`);
+          } catch {}
+
+          const freshDbMissions = await fetchMissions();
+          const sourcePool = freshDbMissions.length > 0 ? freshDbMissions : allMissionsRef.current;
+          if (freshDbMissions.length > 0) setAllMissions(freshDbMissions);
+
+          const stationPool = getStationMissions(sourcePool, stationIdRef.current);
+          const foundIdx = mine.current_mission_title
+            ? stationPool.findIndex((m) => m.title.toLowerCase() === mine.current_mission_title.toLowerCase())
+            : 0;
+          const ordered = getStationMissions(sourcePool, stationIdRef.current, foundIdx >= 0 ? foundIdx : 0).map((m) => ({
+            ...m,
+            steps: m.steps.map((st) => ({ ...st, completed: false, scannedCount: 0 }))
+          }));
+
+          if (mine.operator_cea) setOperatorCea(mine.operator_cea);
+          if (mine.client_guest) setClientGuest(mine.client_guest);
+          setMissions(ordered);
+          setCurrentMissionIndex(0);
+          setCombo(0);
+          setLastScannedCode(null);
+          setLastScanStatus(null);
+          validScansCountRef.current = 0;
+          errorScansCountRef.current = 0;
+          lastStepStartTimeRef.current = Date.now();
+          setShiftSecondsRemaining(appConfigRef.current.shiftDurationSeconds || 180);
+          setIsShiftTimerRunning(true);
+          setOperator((prev) => ({
+            ...prev,
+            score: 0,
+            completedMissions: 0,
+            accuracy: 100,
+            name: mine.team_name || `Duo ${mine.client_guest}`
+          }));
+          soundService.playSuccessJingle();
+        }
+      } catch {}
+    };
+
+    const interval = setInterval(pollForDuelStart, 3000);
+    return () => clearInterval(interval);
+  }, [currentView, isShiftTimerRunning]);
+
+  // Persist active match progress in sessionStorage (uniquement sur terminaux joueurs et uniquement lors d'un vrai changement, pas chaque seconde)
+  useEffect(() => {
+    if (isDbLoading || !isPlayerTerminal) return;
     try {
       const stepProgress: Record<string, { completed: boolean; scannedCount: number }> = {};
       missions.forEach((m) => {
@@ -569,12 +674,12 @@ export const App: React.FC = () => {
           accuracy: operator.accuracy,
           combo,
           currentMissionIndex,
-          shiftSecondsRemaining,
+          shiftSecondsRemaining: shiftSecondsRemainingRef.current,
           stepProgress
         })
       );
     } catch {}
-  }, [isDbLoading, stationId, operator.score, operator.completedMissions, operator.accuracy, combo, currentMissionIndex, shiftSecondsRemaining, missions]);
+  }, [isDbLoading, isPlayerTerminal, stationId, operator.score, operator.completedMissions, operator.accuracy, combo, currentMissionIndex, missions]);
 
   // Hazard countdown timer
   useEffect(() => {
@@ -634,29 +739,46 @@ export const App: React.FC = () => {
     });
   };
 
-  // Shift Timer Countdown (ne décrémente que lorsqu'un match/shift est actif)
+  // Shift Timer Countdown (ne décrémente que sur un terminal joueur actif)
   useEffect(() => {
-    if (!isShiftTimerRunning) return;
+    if (!isShiftTimerRunning || !isPlayerTerminal) return;
     const timer = setInterval(() => {
       setShiftSecondsRemaining((prev) => Math.max(0, prev - 1));
     }, 1000);
     return () => clearInterval(timer);
-  }, [isShiftTimerRunning]);
+  }, [isShiftTimerRunning, isPlayerTerminal]);
 
-  // Open Diploma at the end of the shift if the team was active and scored
+  // Fin de shift (00:00) : enregistre le score pour le classement TV ; diplôme sur PC uniquement (jamais sur Zebra)
   useEffect(() => {
-    if (shiftSecondsRemaining === 0 && operator.score > 0 && !isDiplomeOpen) {
+    if (!isPlayerTerminal) return;
+    if (shiftSecondsRemaining === 0 && operator.score > 0 && isShiftTimerRunning) {
+      setIsShiftTimerRunning(false);
       soundService.playMissionComplete();
-      const totalMins = Math.max(1, Math.round((appConfigRef.current.shiftDurationSeconds || 180) / 60));
+
+      const totalShiftSec = appConfigRef.current.shiftDurationSeconds || 180;
+      const mins = Math.floor(totalShiftSec / 60).toString().padStart(2, '0');
+      const secs = (totalShiftSec % 60).toString().padStart(2, '0');
+      submitScore({
+        name: `${clientGuestRef.current} (Duo avec ${operatorCeaRef.current})`,
+        company: appConfigRef.current.eventTitle || 'GT Logistics',
+        score: operator.score,
+        time_spent: `${mins}:${secs}`,
+        completed_missions: operator.completedMissions,
+        accuracy: operator.accuracy
+      }).catch(() => {});
+
+      const totalMins = Math.max(1, Math.round(totalShiftSec / 60));
       showToast({
         title: `🏁 FIN DU QUART DE TRAVAIL (${totalMins} MIN) !`,
-        message: `Félicitations au binôme pour les commandes expédiées !`,
+        message: `Score enregistré pour le classement TV & le diplôme !`,
         type: 'success',
         duration: 5000
       });
-      setIsDiplomeOpen(true);
+      if (currentViewRef.current !== 'play' && !isDiplomeOpen) {
+        setIsDiplomeOpen(true);
+      }
     }
-  }, [shiftSecondsRemaining, operator.score, isDiplomeOpen]);
+  }, [shiftSecondsRemaining, operator.score, operator.completedMissions, operator.accuracy, isShiftTimerRunning, isDiplomeOpen, isPlayerTerminal]);
 
   // Flash reset helper
   const triggerFlash = (color: 'green' | 'red') => {
@@ -674,7 +796,7 @@ export const App: React.FC = () => {
         setStationName(route.stationName);
         stationIdRef.current = route.stationId;
         stationNameRef.current = route.stationName;
-        const pool = missionsRef.current || [];
+        const pool = allMissionsRef.current.length > 0 ? allMissionsRef.current : (missionsRef.current || []);
         setMissions(getStationMissions(pool, route.stationId));
       }
     };
@@ -698,7 +820,7 @@ export const App: React.FC = () => {
   const handleSelectStation = (id: string, name: string) => {
     setStationId(id);
     setStationName(name);
-    const activeMissionsPool = missionsRef.current || [];
+    const activeMissionsPool = allMissionsRef.current.length > 0 ? allMissionsRef.current : (missionsRef.current || []);
     setMissions(getStationMissions(activeMissionsPool, id));
     localStorage.setItem('cea_station_id', id);
     localStorage.setItem('cea_station_name', name);
@@ -767,9 +889,11 @@ export const App: React.FC = () => {
         type: 'info'
       });
     } else {
-      // All missions finished for this duo: stop cleanly and open Diploma (no infinite 4th mission loop)
+      // All missions finished for this duo: stop cleanly (diplôme sur PC uniquement, écran de fin propre sur Zebra)
       setIsShiftTimerRunning(false);
-      setIsDiplomeOpen(true);
+      if (currentViewRef.current !== 'play') {
+        setIsDiplomeOpen(true);
+      }
     }
   }, [missions]);
 
@@ -1110,7 +1234,7 @@ export const App: React.FC = () => {
       }
 
       // 3. Multiplicateur de Combo
-      const comboBonus = newCombo * (appConfig.comboBonusPoints || 50);
+      const comboBonus = newCombo * (appConfigRef.current.comboBonusPoints || 50);
 
       // 4. Prime de Clôture de Mission
       const missionCompletionBonus = isMissionDone ? (activeMission.basePoints || 1000) : 0;
@@ -1224,13 +1348,17 @@ export const App: React.FC = () => {
           setIsShiftTimerRunning(false);
           showToast({
             title: `🏆 TOUTES LES ${currentMissions.length} MISSIONS ACCOMPLIES !`,
-            message: `Performance légendaire ! Découvrez votre diplôme d'honneur !`,
+            message: currentViewRef.current === 'play'
+              ? `Score enregistré pour le classement TV ! Cliquez sur « Terminer » pour attendre le prochain duo.`
+              : `Performance légendaire ! Découvrez votre diplôme d'honneur !`,
             type: 'success',
             duration: 5000
           });
-          setTimeout(() => {
-            setIsDiplomeOpen(true);
-          }, 1500);
+          if (currentViewRef.current !== 'play') {
+            setTimeout(() => {
+              setIsDiplomeOpen(true);
+            }, 1500);
+          }
         }
       }
 
@@ -1347,7 +1475,7 @@ export const App: React.FC = () => {
         ...prev
       ]);
     }
-  }, [inventory]);
+  }, []);
 
   // Déclaration d'Écart de Stock Réel / Rupture Partielle par le Duo
   const handleDeclareStockAnomaly = (realQty: number) => {
@@ -1418,11 +1546,12 @@ export const App: React.FC = () => {
     }).catch(() => {});
   };
 
-  // Subscribe to global hardware barcode scanner
+  // Subscribe to global hardware barcode scanner (uniquement sur les vues joueurs Zebra/Kiosk)
   useEffect(() => {
+    if (!isPlayerTerminal) return;
     const unsubscribe = barcodeListener.subscribe(handleBarcodeScanned);
     return () => unsubscribe();
-  }, [handleBarcodeScanned]);
+  }, [handleBarcodeScanned, isPlayerTerminal]);
 
   // Sound toggle
   const toggleSound = () => {
@@ -1473,7 +1602,8 @@ export const App: React.FC = () => {
 
   // Full missions update -> table wms_missions
   const handleUpdateMissions = async (newMissions: Mission[]) => {
-    setMissions(newMissions);
+    setAllMissions(newMissions);
+    setMissions(getStationMissions(newMissions, stationIdRef.current));
     broadcastLocalRealtime('MISSIONS_UPDATED', newMissions);
     try {
       await syncMissions(newMissions);
@@ -1589,7 +1719,7 @@ export const App: React.FC = () => {
     localStorage.setItem('gt_collab_name', nextCea);
     localStorage.setItem('gt_guest_name', nextGuest);
 
-    const pool = missionsRef.current || [];
+    const pool = allMissionsRef.current.length > 0 ? allMissionsRef.current : (missionsRef.current || []);
     const ordered = getStationMissions(pool, stationIdRef.current, preferredMissionIdx).map((m) => ({
       ...m,
       steps: m.steps.map((st) => ({ ...st, completed: false, scannedCount: 0 }))
@@ -1696,9 +1826,31 @@ export const App: React.FC = () => {
     duo1: { cea: string; client: string },
     duo2: { cea: string; client: string },
     m1Index: number = 0,
-    m2Index: number = 1
+    m2Index: number = 0
   ) => {
-    const activeMissionsPool = missionsRef.current || [];
+    let activeMissionsPool = allMissionsRef.current.length > 0 ? allMissionsRef.current : (missionsRef.current || []);
+
+    // Auto-rotation anti-redondance + rattrapage automatique des pièces laissées sur table
+    if (appConfigRef.current.autoLoopEnabled !== false) {
+      try {
+        const [freshInv, freshLocs] = await Promise.all([fetchInventory(), fetchLocations()]);
+        const invToUse = freshInv.length > 0 ? freshInv : inventoryRef.current;
+        const locsToUse = freshLocs.length > 0 ? freshLocs : locationsRef.current;
+        if (freshInv.length > 0) setInventory(freshInv);
+        const generated = generateAutoBalancedMissions(invToUse, locsToUse, appConfigRef.current, 2);
+        if (generated.length > 0) {
+          activeMissionsPool = generated;
+          setAllMissions(generated);
+          broadcastLocalRealtime('MISSIONS_UPDATED', generated);
+          await syncMissions(generated);
+          m1Index = 0;
+          m2Index = 0;
+        }
+      } catch (e) {
+        console.warn('[Duel] Fallback sur les missions existantes:', e);
+      }
+    }
+
     const m1 = getStationMissions(activeMissionsPool, 'poste-1', m1Index);
     const m2 = getStationMissions(activeMissionsPool, 'poste-2', m2Index);
 
@@ -1791,7 +1943,7 @@ export const App: React.FC = () => {
     errorScansCountRef.current = 0;
     lastStepStartTimeRef.current = Date.now();
 
-    const activeMissionsPool = missionsRef.current || [];
+    const activeMissionsPool = allMissionsRef.current.length > 0 ? allMissionsRef.current : (missionsRef.current || []);
     const ordered = getStationMissions(activeMissionsPool, targetStationId, mIndex);
 
     setMissions(
@@ -1838,8 +1990,10 @@ export const App: React.FC = () => {
     return <SplashBootScreen logoUrl={appConfig.customLogoUrl} />;
   }
 
-  // DEDICATED HANDHELD ZEBRA PURE GAME MODE (NO HEADER, NO ADMIN/ERP TABS, LOCKED TO GAMEPLAY)
+  // DEDICATED HANDHELD ZEBRA PURE GAME MODE (NO HEADER, NO ADMIN/ERP TABS, NO NARROW DIPLOMA MODAL)
   if (currentView === 'play') {
+    const myLiveStation = liveStations.find((s) => s.station_id === stationId);
+    const isZebraWaiting = myLiveStation?.status === 'idle';
     return (
       <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans">
         <ZebraPlayView
@@ -1861,24 +2015,13 @@ export const App: React.FC = () => {
           otherStations={liveStations}
           inventory={inventory}
           strictScanOnly={appConfig.strictScanOnly}
+          isWaitingForDuel={isZebraWaiting}
           onDeclareAnomaly={handleDeclareStockAnomaly}
           onBarcodeScanned={handleBarcodeScanned}
           onNextMission={advanceToNextMission}
           onRestartShift={handleStartNewShift}
           onStartNextDuo={handleZebraStartNextDuo}
           onSetWaitingForTv={handleZebraSetWaitingForTv}
-          onOpenDiplome={() => setIsDiplomeOpen(true)}
-        />
-        {/* Celebration Diploma Modal */}
-        <DiplomeModal
-          isOpen={isDiplomeOpen}
-          onClose={() => setIsDiplomeOpen(false)}
-          operator={operator}
-          collaboratorName={operatorCea}
-          guestName={clientGuest}
-          stationName={stationName}
-          appConfig={appConfig}
-          hasGoldenTicket={hasFoundGoldenTicket}
         />
 
         {/* Easter Egg Golden Ticket 25 Ans Modal (aussi actif sur les Zebra !) */}
@@ -1898,11 +2041,17 @@ export const App: React.FC = () => {
   if (currentView === 'arena') {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-        <ArenaTvView
-          appConfig={appConfig}
-          missions={missions}
-          onBackToHome={() => handleSelectView('home')}
-        />
+        <Suspense fallback={<SplashBootScreen logoUrl={appConfig.customLogoUrl} />}>
+          <ArenaTvView
+            appConfig={appConfig}
+            missions={allMissions}
+            inventory={inventory}
+            locations={locations}
+            onMissionsUpdated={handleUpdateMissions}
+            onInventoryUpdated={handleUpdateInventory}
+            onBackToHome={() => handleSelectView('home')}
+          />
+        </Suspense>
       </div>
     );
   }
@@ -1924,11 +2073,12 @@ export const App: React.FC = () => {
 
       {/* Main View Router */}
       <main className="flex-1 overflow-y-auto">
+        <Suspense fallback={<SplashBootScreen logoUrl={appConfig.customLogoUrl} />}>
         {currentView === 'home' && (
           <HomeLauncherView
             appConfig={appConfig}
             liveStations={liveStations}
-            missions={missions}
+            missions={allMissions}
             onStartDuel={handleStartDuel}
             onStartSolo={handleStartSolo}
             onOpenTv={() => handleSelectView('arena')}
@@ -1981,7 +2131,7 @@ export const App: React.FC = () => {
           <PlancheEtiquettesView
             inventory={inventory}
             locations={locations}
-            missions={missions}
+            missions={allMissions}
             distractions={distractions}
             goldenTicketBarcode={appConfig.goldenTicketBarcode}
             onOpenGoldenTicket={() => setIsGoldenTicketOpen(true)}
@@ -2004,12 +2154,13 @@ export const App: React.FC = () => {
             onUpdateAppConfig={handleUpdateAppConfig}
             locations={locations}
             onUpdateLocations={handleUpdateLocations}
-            missions={missions}
+            missions={allMissions}
             onUpdateMissions={handleUpdateMissions}
             inventory={inventory}
             onUpdateInventory={handleUpdateInventory}
           />
         )}
+        </Suspense>
       </main>
 
       {/* Celebration Diploma Modal */}

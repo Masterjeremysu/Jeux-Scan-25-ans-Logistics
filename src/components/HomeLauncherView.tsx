@@ -22,6 +22,7 @@ import {
 import { AppConfig, DuoStation, Mission } from '../types';
 import { GameLogo } from './GameLogo';
 import { soundService } from '../services/soundService';
+import { filterMissionsForStation } from '../services/autoLoopMissionGenerator';
 
 interface HomeLauncherViewProps {
   appConfig: AppConfig;
@@ -50,6 +51,8 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
 }) => {
   const [gameMode, setGameMode] = useState<'duel' | 'solo'>('duel');
   const missionsPool: Mission[] = missions || [];
+  const p1Missions = filterMissionsForStation(missionsPool, 'poste-1');
+  const p2Missions = filterMissionsForStation(missionsPool, 'poste-2');
 
   // Duo 1 state
   const [d1Cea, setD1Cea] = useState(() => localStorage.getItem('gt_d1_collab') || 'Jeremy (GT)');
@@ -59,7 +62,7 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
   // Duo 2 state
   const [d2Cea, setD2Cea] = useState(() => localStorage.getItem('gt_d2_collab') || 'Sarah (GT)');
   const [d2Client, setD2Client] = useState(() => localStorage.getItem('gt_d2_guest') || 'Alexandre (Invité)');
-  const [m2Index, setM2Index] = useState(1);
+  const [m2Index, setM2Index] = useState(0);
 
   // Solo station selection
   const [soloStation, setSoloStation] = useState('poste-1');
@@ -78,16 +81,9 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
 
   // Randomiser les missions entre les deux postes pour une variété maximale (10 à 20 duos)
   const handleRandomizeMissions = () => {
-    if (missionsPool.length === 0) return;
     soundService.playSuccessJingle();
-    const count = missionsPool.length;
-    const rand1 = Math.floor(Math.random() * count);
-    let rand2 = Math.floor(Math.random() * count);
-    if (count > 1 && rand2 === rand1) {
-      rand2 = (rand1 + 1) % count;
-    }
-    setM1Index(rand1);
-    setM2Index(rand2);
+    if (p1Missions.length > 0) setM1Index(Math.floor(Math.random() * p1Missions.length));
+    if (p2Missions.length > 0) setM2Index(Math.floor(Math.random() * p2Missions.length));
   };
 
   // Préparer automatiquement le passage au binôme suivant (Duo #2, Duo #3...)
@@ -97,11 +93,8 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
     setDuoRoundNumber(nextRound);
     setD1Client(`Invité Duo #${nextRound * 2 - 1}`);
     setD2Client(`Invité Duo #${nextRound * 2}`);
-    if (missionsPool.length > 0) {
-      const count = missionsPool.length;
-      setM1Index((nextRound * 2 - 2) % count);
-      setM2Index((nextRound * 2 - 1) % count);
-    }
+    if (p1Missions.length > 0) setM1Index((nextRound - 1) % p1Missions.length);
+    if (p2Missions.length > 0) setM2Index((nextRound - 1) % p2Missions.length);
   };
 
   const handleLaunchDuel = (e: React.FormEvent) => {
@@ -384,26 +377,26 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
                     <label className="block text-[11px] font-mono font-bold text-sky-300 mb-1.5 flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
                         <FileText className="w-3.5 h-3.5 text-sky-400" />
-                        MISSION POSTE 1
+                        MISSION POSTE 1 • ÉTAGÈRE A
                       </span>
                       <span className="text-[10px] font-mono text-sky-300 bg-sky-500/15 px-2 py-0.5 rounded border border-sky-500/30 font-bold">
-                        {missionsPool[m1Index]?.steps?.length || 0} lignes
+                        {p1Missions[m1Index % Math.max(1, p1Missions.length)]?.steps?.length || 0} étapes
                       </span>
                     </label>
                     <select
-                      value={m1Index}
+                      value={m1Index % Math.max(1, p1Missions.length)}
                       onChange={(e) => setM1Index(Number(e.target.value))}
                       className="w-full bg-slate-950 border border-sky-500/40 focus:border-sky-400 rounded-xl px-3 py-2.5 text-xs text-white font-bold focus:outline-none transition-colors cursor-pointer"
                     >
-                      {missionsPool.map((m, idx) => (
+                      {p1Missions.map((m, idx) => (
                         <option key={m.id} value={idx} className="bg-slate-900 text-white">
                           #{idx + 1} • {m.title}
                         </option>
                       ))}
                     </select>
-                    {missionsPool[m1Index]?.client && (
+                    {p1Missions[m1Index % Math.max(1, p1Missions.length)]?.client && (
                       <p className="text-[11px] text-slate-400 mt-1.5 truncate font-mono">
-                        Client : {missionsPool[m1Index]?.client}
+                        Client : {p1Missions[m1Index % Math.max(1, p1Missions.length)]?.client}
                       </p>
                     )}
                   </div>
@@ -467,26 +460,26 @@ export const HomeLauncherView: React.FC<HomeLauncherViewProps> = ({
                     <label className="block text-[11px] font-mono font-bold text-amber-300 mb-1.5 flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
                         <FileText className="w-3.5 h-3.5 text-amber-400" />
-                        MISSION POSTE 2
+                        MISSION POSTE 2 • ÉTAGÈRE B
                       </span>
                       <span className="text-[10px] font-mono text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded border border-amber-500/30 font-bold">
-                        {missionsPool[m2Index]?.steps?.length || 0} lignes
+                        {p2Missions[m2Index % Math.max(1, p2Missions.length)]?.steps?.length || 0} étapes
                       </span>
                     </label>
                     <select
-                      value={m2Index}
+                      value={m2Index % Math.max(1, p2Missions.length)}
                       onChange={(e) => setM2Index(Number(e.target.value))}
                       className="w-full bg-slate-950 border border-amber-500/40 focus:border-amber-400 rounded-xl px-3 py-2.5 text-xs text-white font-bold focus:outline-none transition-colors cursor-pointer"
                     >
-                      {missionsPool.map((m, idx) => (
+                      {p2Missions.map((m, idx) => (
                         <option key={m.id} value={idx} className="bg-slate-900 text-white">
                           #{idx + 1} • {m.title}
                         </option>
                       ))}
                     </select>
-                    {missionsPool[m2Index]?.client && (
+                    {p2Missions[m2Index % Math.max(1, p2Missions.length)]?.client && (
                       <p className="text-[11px] text-slate-400 mt-1.5 truncate font-mono">
-                        Client : {missionsPool[m2Index]?.client}
+                        Client : {p2Missions[m2Index % Math.max(1, p2Missions.length)]?.client}
                       </p>
                     )}
                   </div>

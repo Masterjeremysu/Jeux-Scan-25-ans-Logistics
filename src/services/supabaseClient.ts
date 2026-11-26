@@ -122,6 +122,10 @@ function mapInventoryToRow(item: InventoryItem) {
 }
 
 function mapMissionRow(row: any): Mission {
+  const assignedStation =
+    row.assigned_station === 'poste-1' || row.assigned_station === 'poste-2'
+      ? row.assigned_station
+      : 'any';
   return {
     id: row.id,
     code: row.code,
@@ -133,6 +137,8 @@ function mapMissionRow(row: any): Mission {
     basePoints: typeof row.base_points === 'number' ? row.base_points : 1200,
     steps: Array.isArray(row.steps) ? row.steps : [],
     stockDirection: (row.stock_direction === 'in' || row.stock_direction === 'none' || row.stock_direction === 'out') ? row.stock_direction : 'out',
+    assignedStation,
+    shelfZone: row.shelf_zone || '',
     isActive: row.is_active !== false,
     sortOrder: typeof row.sort_order === 'number' ? row.sort_order : 0
   };
@@ -152,6 +158,8 @@ function mapMissionToRow(mission: Mission, index: number) {
       ? mission.steps.map((s) => ({ ...s, completed: false, scannedCount: 0 }))
       : [],
     stock_direction: mission.stockDirection || 'out',
+    assigned_station: mission.assignedStation || 'any',
+    shelf_zone: mission.shelfZone || '',
     is_active: mission.isActive !== false,
     sort_order: index,
     updated_at: new Date().toISOString()
@@ -252,20 +260,25 @@ export async function syncLocations(locations: WarehouseLocation[]): Promise<boo
 
 export function subscribeToLocations(onChanged: (locations: WarehouseLocation[]) => void) {
   if (!supabase) return () => {};
+  let timer: ReturnType<typeof setTimeout> | null = null;
 
   const channel = supabase
     .channel(generateChannelId('wms-locations'))
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'wms_locations' },
-      async () => {
-        const fresh = await fetchLocations();
-        onChanged(fresh);
+      () => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(async () => {
+          const fresh = await fetchLocations();
+          onChanged(fresh);
+        }, 250);
       }
     )
     .subscribe();
 
   return () => {
+    if (timer) clearTimeout(timer);
     supabase.removeChannel(channel);
   };
 }
@@ -414,20 +427,25 @@ export async function resetInventoryToNominal(): Promise<boolean> {
 
 export function subscribeToInventory(onChanged: (items: InventoryItem[]) => void) {
   if (!supabase) return () => {};
+  let timer: ReturnType<typeof setTimeout> | null = null;
 
   const channel = supabase
     .channel(generateChannelId('wms-inventory'))
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'wms_inventory' },
-      async () => {
-        const fresh = await fetchInventory();
-        onChanged(fresh);
+      () => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(async () => {
+          const fresh = await fetchInventory();
+          onChanged(fresh);
+        }, 250);
       }
     )
     .subscribe();
 
   return () => {
+    if (timer) clearTimeout(timer);
     supabase.removeChannel(channel);
   };
 }
@@ -500,20 +518,25 @@ export async function syncMissions(missions: Mission[]): Promise<boolean> {
 
 export function subscribeToMissions(onChanged: (missions: Mission[]) => void) {
   if (!supabase) return () => {};
+  let timer: ReturnType<typeof setTimeout> | null = null;
 
   const channel = supabase
     .channel(generateChannelId('wms-missions'))
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'wms_missions' },
-      async () => {
-        const fresh = await fetchMissions();
-        onChanged(fresh);
+      () => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(async () => {
+          const fresh = await fetchMissions();
+          onChanged(fresh);
+        }, 250);
       }
     )
     .subscribe();
 
   return () => {
+    if (timer) clearTimeout(timer);
     supabase.removeChannel(channel);
   };
 }
@@ -630,6 +653,7 @@ export async function submitScore(score: Omit<RemoteScore, 'id' | 'created_at'>)
 
 export function subscribeToScores(onChanged: () => void) {
   if (!supabase) return () => {};
+  let timer: ReturnType<typeof setTimeout> | null = null;
 
   const channel = supabase
     .channel(generateChannelId('scores'))
@@ -637,12 +661,16 @@ export function subscribeToScores(onChanged: () => void) {
       'postgres_changes',
       { event: '*', schema: 'public', table: 'scores' },
       () => {
-        onChanged();
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+          onChanged();
+        }, 300);
       }
     )
     .subscribe();
 
   return () => {
+    if (timer) clearTimeout(timer);
     supabase.removeChannel(channel);
   };
 }

@@ -43,6 +43,8 @@ import {
   syncLocations,
   syncInventory,
   syncMissions,
+  fetchInventory,
+  fetchLocations,
   moveStockLoop,
   resetInventoryToNominal,
   resetAllScores, 
@@ -60,7 +62,7 @@ import {
 import { ConfirmModal } from './ConfirmModal';
 import { SmartImportModal } from './SmartImportModal';
 import { showToast } from './ToastNotification';
-import { generateAutoBalancedMissions } from '../services/autoLoopMissionGenerator';
+import { detectItemShelfLane, filterMissionsForStation, generateAutoBalancedMissions } from '../services/autoLoopMissionGenerator';
 import { Mission, MissionStep, InventoryItem, AppConfig, Distraction, LiveHazard, WarehouseLocation } from '../types';
 
 interface AdminConfigViewProps {
@@ -200,39 +202,83 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     const seed = Date.now();
     setMatchSeed(seed);
 
-    // Sync Duo 1 to Supabase
-    await updateStationLive({
-      station_id: 'poste-1',
-      station_name: 'Poste 1 (Scannette A)',
-      operator_cea: duo1Cea.trim() || 'Collaborateur GT 1',
-      client_guest: duo1Client.trim() || 'Invité 1',
-      team_name: `Duo ${duo1Client.trim() || 'Invité 1'}`,
-      score: 0,
-      combo: 0,
-      progress_percent: 0,
-      current_step_index: 0,
-      status: 'idle'
-    });
+    // 1. Génère automatiquement les missions 0-collision (Étagère A / Étagère B) + rattrapage table
+    let missionsPool = localMissions;
+    try {
+      const [freshInv, freshLocs] = await Promise.all([fetchInventory(), fetchLocations()]);
+      const invToUse = freshInv.length > 0 ? freshInv : localInventory;
+      const locsToUse = freshLocs.length > 0 ? freshLocs : localLocations;
+      if (freshInv.length > 0) {
+        setLocalInventory(freshInv);
+        onUpdateInventory(freshInv);
+      }
+      const generated = generateAutoBalancedMissions(invToUse, locsToUse, localConfig, 2);
+      if (generated.length > 0) {
+        missionsPool = generated;
+        isLocalEditingMissionsRef.current = false;
+        setLocalMissions(generated);
+        onUpdateMissions(generated);
+        await syncMissions(generated);
+      }
+    } catch (err) {
+      console.warn('[Admin] Fallback sur les missions actuelles:', err);
+    }
 
-    // Sync Duo 2 to Supabase
-    await updateStationLive({
-      station_id: 'poste-2',
-      station_name: 'Poste 2 (Scannette B)',
-      operator_cea: duo2Cea.trim() || 'Collaborateur GT 2',
-      client_guest: duo2Client.trim() || 'Invité 2',
-      team_name: `Duo ${duo2Client.trim() || 'Invité 2'}`,
-      score: 0,
-      combo: 0,
-      progress_percent: 0,
-      current_step_index: 0,
-      status: 'idle'
-    });
+    const p1Missions = filterMissionsForStation(missionsPool, 'poste-1');
+    const p2Missions = filterMissionsForStation(missionsPool, 'poste-2');
+    const m1 = p1Missions[0];
+    const m2 = p2Missions[0];
 
-    setShowMatchQRs(true);
+    // 2. Réveille immédiatement les 2 Zebras en direct (status: 'in_progress', score: 0, step: 0)
+    await Promise.all([
+      updateStationLive({
+        station_id: 'poste-1',
+        station_name: 'Poste 1 (Scannette A)',
+        operator_cea: duo1Cea.trim() || 'Collaborateur GT 1',
+        client_guest: duo1Client.trim() || 'Invité 1',
+        team_name: `Duo ${duo1Client.trim() || 'Invité 1'}`,
+        current_mission_title: m1?.title || 'Livraison Étagère A',
+        total_steps: m1?.steps?.length || 5,
+        score: 0,
+        combo: 0,
+        progress_percent: 0,
+        current_step_index: 0,
+        status: 'in_progress',
+        last_scan_code: null,
+        last_scan_status: null
+      }),
+      updateStationLive({
+        station_id: 'poste-2',
+        station_name: 'Poste 2 (Scannette B)',
+        operator_cea: duo2Cea.trim() || 'Collaborateur GT 2',
+        client_guest: duo2Client.trim() || 'Invité 2',
+        team_name: `Duo ${duo2Client.trim() || 'Invité 2'}`,
+        current_mission_title: m2?.title || 'Livraison Étagère B',
+        total_steps: m2?.steps?.length || 5,
+        score: 0,
+        combo: 0,
+        progress_percent: 0,
+        current_step_index: 0,
+        status: 'in_progress',
+        last_scan_code: null,
+        last_scan_status: null
+      })
+    ]);
+
     showToast({
-      title: 'Match Configuré !',
-      message: 'Scannez les 2 QR Codes sur les terminaux Zebra pour démarrer le duel',
-      type: 'success'
+      title: '🚀 DUEL LANCÉ EN DIRECT SUR LES 2 ZEBRAS !',
+      message: `Poste 1 (Étagère A) : ${duo1Client} | Poste 2 (Étagère B) : ${duo2Client}`,
+      type: 'success',
+      duration: 5000
+    });
+  };
+
+  const handleSetZebrasStandby = async () => {
+    await resetAllLiveStations();
+    showToast({
+      title: '📡 Les 2 Zebras sont en veille',
+      message: 'Elles attendent le prochain Top Départ depuis l\'Admin ou l\'Arène TV.',
+      type: 'info'
     });
   };
 
@@ -309,9 +355,9 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
     }
     setConfirmConfig({
       isOpen: true,
-      title: 'Générer une Boucle Auto-Équilibrée ?',
-      message: `Cette action crée ${autoMissions.length} missions (Livraison + Collecte) 100 % basées sur vos bacs réels en stock (${localInventory.filter((i) => i.quantity > 0).length} articles dispo) et les pièces sur table (${localInventory.filter((i) => (i.onTableQty || 0) > 0).length} sur table). Voulez-vous remplacer les missions actuelles ?`,
-      confirmLabel: '⚡ Générer la Boucle',
+      title: 'Générer la Boucle 2 Étagères (0 Collision) ?',
+      message: `Cette action crée ${autoMissions.length} missions strictement séparées : Poste 1 (Étagère A) et Poste 2 (Étagère B), avec rotation anti-redondance et rattrapage automatique des ${localInventory.filter((i) => (i.onTableQty || 0) > 0).length} pièce(s) sur table. Voulez-vous remplacer les missions actuelles ?`,
+      confirmLabel: '⚡ Générer Étagère A + B',
       variant: 'info',
       action: async () => {
         isLocalEditingMissionsRef.current = false;
@@ -320,8 +366,8 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
         onUpdateMissions(autoMissions);
         await syncMissions(autoMissions);
         showToast({
-          title: '⚡ Boucle Livraison + Collecte Générée !',
-          message: `${autoMissions.length} missions synchronisées avec vos vrais bacs Supabase (0 collision Poste 1 / Poste 2)`,
+          title: '⚡ Pack 2 Étagères Généré (0 Collision) !',
+          message: `${autoMissions.length} missions synchronisées : Couloir Bleu = Étagère A | Couloir Orange = Étagère B`,
           type: 'success'
         });
       }
@@ -1280,16 +1326,46 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                     )}
                   </>
                 ) : (
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <p className="text-[11px] text-emerald-700 font-bold">
-                      Pièces actuellement sur la table (prêtes à être collectées) :
+                      Pièces sur la table (rattrapage Collecte auto au prochain duel) :
                     </p>
-                    <div className="text-[11px] font-mono bg-emerald-50 border border-emerald-200 rounded-lg p-2 space-y-0.5 max-h-24 overflow-y-auto text-emerald-950">
-                      {itemsOnTable.map((it) => (
-                        <div key={it.id} className="truncate">
-                          • <strong>{it.onTableQty}×</strong> {it.name} → <span className="text-blue-700">{it.location}</span>
-                        </div>
-                      ))}
+                    <div className="text-[11px] font-mono bg-emerald-50 border border-emerald-200 rounded-lg p-2 space-y-1 max-h-28 overflow-y-auto text-emerald-950">
+                      {itemsOnTable.map((it) => {
+                        const lane = detectItemShelfLane(it, localLocations);
+                        return (
+                          <div key={it.id} className="flex items-center justify-between gap-1.5">
+                            <span className="truncate">
+                              <span className={`inline-block px-1 rounded text-[9px] font-black mr-1 ${lane.station === 'poste-1' ? 'bg-sky-100 text-sky-800' : 'bg-amber-100 text-amber-800'}`}>
+                                {lane.station === 'poste-1' ? 'A' : 'B'}
+                              </span>
+                              <strong>{it.onTableQty}×</strong> {it.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const updated = localInventory.map((row) =>
+                                  row.id === it.id
+                                    ? { ...row, quantity: row.quantity + 1, onTableQty: Math.max(0, (row.onTableQty || 0) - 1) }
+                                    : row
+                                );
+                                setLocalInventory(updated);
+                                onUpdateInventory(updated);
+                                await moveStockLoop(it.id, 'in');
+                                showToast({
+                                  title: '↩️ Pièce remise en bac',
+                                  message: `${it.name} → ${it.location}`,
+                                  type: 'success'
+                                });
+                              }}
+                              className="px-1.5 py-0.5 rounded bg-white hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold text-[10px] shrink-0 cursor-pointer"
+                              title="Marquer comme remise manuellement dans son bac"
+                            >
+                              ↩️ Bac
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1467,14 +1543,35 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
           </div>
         </div>
 
-        {/* Action Button: Create Match */}
-        <button
-          onClick={handleLaunchMatch}
-          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm flex items-center justify-center space-x-2 shadow-lg shadow-emerald-600/20 transition-transform active:scale-[0.99] cursor-pointer"
-        >
-          <Sparkles className="w-4 h-4" />
-          <span>⚡ CRÉER LE MATCH & GÉNÉRER LES QR CODES ZEBRA</span>
-        </button>
+        {/* Action Buttons: Direct Live Launch + Standby + QR toggle */}
+        <div className="flex flex-col sm:flex-row gap-2.5">
+          <button
+            type="button"
+            onClick={handleLaunchMatch}
+            className="flex-1 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm flex items-center justify-center space-x-2 shadow-lg shadow-emerald-600/20 transition-transform active:scale-[0.99] cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>🚀 LANCER LE DUEL EN DIRECT SUR LES 2 ZEBRAS (0 COLLISION)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSetZebrasStandby}
+            className="px-4 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shrink-0"
+            title="Remet les 2 Zebras sur l'écran d'attente entre deux duos"
+          >
+            <span>📡 Veille Zebras</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowMatchQRs((prev) => !prev)}
+            className="px-4 py-3 rounded-2xl bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shrink-0"
+            title="Afficher les QR Codes pour la première connexion des Zebras"
+          >
+            <span>📱 {showMatchQRs ? 'Masquer QR' : 'QR Codes'}</span>
+          </button>
+        </div>
 
         {/* Generated QR Codes Display */}
         {showMatchQRs && (
@@ -1850,8 +1947,20 @@ export const AdminConfigView: React.FC<AdminConfigViewProps> = ({
                   />
                 </div>
 
-                <div className="flex gap-2">
-                  <div className="flex-1">
+                <div className="flex flex-wrap gap-2">
+                  <div className="flex-1 min-w-[140px]">
+                    <label className="text-xs text-slate-700 block mb-1 font-bold">Couloir / Étagère :</label>
+                    <select
+                      value={localMissions[selectedMissionIndex].assignedStation || 'any'}
+                      onChange={(e) => updateMissionField('assignedStation', e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-blue-600 px-3 py-2 rounded-xl text-xs text-slate-900 font-bold focus:outline-none"
+                    >
+                      <option value="poste-1">🔵 Poste 1 • Étagère A</option>
+                      <option value="poste-2">🟠 Poste 2 • Étagère B</option>
+                      <option value="any">⚪ Libre (Tous les postes)</option>
+                    </select>
+                  </div>
+                  <div className="flex-1 min-w-[160px]">
                     <label className="text-xs text-slate-700 block mb-1 font-bold">Sens de Stock (Boucle Auto) :</label>
                     <select
                       value={localMissions[selectedMissionIndex].stockDirection || 'out'}

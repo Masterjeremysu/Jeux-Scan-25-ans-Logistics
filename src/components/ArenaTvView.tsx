@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { DuoStation, AppConfig, Mission, OperatorProfile } from '../types';
+import { DuoStation, AppConfig, Mission, OperatorProfile, InventoryItem, WarehouseLocation } from '../types';
 import { 
   getStationsLive, 
   subscribeToStationsLive, 
@@ -11,8 +11,17 @@ import {
   subscribeToLiveActivity,
   getRecentLiveActivities,
   updateStationLive,
+  fetchInventory,
+  fetchLocations,
+  syncMissions,
+  moveStockLoop,
   LiveActivityEvent
 } from '../services/supabaseClient';
+import {
+  detectItemShelfLane,
+  filterMissionsForStation,
+  generateAutoBalancedMissions
+} from '../services/autoLoopMissionGenerator';
 import { 
   Tv, 
   Trophy, 
@@ -56,10 +65,22 @@ import { soundService } from '../services/soundService';
 interface ArenaTvViewProps {
   appConfig: AppConfig;
   missions?: Mission[];
+  inventory?: InventoryItem[];
+  locations?: WarehouseLocation[];
+  onMissionsUpdated?: (missions: Mission[]) => void;
+  onInventoryUpdated?: (inventory: InventoryItem[]) => void;
   onBackToHome?: () => void;
 }
 
-export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: propMissions, onBackToHome }) => {
+export const ArenaTvView: React.FC<ArenaTvViewProps> = ({
+  appConfig,
+  missions: propMissions,
+  inventory: propInventory = [],
+  locations: propLocations = [],
+  onMissionsUpdated,
+  onInventoryUpdated,
+  onBackToHome
+}) => {
   const [stations, setStations] = useState<DuoStation[]>([]);
   const [topScores, setTopScores] = useState<RemoteScore[]>([]);
   const [lastEventMsg, setLastEventMsg] = useState<string>('En attente du départ du duel...');
@@ -77,7 +98,9 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
   const [d2Cea, setD2Cea] = useState(() => localStorage.getItem('gt_d2_collab') || 'Sarah (GT)');
   const [d2Guest, setD2Guest] = useState(() => localStorage.getItem('gt_d2_guest') || 'Alexandre (Invité)');
   const [selectedM1Idx, setSelectedM1Idx] = useState(0);
-  const [selectedM2Idx, setSelectedM2Idx] = useState(1);
+  const [selectedM2Idx, setSelectedM2Idx] = useState(0);
+  const [autoRotateOnLaunch, setAutoRotateOnLaunch] = useState<boolean>(appConfig.autoLoopEnabled !== false);
+  const [isClearingTable, setIsClearingTable] = useState<boolean>(false);
   const [duoRoundNumber, setDuoRoundNumber] = useState(1);
 
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
@@ -334,7 +357,20 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
         return [...prev, updatedStation];
       });
 
-      if (updatedStation.last_scan_code) {
+      // Auto-sync du chrono TV lorsqu'un duel est lancé en direct depuis l'Admin
+      const isFreshDuelStart =
+        updatedStation.status === 'in_progress' &&
+        (updatedStation.score || 0) === 0 &&
+        (updatedStation.current_step_index || 0) === 0 &&
+        (updatedStation.progress_percent || 0) === 0 &&
+        !updatedStation.last_scan_code;
+
+      if (isFreshDuelStart) {
+        setMatchSeconds(appConfig.shiftDurationSeconds || 180);
+        setIsMatchRunning(true);
+        setIsEndMatchModalOpen(false);
+        setLastEventMsg(`🚀 TOP DÉPART DUEL ! ${updatedStation.team_name} est en course !`);
+      } else if (updatedStation.last_scan_code) {
         setLastEventMsg(
           `⚡ ${updatedStation.team_name} a scanné [${updatedStation.last_scan_code}]`
         );
@@ -434,14 +470,12 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
 
   const handleRandomizeMissions = () => {
     soundService.playSuccessJingle();
-    const count = missionsPool.length;
-    const rand1 = Math.floor(Math.random() * count);
-    let rand2 = Math.floor(Math.random() * count);
-    if (count > 1 && rand2 === rand1) {
-      rand2 = (rand1 + 1) % count;
+    if (station1Missions.length > 0) {
+      setSelectedM1Idx(Math.floor(Math.random() * station1Missions.length));
     }
-    setSelectedM1Idx(rand1);
-    setSelectedM2Idx(rand2);
+    if (station2Missions.length > 0) {
+      setSelectedM2Idx(Math.floor(Math.random() * station2Missions.length));
+    }
   };
 
   const handleNextDuo = () => {
@@ -450,9 +484,37 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
     setDuoRoundNumber(nextRound);
     setD1Guest(`Invité Duo #${nextRound * 2 - 1}`);
     setD2Guest(`Invité Duo #${nextRound * 2}`);
-    const count = missionsPool.length;
-    setSelectedM1Idx((nextRound * 2 - 2) % count);
-    setSelectedM2Idx((nextRound * 2 - 1) % count);
+    if (station1Missions.length > 0) {
+      setSelectedM1Idx((nextRound - 1) % station1Missions.length);
+    }
+    if (station2Missions.length > 0) {
+      setSelectedM2Idx((nextRound - 1) % station2Missions.length);
+    }
+  };
+
+  const tableLeftoverItems = propInventory.filter((it) => (it.onTableQty || 0) > 0);
+  const tableLeftoverA = tableLeftoverItems.filter((it) => detectItemShelfLane(it, propLocations).station === 'poste-1');
+  const tableLeftoverB = tableLeftoverItems.filter((it) => detectItemShelfLane(it, propLocations).station === 'poste-2');
+
+  const handleReturnAllTableToBins = async () => {
+    if (tableLeftoverItems.length === 0 || isClearingTable) return;
+    setIsClearingTable(true);
+    try {
+      for (const item of tableLeftoverItems) {
+        const qtyToReturn = item.onTableQty || 0;
+        for (let i = 0; i < qtyToReturn; i++) {
+          await moveStockLoop(item.id, 'in');
+        }
+      }
+      const freshInv = await fetchInventory();
+      if (freshInv.length > 0 && onInventoryUpdated) {
+        onInventoryUpdated(freshInv);
+      }
+      soundService.playSuccessChime();
+      setLastEventMsg('📦 Pièces sur table remises en stock — prêt pour le prochain duel !');
+    } finally {
+      setIsClearingTable(false);
+    }
   };
 
   const handleLaunchDuelFromTv = async (e?: React.FormEvent) => {
@@ -465,8 +527,33 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
     const name1 = `Duo ${d1Guest.trim() || 'Invité 1'}`;
     const name2 = `Duo ${d2Guest.trim() || 'Invité 2'}`;
 
-    const m1Selected = missionsPool[selectedM1Idx % missionsPool.length] || missionsPool[0];
-    const m2Selected = missionsPool[selectedM2Idx % missionsPool.length] || missionsPool[1] || missionsPool[0];
+    let activeP1Missions = station1Missions;
+    let activeP2Missions = station2Missions;
+    let p1StartIdx = selectedM1Idx;
+    let p2StartIdx = selectedM2Idx;
+
+    // Auto-rotation Étagère A / B + auto-cicatrisation des pièces restées sur la table
+    if (autoRotateOnLaunch) {
+      try {
+        const [freshInv, freshLocs] = await Promise.all([fetchInventory(), fetchLocations()]);
+        const invToUse = freshInv.length > 0 ? freshInv : propInventory;
+        const locsToUse = freshLocs.length > 0 ? freshLocs : propLocations;
+        const freshMissions = generateAutoBalancedMissions(invToUse, locsToUse, appConfig, 2);
+        if (freshMissions.length > 0) {
+          await syncMissions(freshMissions);
+          if (onMissionsUpdated) onMissionsUpdated(freshMissions);
+          activeP1Missions = filterMissionsForStation(freshMissions, 'poste-1');
+          activeP2Missions = filterMissionsForStation(freshMissions, 'poste-2');
+          p1StartIdx = 0;
+          p2StartIdx = 0;
+        }
+      } catch (err) {
+        console.warn('[ArenaTv] Fallback sur les missions actuelles:', err);
+      }
+    }
+
+    const m1Selected = activeP1Missions[p1StartIdx % Math.max(1, activeP1Missions.length)] || activeP1Missions[0];
+    const m2Selected = activeP2Missions[p2StartIdx % Math.max(1, activeP2Missions.length)] || activeP2Missions[0];
 
     await updateStationLive({
       station_id: 'poste-1',
@@ -540,9 +627,8 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
   const isStation2Finished = (station2?.progress_percent ?? 0) >= 100 || station2?.status === 'completed';
 
   const missionsPool: Mission[] = propMissions || [];
-  const station1Missions = missionsPool;
-  // Poste 2 exécute les missions dans l'ordre inversé pour éviter que les deux binômes soient sur la même étagère
-  const station2Missions = missionsPool.slice().reverse();
+  const station1Missions = filterMissionsForStation(missionsPool, 'poste-1');
+  const station2Missions = filterMissionsForStation(missionsPool, 'poste-2');
 
   const getStationMissionIndex = (station?: DuoStation, missionsList: Mission[] = missionsPool): number => {
     if (!station) return 0;
@@ -849,7 +935,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
                   <span>Feuille de Route du Shift</span>
                 </span>
                 <span className="bg-sky-950 px-2 py-0.5 rounded-full text-sky-300 font-bold border border-sky-800/60">
-                  {completedCount1} / {missionsPool.length} Commandes
+                  {completedCount1} / {station1Missions.length} Commandes
                 </span>
               </div>
 
@@ -1100,7 +1186,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
                   <span>Feuille de Route du Shift</span>
                 </span>
                 <span className="bg-amber-950 px-2 py-0.5 rounded-full text-amber-300 font-bold border border-amber-800/60">
-                  {completedCount2} / {missionsPool.length} Commandes
+                  {completedCount2} / {station2Missions.length} Commandes
                 </span>
               </div>
 
@@ -1400,16 +1486,26 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
               Inscrivez les binômes ci-dessous. Les joueurs peuvent flasher directement ces QR codes avec leur scannette Zebra ou leur smartphone pour ouvrir leur session synchronisée !
             </p>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-950/60 p-3 rounded-2xl border border-slate-800 mb-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-950/60 p-3 rounded-2xl border border-slate-800 mb-3">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
                 <span className="text-xs font-mono font-bold text-slate-200">
                   Rotation Duos : <span className="text-amber-400">Manche #{duoRoundNumber}</span>
                 </span>
-                <span className="text-[10px] font-mono text-slate-400 hidden sm:inline">• 20 Pièces Wafers & Détachées</span>
+                <span className="text-[10px] font-mono text-emerald-400 hidden sm:inline">• 0 Collision : Poste 1 = Étagère A | Poste 2 = Étagère B</span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-xs font-bold cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={autoRotateOnLaunch}
+                    onChange={(e) => setAutoRotateOnLaunch(e.target.checked)}
+                    className="accent-emerald-400 cursor-pointer"
+                  />
+                  <span>⚡ Nouvelles pièces auto au départ</span>
+                </label>
+
                 <button
                   type="button"
                   onClick={handleRandomizeMissions}
@@ -1417,7 +1513,7 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
                   title="Tirer 2 commandes différentes au sort"
                 >
                   <Shuffle className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>🎲 Missions Aléatoires</span>
+                  <span>🎲 Aléatoire</span>
                 </button>
 
                 <button
@@ -1430,6 +1526,34 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
                 </button>
               </div>
             </div>
+
+            {tableLeftoverItems.length > 0 && (
+              <div className="mb-4 p-3 rounded-2xl bg-amber-950/50 border border-amber-500/50 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="text-amber-200 space-y-0.5">
+                  <div className="font-black flex items-center gap-1.5 text-amber-300">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>
+                      {tableLeftoverItems.reduce((acc, it) => acc + (it.onTableQty || 0), 0)} pièce(s) actuellement sur la table
+                      {tableLeftoverA.length > 0 ? ` • Étagère A (${tableLeftoverA.length})` : ''}
+                      {tableLeftoverB.length > 0 ? ` • Étagère B (${tableLeftoverB.length})` : ''}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-amber-200/80">
+                    {autoRotateOnLaunch
+                      ? 'Auto-cicatrisation active : le prochain duo de l\'étagère concernée recevra automatiquement une Collecte prioritaire pour les ranger !'
+                      : 'Activez « Nouvelles pièces auto » ou remettez-les en bac ci-contre si vous les avez rangées à la main.'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={isClearingTable}
+                  onClick={handleReturnAllTableToBins}
+                  className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black text-xs cursor-pointer transition-colors shrink-0"
+                >
+                  {isClearingTable ? '⏳ Synchro...' : '↩️ Remises en bac (manuel)'}
+                </button>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-2">
               {/* DUO 1 FORM & QR */}
@@ -1475,25 +1599,32 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
                     <label className="block text-xs font-bold text-sky-300 mb-1 flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
                         <FileText className="w-3.5 h-3.5 text-sky-400" />
-                        Demande / Mission Poste 1 :
+                        Couloir Étagère A (Poste 1) :
                       </span>
                       <span className="text-[10px] font-mono text-sky-400 font-bold">
-                        {missionsPool[selectedM1Idx]?.steps?.length || 7} lignes
+                        {autoRotateOnLaunch
+                          ? '⚡ Auto-rotation active'
+                          : `${station1Missions[selectedM1Idx % Math.max(1, station1Missions.length)]?.steps?.length || 5} étapes`}
                       </span>
                     </label>
                     <select
-                      value={selectedM1Idx}
+                      value={selectedM1Idx % Math.max(1, station1Missions.length)}
                       onChange={(e) => setSelectedM1Idx(Number(e.target.value))}
-                      className="w-full bg-slate-900 border border-sky-500/50 focus:border-sky-400 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none transition-colors"
+                      disabled={autoRotateOnLaunch}
+                      className="w-full bg-slate-900 border border-sky-500/50 focus:border-sky-400 disabled:opacity-60 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none transition-colors"
                     >
-                      {missionsPool.map((m, idx) => (
+                      {station1Missions.map((m, idx) => (
                         <option key={m.id} value={idx}>
                           #{idx + 1} • {m.title}
                         </option>
                       ))}
                     </select>
                     <p className="text-[10px] text-slate-400 mt-1 truncate">
-                      {missionsPool[selectedM1Idx]?.client}
+                      {autoRotateOnLaunch
+                        ? (tableLeftoverA.length > 0
+                            ? `📥 Rattrapage auto : ${tableLeftoverA.length} pièce(s) Étagère A sur table`
+                            : '📦 Tirage neuf sur Étagère A (0 doublon)')
+                        : station1Missions[selectedM1Idx % Math.max(1, station1Missions.length)]?.client}
                     </p>
                   </div>
                 </div>
@@ -1564,25 +1695,32 @@ export const ArenaTvView: React.FC<ArenaTvViewProps> = ({ appConfig, missions: p
                     <label className="block text-xs font-bold text-amber-300 mb-1 flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
                         <FileText className="w-3.5 h-3.5 text-amber-400" />
-                        Demande / Mission Poste 2 :
+                        Couloir Étagère B (Poste 2) :
                       </span>
                       <span className="text-[10px] font-mono text-amber-400 font-bold">
-                        {missionsPool[selectedM2Idx]?.steps?.length || 7} lignes
+                        {autoRotateOnLaunch
+                          ? '⚡ Auto-rotation active'
+                          : `${station2Missions[selectedM2Idx % Math.max(1, station2Missions.length)]?.steps?.length || 5} étapes`}
                       </span>
                     </label>
                     <select
-                      value={selectedM2Idx}
+                      value={selectedM2Idx % Math.max(1, station2Missions.length)}
                       onChange={(e) => setSelectedM2Idx(Number(e.target.value))}
-                      className="w-full bg-slate-900 border border-amber-500/50 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none transition-colors"
+                      disabled={autoRotateOnLaunch}
+                      className="w-full bg-slate-900 border border-amber-500/50 focus:border-amber-400 disabled:opacity-60 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none transition-colors"
                     >
-                      {missionsPool.map((m, idx) => (
+                      {station2Missions.map((m, idx) => (
                         <option key={m.id} value={idx}>
                           #{idx + 1} • {m.title}
                         </option>
                       ))}
                     </select>
                     <p className="text-[10px] text-slate-400 mt-1 truncate">
-                      {missionsPool[selectedM2Idx]?.client}
+                      {autoRotateOnLaunch
+                        ? (tableLeftoverB.length > 0
+                            ? `📥 Rattrapage auto : ${tableLeftoverB.length} pièce(s) Étagère B sur table`
+                            : '📦 Tirage neuf sur Étagère B (0 doublon)')
+                        : station2Missions[selectedM2Idx % Math.max(1, station2Missions.length)]?.client}
                     </p>
                   </div>
                 </div>
