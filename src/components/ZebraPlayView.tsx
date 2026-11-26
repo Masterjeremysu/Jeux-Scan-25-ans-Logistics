@@ -581,65 +581,19 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
               </p>
             </div>
 
-            {/* SYNERGIE DUO : Rôle Pilote Scanner vs Co-Pilote Mains Libres + Coup d'avance */}
+            {/* Coup d'avance compact (1 ligne) pour préparer le prochain bac sans encombrer l'écran Zebra */}
             {(() => {
               const currentIdx = mission.steps.findIndex((s) => s.id === currentStep.id);
               const nextUpcomingLocation = mission.steps
                 .slice(currentIdx + 1)
                 .find((s) => !s.completed && s.barcodeType === 'location' && !s.expectedBarcode.includes('COLLECTE'));
-
-              const copilotAction =
-                currentStep.barcodeType === 'dock'
-                  ? 'Pose les pièces proprement sur la Table de Livraison.'
-                  : currentStep.barcodeType === 'article'
-                  ? mission.stockDirection === 'none'
-                    ? 'Montre le code-barres de la pièce dans le bac sans la sortir !'
-                    : 'Saisis la pièce et présente son code-barres face au laser !'
-                  : currentStep.expectedBarcode.includes('COLLECTE')
-                  ? 'Repère déjà la pièce à prendre sur la Table de Collecte !'
-                  : mission.stockDirection === 'in'
-                  ? `Pose la pièce dans le bac ${currentStep.targetLabel} pendant le scan !`
-                  : `Pointe le bac ${currentStep.targetLabel} et prépare la pièce !`;
-
-              const scannerAction =
-                currentStep.barcodeType === 'article'
-                  ? 'Flashe le code-barres que ton co-pilote te présente.'
-                  : 'Flashe l\'étiquette dès que ton co-pilote te la montre.';
-
+              if (!nextUpcomingLocation) return null;
               return (
-                <div className="bg-indigo-50/80 border border-indigo-200 rounded-2xl p-3 space-y-2 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-black uppercase text-indigo-800 flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5 text-indigo-600" />
-                      <span>🤝 Synergie Binôme (Mains Libres + Scanner)</span>
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div className="bg-white/90 rounded-xl px-2.5 py-2 border border-indigo-200/80">
-                      <span className="text-[10px] font-mono font-black text-indigo-700 uppercase block">
-                        🏃 {operatorCea} (Co-Pilote)
-                      </span>
-                      <span className="text-[11px] font-bold text-slate-800 leading-snug block">
-                        {copilotAction}
-                      </span>
-                    </div>
-                    <div className="bg-white/90 rounded-xl px-2.5 py-2 border border-sky-200/80">
-                      <span className="text-[10px] font-mono font-black text-sky-700 uppercase block">
-                        🔫 {clientGuest} (Scanner)
-                      </span>
-                      <span className="text-[11px] font-bold text-slate-800 leading-snug block">
-                        {scannerAction}
-                      </span>
-                    </div>
-                  </div>
-                  {nextUpcomingLocation && (
-                    <div className="bg-amber-50 border border-amber-300 rounded-xl px-2.5 py-1.5 text-[11px] text-amber-950 font-bold flex items-center justify-between gap-2">
-                      <span>⏭️ Coup d'avance Co-Pilote — Prochain bac à repérer :</span>
-                      <span className="font-mono font-black text-amber-900 bg-amber-200/70 px-2 py-0.5 rounded-lg shrink-0">
-                        {nextUpcomingLocation.expectedBarcode}
-                      </span>
-                    </div>
-                  )}
+                <div className="bg-amber-50/90 border border-amber-300 rounded-xl px-3 py-1.5 text-[11px] text-amber-950 font-bold flex items-center justify-between gap-2">
+                  <span>⏭️ Bac suivant :</span>
+                  <span className="font-mono font-black text-amber-900 bg-amber-200/70 px-2 py-0.5 rounded-lg shrink-0">
+                    {nextUpcomingLocation.expectedBarcode}
+                  </span>
                 </div>
               );
             })()}
