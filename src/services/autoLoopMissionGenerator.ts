@@ -193,24 +193,27 @@ export function generateAutoBalancedMissions(
     orderIdx: number
   ): Mission => {
     const steps: MissionStep[] = [];
+    const total = chosenItems.length;
     chosenItems.forEach((item, idx) => {
       const binLoc = findLoc(item.location);
+      const binName = binLoc?.label || item.location;
+      const numTag = total > 1 ? `Pièce ${idx + 1}/${total}` : 'Pièce unique';
       steps.push({
         id: `auto-del-loc-${lane.station}-${nowId}-${orderIdx}-${idx}`,
-        instruction: `Rendez-vous au bac ${binLoc?.label || item.location} et scannez l'emplacement.`,
+        instruction: `${numTag} — Allez devant le bac ${binName} et flashez l'étiquette du bac.`,
         expectedBarcode: item.location,
         barcodeType: 'location',
-        targetLabel: binLoc?.label || item.location,
+        targetLabel: binName,
         lrCode: binLoc?.lrCode || item.location.toUpperCase().replace(/[^A-Z0-9]+/g, '_'),
         crLabel: binLoc?.crLabel || item.location.toUpperCase(),
         quantity: 1,
         scannedCount: 0,
         completed: false,
-        hint: `Scannez l'étiquette du bac ${item.location}.`
+        hint: `Flashez l'étiquette collée sur le bac ${item.location}.`
       });
       steps.push({
         id: `auto-del-art-${lane.station}-${nowId}-${orderIdx}-${idx}`,
-        instruction: `Prélevez et scannez ${item.name} (${item.sku}).`,
+        instruction: `${numTag} — Sortez « ${item.name} » du bac et flashez son code-barres.`,
         expectedBarcode: item.sku,
         barcodeType: 'article',
         targetLabel: item.name,
@@ -219,22 +222,22 @@ export function generateAutoBalancedMissions(
         quantity: 1,
         scannedCount: 0,
         completed: false,
-        hint: `Scannez le code-barres ${item.sku} sur la pièce.`
+        hint: `Prenez la pièce en main et flashez ${item.sku}.`
       });
     });
 
     steps.push({
       id: `auto-del-end-${lane.station}-${nowId}-${orderIdx}`,
-      instruction: `Déposez la commande sur la ${deliveryLoc?.label || 'Table de Livraison'} et validez le scan final.`,
+      instruction: `Étape finale — Déposez ${total > 1 ? `les ${total} pièces` : 'la pièce'} sur la Table de Livraison et flashez son étiquette.`,
       expectedBarcode: deliveryBarcode,
       barcodeType: 'dock',
-      targetLabel: deliveryLoc?.label || 'Table de Livraison Client',
+      targetLabel: 'Table de Livraison Client',
       lrCode: deliveryLoc?.lrCode || 'ETA_LIVR',
       crLabel: deliveryLoc?.crLabel || 'TABLE LIVRAISON CLIENT',
       quantity: 1,
       scannedCount: 0,
       completed: false,
-      hint: `Scannez l'étiquette ${deliveryBarcode} pour clôturer la livraison.`
+      hint: `Flashez l'étiquette ${deliveryBarcode} sur la Table de Livraison pour terminer.`
     });
 
     const itemNames = chosenItems.map((i) => i.name).join(' + ');
@@ -266,27 +269,30 @@ export function generateAutoBalancedMissions(
     orderIdx: number,
     isRecovery: boolean
   ): Mission => {
+    const total = chosenItems.length;
     const steps: MissionStep[] = [
       {
         id: `auto-col-start-${lane.station}-${nowId}-${orderIdx}`,
-        instruction: `Rendez-vous à la ${collectLoc?.label || 'Table de Collecte'} et scannez l'emplacement.`,
+        instruction: `Départ — Allez à la Table de Collecte et flashez son étiquette pour récupérer ${total > 1 ? `${total} pièces` : 'la pièce'}.`,
         expectedBarcode: collectBarcode,
         barcodeType: 'location',
-        targetLabel: collectLoc?.label || 'Table de Collecte & Retours',
+        targetLabel: 'Table de Collecte & Retours',
         lrCode: collectLoc?.lrCode || 'ETA_COLLECT',
         crLabel: collectLoc?.crLabel || 'TABLE COLLECTE RETOURS',
         quantity: 1,
         scannedCount: 0,
         completed: false,
-        hint: `Scannez l'étiquette ${collectBarcode}.`
+        hint: `Flashez l'étiquette ${collectBarcode} sur la Table de Collecte.`
       }
     ];
 
     chosenItems.forEach((item, idx) => {
       const binLoc = findLoc(item.location);
+      const binName = binLoc?.label || item.location;
+      const numTag = total > 1 ? `Pièce ${idx + 1}/${total}` : 'Pièce unique';
       steps.push({
         id: `auto-col-art-${lane.station}-${nowId}-${orderIdx}-${idx}`,
-        instruction: `Récupérez sur la table et scannez ${item.name} (${item.sku}).`,
+        instruction: `${numTag} — Prenez « ${item.name} » sur la table et flashez son code-barres.`,
         expectedBarcode: item.sku,
         barcodeType: 'article',
         targetLabel: item.name,
@@ -295,20 +301,20 @@ export function generateAutoBalancedMissions(
         quantity: 1,
         scannedCount: 0,
         completed: false,
-        hint: `Scannez le code-barres ${item.sku}.`
+        hint: `Flashez le code-barres ${item.sku} sur la pièce.`
       });
       steps.push({
         id: `auto-col-bin-${lane.station}-${nowId}-${orderIdx}-${idx}`,
-        instruction: `Rangez la pièce dans son bac d'origine ${binLoc?.label || item.location} et scannez l'emplacement (+1 stock).`,
+        instruction: `Rangement ${idx + 1}/${total} — Posez la pièce dans son bac ${binName} et flashez le bac pour confirmer.`,
         expectedBarcode: item.location,
         barcodeType: 'location',
-        targetLabel: binLoc?.label || item.location,
+        targetLabel: binName,
         lrCode: binLoc?.lrCode || item.location.toUpperCase().replace(/[^A-Z0-9]+/g, '_'),
         crLabel: binLoc?.crLabel || item.location.toUpperCase(),
         quantity: 1,
         scannedCount: 0,
         completed: false,
-        hint: `Scannez l'étiquette du bac ${item.location} pour réintégrer la pièce.`
+        hint: `Flashez l'étiquette du bac ${item.location} pour prouver que la pièce est bien rangée.`
       });
     });
 
@@ -344,24 +350,27 @@ export function generateAutoBalancedMissions(
     orderIdx: number
   ): Mission => {
     const steps: MissionStep[] = [];
+    const total = chosenItems.length;
     chosenItems.forEach((item, idx) => {
       const binLoc = findLoc(item.location);
+      const binName = binLoc?.label || item.location;
+      const numTag = total > 1 ? `Contrôle ${idx + 1}/${total}` : 'Contrôle unique';
       steps.push({
         id: `auto-inv-loc-${lane.station}-${nowId}-${orderIdx}-${idx}`,
-        instruction: `Contrôle inventaire : rendez-vous au bac ${binLoc?.label || item.location} et scannez l'emplacement.`,
+        instruction: `${numTag} — Allez devant le bac ${binName} et flashez l'étiquette du bac.`,
         expectedBarcode: item.location,
         barcodeType: 'location',
-        targetLabel: binLoc?.label || item.location,
+        targetLabel: binName,
         lrCode: binLoc?.lrCode || item.location.toUpperCase().replace(/[^A-Z0-9]+/g, '_'),
         crLabel: binLoc?.crLabel || item.location.toUpperCase(),
         quantity: 1,
         scannedCount: 0,
         completed: false,
-        hint: `Scannez l'étiquette du bac ${item.location}.`
+        hint: `Flashez le bac ${item.location} (ne sortez pas la pièce).`
       });
       steps.push({
         id: `auto-inv-art-${lane.station}-${nowId}-${orderIdx}-${idx}`,
-        instruction: `Contrôlez sur place (sans retirer du bac) et scannez ${item.name} (${item.sku}).`,
+        instruction: `${numTag} — Flashez « ${item.name} » SUR PLACE et laissez-la dans son bac !`,
         expectedBarcode: item.sku,
         barcodeType: 'article',
         targetLabel: item.name,
@@ -370,22 +379,8 @@ export function generateAutoBalancedMissions(
         quantity: 1,
         scannedCount: 0,
         completed: false,
-        hint: `Scannez ${item.sku} puis laissez la pièce dans son bac.`
+        hint: `Flashez ${item.sku} sur place — la pièce reste dans son bac.`
       });
-    });
-
-    steps.push({
-      id: `auto-inv-end-${lane.station}-${nowId}-${orderIdx}`,
-      instruction: `Validez votre rapport de contrôle qualité sur la ${deliveryLoc?.label || 'Table de Livraison'}.`,
-      expectedBarcode: deliveryBarcode,
-      barcodeType: 'dock',
-      targetLabel: deliveryLoc?.label || 'Validation Contrôle Qualité',
-      lrCode: deliveryLoc?.lrCode || 'ETA_LIVR',
-      crLabel: deliveryLoc?.crLabel || 'VALIDATION CONTROLE',
-      quantity: 1,
-      scannedCount: 0,
-      completed: false,
-      hint: `Scannez l'étiquette ${deliveryBarcode} pour valider le contrôle.`
     });
 
     const itemNames = chosenItems.map((i) => i.name).join(' + ');

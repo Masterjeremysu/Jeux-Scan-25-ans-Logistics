@@ -493,35 +493,156 @@ export const ZebraPlayView: React.FC<ZebraPlayViewProps> = ({
             </div>
           </div>
         ) : currentStep ? (
-          <div className="w-full bg-white rounded-3xl p-4 sm:p-7 border border-slate-200 shadow-xl space-y-4">
-            {/* Mission Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <div>
-                <span className="text-[11px] font-mono font-bold text-blue-700 uppercase tracking-wider block">
-                  {mission.code} • Mission {currentMissionIndex + 1}/{missions.length}
-                </span>
-                <h1 className="text-base sm:text-2xl font-black text-slate-900 tracking-tight">
-                  {mission.title}
-                </h1>
-              </div>
-              <div className="text-right">
-                <span className="text-[11px] font-mono text-slate-500 block">Étape</span>
-                <span className="text-base sm:text-lg font-black font-mono text-blue-700">
-                  {completedStepsCount + 1} / {totalStepsCount}
-                </span>
-              </div>
+          <div className="w-full bg-white rounded-3xl p-4 sm:p-7 border border-slate-200 shadow-xl space-y-3.5">
+            {/* Mission Type Summary Banner (Ultra-clair pour des invités non-experts) */}
+            {(() => {
+              const dir = mission.stockDirection || 'out';
+              const articleStepsCount = mission.steps.filter((s) => s.barcodeType === 'article').length;
+              const isOut = dir === 'out';
+              const isIn = dir === 'in';
+              const bannerClasses = isOut
+                ? 'bg-sky-50 border-sky-300 text-sky-950'
+                : isIn
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                : 'bg-purple-50 border-purple-300 text-purple-950';
+              const badgeClasses = isOut
+                ? 'bg-sky-600 text-white'
+                : isIn
+                ? 'bg-emerald-600 text-white'
+                : 'bg-purple-600 text-white';
+              const badgeText = isOut
+                ? '📤 LIVRAISON'
+                : isIn
+                ? '📥 RANGEMENT'
+                : '🔍 INVENTAIRE SUR PLACE';
+              const summaryText = isOut
+                ? `Sortez ${articleStepsCount} pièce(s) de ${isPoste1 ? 'l\'Étagère A' : 'l\'Étagère B'} puis déposez-les sur la Table de Livraison.`
+                : isIn
+                ? `Prenez ${articleStepsCount} pièce(s) sur la Table de Collecte et rangez-les dans leurs bacs.`
+                : `Contrôlez ${articleStepsCount} pièce(s) SUR PLACE sans les sortir de leurs bacs !`;
+
+              return (
+                <div className={`rounded-2xl px-3.5 py-2.5 border flex flex-wrap items-center justify-between gap-2 ${bannerClasses}`}>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`text-[10px] font-mono font-black px-2 py-0.5 rounded-lg shrink-0 ${badgeClasses}`}>
+                      {badgeText}
+                    </span>
+                    <span className="text-xs font-bold leading-tight">{summaryText}</span>
+                  </div>
+                  <span className="text-[10px] font-mono font-black opacity-75 shrink-0">
+                    Mission {currentMissionIndex + 1}/{missions.length}
+                  </span>
+                </div>
+              );
+            })()}
+
+            {/* Visual Step Roadmap (Feuille de route complète en un coup d'œil) */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+              {mission.steps.map((st, idx) => {
+                const isCurrent = st.id === currentStep.id;
+                const shortLabel =
+                  st.barcodeType === 'dock'
+                    ? 'Table Livr.'
+                    : st.barcodeType === 'article'
+                    ? 'Pièce'
+                    : st.expectedBarcode.includes('COLLECTE')
+                    ? 'Table Coll.'
+                    : 'Bac';
+                return (
+                  <div
+                    key={st.id}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-xl text-[10px] font-mono font-black border shrink-0 transition-all ${
+                      st.completed
+                        ? 'bg-emerald-100 border-emerald-400 text-emerald-800'
+                        : isCurrent
+                        ? isPoste1
+                          ? 'bg-sky-600 border-sky-700 text-white shadow-sm scale-105'
+                          : 'bg-amber-500 border-amber-600 text-slate-950 shadow-sm scale-105'
+                        : 'bg-slate-100 border-slate-200 text-slate-500'
+                    }`}
+                  >
+                    <span>{st.completed ? '✓' : `${idx + 1}.`}</span>
+                    <span>{shortLabel}</span>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Instruction Prompt */}
             <div className="bg-blue-50/90 p-3.5 sm:p-4 rounded-2xl border-2 border-blue-200 space-y-1.5 shadow-sm">
-              <span className="text-[11px] font-mono uppercase font-bold text-blue-800 flex items-center space-x-1">
-                <Zap className="w-3.5 h-3.5" />
-                <span>Consigne d'action immédiate :</span>
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-mono uppercase font-bold text-blue-800 flex items-center space-x-1">
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Étape {completedStepsCount + 1} / {totalStepsCount} — À faire maintenant :</span>
+                </span>
+              </div>
               <p className="text-sm sm:text-xl font-extrabold text-slate-900 leading-snug">
                 {currentStep.instruction}
               </p>
             </div>
+
+            {/* SYNERGIE DUO : Rôle Pilote Scanner vs Co-Pilote Mains Libres + Coup d'avance */}
+            {(() => {
+              const currentIdx = mission.steps.findIndex((s) => s.id === currentStep.id);
+              const nextUpcomingLocation = mission.steps
+                .slice(currentIdx + 1)
+                .find((s) => !s.completed && s.barcodeType === 'location' && !s.expectedBarcode.includes('COLLECTE'));
+
+              const copilotAction =
+                currentStep.barcodeType === 'dock'
+                  ? 'Pose les pièces proprement sur la Table de Livraison.'
+                  : currentStep.barcodeType === 'article'
+                  ? mission.stockDirection === 'none'
+                    ? 'Montre le code-barres de la pièce dans le bac sans la sortir !'
+                    : 'Saisis la pièce et présente son code-barres face au laser !'
+                  : currentStep.expectedBarcode.includes('COLLECTE')
+                  ? 'Repère déjà la pièce à prendre sur la Table de Collecte !'
+                  : mission.stockDirection === 'in'
+                  ? `Pose la pièce dans le bac ${currentStep.targetLabel} pendant le scan !`
+                  : `Pointe le bac ${currentStep.targetLabel} et prépare la pièce !`;
+
+              const scannerAction =
+                currentStep.barcodeType === 'article'
+                  ? 'Flashe le code-barres que ton co-pilote te présente.'
+                  : 'Flashe l\'étiquette dès que ton co-pilote te la montre.';
+
+              return (
+                <div className="bg-indigo-50/80 border border-indigo-200 rounded-2xl p-3 space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-black uppercase text-indigo-800 flex items-center gap-1">
+                      <Users className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>🤝 Synergie Binôme (Mains Libres + Scanner)</span>
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="bg-white/90 rounded-xl px-2.5 py-2 border border-indigo-200/80">
+                      <span className="text-[10px] font-mono font-black text-indigo-700 uppercase block">
+                        🏃 {operatorCea} (Co-Pilote)
+                      </span>
+                      <span className="text-[11px] font-bold text-slate-800 leading-snug block">
+                        {copilotAction}
+                      </span>
+                    </div>
+                    <div className="bg-white/90 rounded-xl px-2.5 py-2 border border-sky-200/80">
+                      <span className="text-[10px] font-mono font-black text-sky-700 uppercase block">
+                        🔫 {clientGuest} (Scanner)
+                      </span>
+                      <span className="text-[11px] font-bold text-slate-800 leading-snug block">
+                        {scannerAction}
+                      </span>
+                    </div>
+                  </div>
+                  {nextUpcomingLocation && (
+                    <div className="bg-amber-50 border border-amber-300 rounded-xl px-2.5 py-1.5 text-[11px] text-amber-950 font-bold flex items-center justify-between gap-2">
+                      <span>⏭️ Coup d'avance Co-Pilote — Prochain bac à repérer :</span>
+                      <span className="font-mono font-black text-amber-900 bg-amber-200/70 px-2 py-0.5 rounded-lg shrink-0">
+                        {nextUpcomingLocation.expectedBarcode}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Big Physical Target Display */}
             <div className="bg-slate-50 p-4 sm:p-5 rounded-2xl border-2 border-dashed border-slate-300 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left shadow-sm">
